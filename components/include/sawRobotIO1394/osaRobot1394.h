@@ -133,6 +133,7 @@ public:
     const vctDoubleVec & BrakeTimeStamp(void) const;
     const vctDoubleVec & EncoderPosition(void) const;
     const vctDoubleVec & EncoderVelocity(void) const;
+    const vctDoubleVec & EncoderAcceleration(void) const;
     const vctDoubleVec & EncoderVelocitySoftware(void) const;
     /**}**/
 
@@ -162,8 +163,8 @@ public:
     //! Conversions for encoders
     void EncoderPositionToBits(const vctDoubleVec & pos, vctIntVec & bits) const;
     void EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & pos) const;
-    void EncoderBitsToVelocity(const vctIntVec & bits, vctDoubleVec & vel) const;
-
+    void EncoderBitsToVelocity(vctDoubleVec & vel) const;
+    
     //! Conversions for actuator current commands and measurements
     void ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoubleVec & currents) const;
     void ActuatorCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const;
@@ -265,10 +266,9 @@ protected:
         mPotBits,
         mEncoderPositionBits,
         mEncoderPositionBitsPrev,
-        mEncoderVelocityBits,     // latched velocity
         mEncoderDPositionBits,
         mEncoderDTimeBits;
-
+    
     vctIntVec
         mActuatorCurrentBitsCommand,
         mBrakeCurrentBitsCommand,
@@ -283,8 +283,9 @@ protected:
         mPotVoltage,
         mPotPosition,
         mEncoderPosition,
-        mEncoderVelocityCountsPerSecond,  // velocity based on FPGA measurement of time between encoder edges (period)
         mEncoderVelocity,
+        mEncoderVelocityBits,     // latched velocity
+        mEncoderAcceleration,
         mEncoderVelocitySoftware,
         mJointPosition,
         mJointVelocity,

@@ -36,7 +36,9 @@ int main(int argc, char * argv[])
 {
     cmnCommandLineOptions options;
     int portNumber = 0;
-    size_t actuatorIndex = 0;
+    int actuatorIndex = 0;
+    int startIndex = 0;
+    int endIndex = startIndex + 4;
     size_t numberOfIterations;
     double sleepBetweenReads = 0.3 * cmn_ms;
     std::string configFile;
@@ -74,13 +76,14 @@ int main(int argc, char * argv[])
 
     // add arrays here for all data collected....
     std::cout << "Allocation memory for " << numberOfIterations << " samples." << std::endl;
-    size_t * allIterations = new size_t[numberOfIterations];
-    double * allActuatorTimeStamps = new double[numberOfIterations];
-    double * allCPUTimes = new double[numberOfIterations];
-    double * allPositions = new double[numberOfIterations];
-    double * allVelocities = new double[numberOfIterations];
-    double * allVelocitiesSoftware = new double[numberOfIterations];
-
+    size_t allIterations[numberOfIterations];
+    //    double * allActuatorTimeStamps = new double[numberOfIterations];
+    double allCPUTimes[numberOfIterations];
+    double allPositions[numberOfIterations][4];
+    double allVelocities[numberOfIterations][4];
+    double allAccelerations[numberOfIterations][4];
+    double allVelocitiesSoftware[numberOfIterations][4];
+    
     std::cout << "Loading config file ..." << std::endl;
     sawRobotIO1394::osaPort1394Configuration config;
     sawRobotIO1394::osaXML1394ConfigurePort(configFile, config);
@@ -99,7 +102,7 @@ int main(int argc, char * argv[])
     std::cout << "Creating port ..." << std::endl;
     sawRobotIO1394::osaPort1394 * port = new sawRobotIO1394::osaPort1394(portNumber);
     port->AddRobot(robot);
-
+   
     // make sure we have at least one set of pots values
     try {
         port->Read();
@@ -134,7 +137,6 @@ int main(int argc, char * argv[])
          iter < numberOfIterations;
          ++iter) {
         port->Read();
-
         // save index
         allIterations[iter] = iter;
 
@@ -142,19 +144,25 @@ int main(int argc, char * argv[])
         allCPUTimes[iter] = mtsManagerLocal::GetInstance()->GetTimeServer().GetRelativeTime();
 
         // get time from FPGA
-        allActuatorTimeStamps[iter] =
-            robot->ActuatorTimeStamp()[actuatorIndex];
+        // allActuatorTimeStamps[iter] =
+        //robot->ActuatorTimeStamp()[actuatorIndex];
 
         // get positions, see osaRobot1394.cpp, line ~1000
-        allPositions[iter] =
-            robot->EncoderPosition()[actuatorIndex];
+        for (actuatorIndex = startIndex; actuatorIndex < endIndex; ++actuatorIndex)
+            {
+                allPositions[iter][actuatorIndex-startIndex] =
+                    robot->EncoderPosition()[actuatorIndex];
 
-        allVelocities[iter] =
-            robot->EncoderVelocity()[actuatorIndex];
-
-        allVelocitiesSoftware[iter] =
-            robot->EncoderVelocitySoftware()[actuatorIndex];
-
+                allVelocities[iter][actuatorIndex-startIndex] =
+                    robot->EncoderVelocity()[actuatorIndex];
+     
+                allAccelerations[iter][actuatorIndex-startIndex] =
+                    robot->EncoderAcceleration()[actuatorIndex];
+                
+                allVelocitiesSoftware[iter][actuatorIndex-startIndex] =
+                    robot->EncoderVelocitySoftware()[actuatorIndex];
+            }
+        
         // display progress
         progress++;
         if (progress == percent) {
@@ -176,31 +184,37 @@ int main(int argc, char * argv[])
     std::ofstream output;
     output.open(fileName.c_str());
 
-    // header
     output << "iteration,"
-           << "cpu-time,"
-           << "fpga-dtime,"
-           << "encoder-pos,"
-           << "encoder-vel,"
-           << "software-vel" << std::endl;
+           << "cpu-time,";
+        // << "fpga-dtime,"
+
+    // header
+    for(actuatorIndex = startIndex; actuatorIndex < endIndex; ++actuatorIndex)
+        {
+            output << "encoder-pos-" << actuatorIndex << ","
+                   << "encoder-vel-" << actuatorIndex << ","
+                   << "encoder-acc-" << actuatorIndex << ","
+                   << "software-vel-" << actuatorIndex << ",";
+        }
+    output << std::endl;
 
     output << std::setprecision(17);
     for (size_t iter = 0;
          iter < numberOfIterations;
          ++iter) {
         output << allIterations[iter] << ","
-               << allCPUTimes[iter] << ","
-               << allActuatorTimeStamps[iter] << ","
-               << allPositions[iter] << ","
-               << allVelocities[iter] << ","
-               << allVelocitiesSoftware[iter] << std::endl;
+               << allCPUTimes[iter] << ",";
+        //     << allActuatorTimeStamps[iter] << ","
+        for(actuatorIndex = 0; actuatorIndex < 4; ++actuatorIndex)
+            {
+                output << allPositions[iter][actuatorIndex] << ","
+                       << allVelocities[iter][actuatorIndex] << ","
+                       << allAccelerations[iter][actuatorIndex] << ","
+                       << allVelocitiesSoftware[iter][actuatorIndex] << ",";
+            }
+        output << std::endl;
     }
-
     output.close();
-
-    // cleanup
-    delete allIterations;
-    delete allActuatorTimeStamps;
 
     delete port;
     return 0;
