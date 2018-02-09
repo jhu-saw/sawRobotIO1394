@@ -123,8 +123,8 @@ void osaRobot1394::Configure(const osaRobot1394Configuration & config)
         mPotToleranceLatency.SetSize(mNumberOfActuators);
         mPotToleranceDistance.SetSize(mNumberOfActuators);
         for (size_t i = 0; i < mNumberOfActuators; ++i) {
-            mPotToleranceLatency[i] = config.PotTolerances[i].Latency;
-            mPotToleranceDistance[i] = config.PotTolerances[i].Distance;
+            mPotToleranceLatency.at(i) = config.PotTolerances.at(i).Latency;
+            mPotToleranceDistance.at(i) = config.PotTolerances.at(i).Distance;
         }
         mPotErrorDuration.SetSize(mNumberOfActuators);
         mPotValid.SetSize(mNumberOfActuators);
@@ -132,8 +132,8 @@ void osaRobot1394::Configure(const osaRobot1394Configuration & config)
         mPotToleranceLatency.SetSize(mNumberOfJoints);
         mPotToleranceDistance.SetSize(mNumberOfJoints);
         for (size_t i = 0; i < mNumberOfJoints; ++i) {
-            mPotToleranceLatency[i] = config.PotTolerances[i].Latency;
-            mPotToleranceDistance[i] = config.PotTolerances[i].Distance;
+            mPotToleranceLatency.at(i) = config.PotTolerances.at(i).Latency;
+            mPotToleranceDistance.at(i) = config.PotTolerances.at(i).Distance;
         }
         mPotErrorDuration.SetSize(mNumberOfJoints);
         mPotValid.SetSize(mNumberOfJoints);
@@ -158,35 +158,35 @@ void osaRobot1394::Configure(const osaRobot1394Configuration & config)
     for (size_t i = 0; i < mNumberOfActuators; i++) {
 
         // Local references to the config properties
-        const osaActuator1394Configuration & actuator = config.Actuators[i];
+        const osaActuator1394Configuration & actuator = config.Actuators.at(i);
         const osaDrive1394Configuration & drive = actuator.Drive;
         const osaEncoder1394Configuration & encoder = actuator.Encoder;
         const osaPot1394Configuration & pot = actuator.Pot;
 
-        mJointType[i] = actuator.JointType;
+        mJointType.at(i) = actuator.JointType;
 
-        mEffortToCurrentScales[i]         = drive.EffortToCurrentScale;
-        mActuatorCurrentToBitsScales[i]   = drive.CurrentToBitsScale;
-        mActuatorCurrentToBitsOffsets[i]  = drive.CurrentToBitsOffset;
-        mActuatorBitsToCurrentScales[i]   = drive.BitsToCurrentScale;
-        mActuatorBitsToCurrentOffsets[i]  = drive.BitsToCurrentOffset;
-        mActuatorEffortCommandLimits[i]   = drive.EffortCommandLimit;
-        mActuatorCurrentCommandLimits[i]  = drive.CurrentCommandLimit;
+        mEffortToCurrentScales.at(i)         = drive.EffortToCurrentScale;
+        mActuatorCurrentToBitsScales.at(i)   = drive.CurrentToBitsScale;
+        mActuatorCurrentToBitsOffsets.at(i)  = drive.CurrentToBitsOffset;
+        mActuatorBitsToCurrentScales.at(i)   = drive.BitsToCurrentScale;
+        mActuatorBitsToCurrentOffsets.at(i)  = drive.BitsToCurrentOffset;
+        mActuatorEffortCommandLimits.at(i)   = drive.EffortCommandLimit;
+        mActuatorCurrentCommandLimits.at(i)  = drive.CurrentCommandLimit;
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
-        mActuatorCurrentFeedbackLimits[i] = 1.2 * mActuatorCurrentCommandLimits[i] + (50.0 / 1000.0);
+        mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
 
-        mBitsToPositionScales[i]   = encoder.BitsToPositionScale;
+        mBitsToPositionScales.at(i)   = encoder.BitsToPositionScale;
 
-        mBitsToVoltageScales[i]      = pot.BitsToVoltageScale;
-        mBitsToVoltageOffsets[i]     = pot.BitsToVoltageOffset;
-        mVoltageToPositionScales[i]  = pot.VoltageToPositionScale;
-        mVoltageToPositionOffsets[i] = pot.VoltageToPositionOffset;
+        mBitsToVoltageScales.at(i)      = pot.BitsToVoltageScale;
+        mBitsToVoltageOffsets.at(i)     = pot.BitsToVoltageOffset;
+        mVoltageToPositionScales.at(i)  = pot.VoltageToPositionScale;
+        mVoltageToPositionOffsets.at(i) = pot.VoltageToPositionOffset;
 
         // Initialize state vectors
-        mEncoderPosition[i] = 0.0;
-        mActuatorCurrentCommand[i] = 0.0;
-        mActuatorCurrentFeedback[i] = 0.0;
+        mEncoderPosition.at(i) = 0.0;
+        mActuatorCurrentCommand.at(i) = 0.0;
+        mActuatorCurrentFeedback.at(i) = 0.0;
 
         // Count number of brakes
         if (actuator.Brake) {
@@ -220,7 +220,7 @@ void osaRobot1394::Configure(const osaRobot1394Configuration & config)
     // Construct property vectors for brakes
     size_t currentBrake = 0;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
-        const osaActuator1394Configuration & actuator = config.Actuators[i];
+        const osaActuator1394Configuration & actuator = config.Actuators.at(i);
 
         // Count number of brakes
         if (actuator.Brake) {
@@ -270,18 +270,18 @@ void osaRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
 
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         // Store this board
-        mActuatorInfo[i].Board = actuatorBoards[i].Board;
-        mActuatorInfo[i].Axis = actuatorBoards[i].Axis;
+        mActuatorInfo.at(i).Board = actuatorBoards.at(i).Board;
+        mActuatorInfo.at(i).Axis = actuatorBoards.at(i).Axis;
         // Construct a list of unique boards
-        mUniqueBoards[actuatorBoards[i].Board->GetBoardId()] = actuatorBoards[i].Board;
+        mUniqueBoards[actuatorBoards.at(i).Board->GetBoardId()] = actuatorBoards.at(i).Board;
     }
 
     for (size_t i = 0; i < mNumberOfBrakes; i++) {
         // Store this board
-        mBrakeInfo[i].Board = brakeBoards[i].Board;
-        mBrakeInfo[i].Axis = brakeBoards[i].Axis;
+        mBrakeInfo.at(i).Board = brakeBoards.at(i).Board;
+        mBrakeInfo.at(i).Axis = brakeBoards.at(i).Axis;
         // Construct a list of unique boards
-        mUniqueBoards[brakeBoards[i].Board->GetBoardId()] = brakeBoards[i].Board;
+        mUniqueBoards[brakeBoards.at(i).Board->GetBoardId()] = brakeBoards.at(i).Board;
     }
 
     mLowestFirmWareVersion = 999999;
@@ -654,28 +654,33 @@ void osaRobot1394::CheckState(void)
                          ++potTimestamp,
                          ++potDuration,
                          ++potValid) {
-                    // check for error
-                    double delta = std::abs(*pot - *enc);
-                    if (delta > *potError) {
-                        *potDuration += *potTimestamp;
-                        // check how long have we been off
-                        if (*potDuration > *potLatency) {
-                            // now we have a problem,
-                            this->DisablePower();
-                            // maybe it's not new, used for reporting
-                            if (*potValid) {
-                                // this is new
-                                statusChanged = true;
-                                error = true;
-                                *potValid = false;
-                            }
-                        }
+                    // if tolerance set to 0, disable check for that joint
+                    if (*potError == 0.0) {
+                        *potValid = true;
                     } else {
-                        // back to normal, reset status if needed
-                        *potDuration = 0.0;
-                        if (! *potValid) {
-                            statusChanged = true;
-                            *potValid = true;
+                        // check for error
+                        double delta = std::abs(*pot - *enc);
+                        if (delta > *potError) {
+                            *potDuration += *potTimestamp;
+                            // check how long have we been off
+                            if (*potDuration > *potLatency) {
+                                // now we have a problem,
+                                this->DisablePower();
+                                // maybe it's not new, used for reporting
+                                if (*potValid) {
+                                    // this is new
+                                    statusChanged = true;
+                                    error = true;
+                                    *potValid = false;
+                                }
+                            }
+                        } else {
+                            // back to normal, reset status if needed
+                            *potDuration = 0.0;
+                            if (! *potValid) {
+                                statusChanged = true;
+                                *potValid = true;
+                            }
                         }
                     }
                 }
