@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2016 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2018 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -72,23 +72,15 @@ if (cisst_FOUND_AS_REQUIRED)
   # create the library
   add_library (sawRobotIO1394
                ${sawRobotIO1394_HEADER_DIR}/osaConfiguration1394.h
-               ${sawRobotIO1394_HEADER_DIR}/osaPort1394.h
-               ${sawRobotIO1394_HEADER_DIR}/osaRobot1394.h
-               ${sawRobotIO1394_HEADER_DIR}/osaDigitalInput1394.h
-               ${sawRobotIO1394_HEADER_DIR}/osaDigitalOutput1394.h
                ${sawRobotIO1394_HEADER_DIR}/osaXML1394.h
-               code/osaRobot1394.cpp
-               code/osaDigitalInput1394.cpp
-               code/osaDigitalOutput1394.cpp
-               code/osaPort1394.cpp
                code/osaXML1394.cpp
                ${sawRobotIO1394_HEADER_DIR}/sawRobotIO1394Export.h
+               ${sawRobotIO1394_HEADER_DIR}/mtsRobot1394.h
+               ${sawRobotIO1394_HEADER_DIR}/mtsDigitalInput1394.h
+               ${sawRobotIO1394_HEADER_DIR}/mtsDigitalOutput1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsRobotIO1394.h
-               code/mtsRobot1394.h
                code/mtsRobot1394.cpp
-               code/mtsDigitalInput1394.h
                code/mtsDigitalInput1394.cpp
-               code/mtsDigitalOutput1394.h
                code/mtsDigitalOutput1394.cpp
                code/mtsRobotIO1394.cpp)
 
