@@ -37,10 +37,15 @@ protected:
 
     std::ostream * MessageStream;             // Stream provided to the low level boards for messages, redirected to cmnLogger
 
-    sawRobotIO1394::osaPort1394 * mPort;
+            //! Board Objects
+    BasePort * mPort;
 
     double mWatchdogPeriod; // prefered watchdog period for all boards
 
+    std::map<int, AmpIO*> mBoards;
+    typedef std::map<int, AmpIO*>::iterator board_iterator;
+    typedef std::map<int, AmpIO*>::const_iterator board_const_iterator;
+    
     typedef std::vector<sawRobotIO1394::mtsRobot1394*> RobotsType;
     typedef RobotsType::iterator robots_iterator;
     RobotsType mRobots;
@@ -100,50 +105,10 @@ private:
 CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobotIO1394);
 
 #endif // _mtsRobotIO1394_h
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-    */
-/* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
 
-/*
-  Author(s):  Zihan Chen, Peter Kazanzides
-  Created on: 2011-06-10
 
-  (C) Copyright 2011-2016 Johns Hopkins University (JHU), All Rights Reserved.
+#if TO_BE_PORTED
 
---- begin cisst license - do not edit ---
-
-This software is provided "as is" under an open source license, with
-no warranty.  The complete license can be found in license.txt and
-http://www.cisst.org/cisst/license.txt.
-
---- end cisst license ---
-*/
-
-#ifndef _osaPort1394_h
-#define _osaPort1394_h
-
-#include <vector>
-#include <map>
-
-#ifdef SAW_ROBOT_IO_1394_WO_CISST
-#include <boost/shared_ptr.hpp>
-#include <Eigen/Dense>
-#include "EigenWrapper.h"
-#include "MinimalPrm.h"
-#endif
-
-#include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
-#include <sawRobotIO1394/osaConfiguration1394.h>
-#include <sawRobotIO1394/osaRobot1394.h>
-#include <sawRobotIO1394/osaDigitalInput1394.h>
-#include <sawRobotIO1394/osaDigitalOutput1394.h>
-#include <sawRobotIO1394/sawRobotIO1394Export.h>
-
-namespace sawRobotIO1394 {
-
-    class CISST_EXPORT osaPort1394 {
-        /**
-         * IO1394 Port Abstraction Layer
-         * This class handles allocation, interfacing, and power-control for the QLA
          * robot control architecture. It is also responsible for some low-level error
          * handling.
          */
@@ -152,9 +117,6 @@ namespace sawRobotIO1394 {
 
         osaPort1394(int portNumber, std::ostream & messageStream = std::cerr);
         ~osaPort1394();
-
-        //! Set Firewire protocol
-        void SetProtocol(const sawRobotIO1394::ProtocolType & protocol);
 
         //! Configure the port using the specified configuration file. This method is not
         //  used by the mtsRobotIO1394 SAW component.
@@ -195,8 +157,6 @@ namespace sawRobotIO1394 {
 
     protected:
 
-        //! Board Objects
-        BasePort * mPort;
 
         std::map<int, AmpIO*> mBoards;
         typedef std::map<int, AmpIO*>::iterator board_iterator;
@@ -223,4 +183,4 @@ namespace sawRobotIO1394 {
 
 } // namespace sawRobotIO1394
 
-#endif // _osaPort1394_h
+#endif // TO_BE_PORTED

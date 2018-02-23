@@ -24,7 +24,6 @@ class BasePort;
 
 namespace sawRobotIO1394 {
 
-    class osaPort1394;
     class mtsRobot1394;
     class mtsDigitalInput1394;
     class mtsDigitalOutput1394;

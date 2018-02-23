@@ -18,24 +18,26 @@
 
 #include <iostream>
 
-#include <cisstCommon/cmnXMLPath.h>
-
-#include <cisstCommon/cmnPath.h>
+#include <cisstBuildType.h>
 #include <cisstCommon/cmnLogger.h>
 #include <cisstCommon/cmnUnits.h>
-
-#include <cisstOSAbstraction/osaCPUAffinity.h>
 
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 
 #include <sawRobotIO1394/mtsRobotIO1394.h>
-#include <sawRobotIO1394/osaPort1394.h>
+#include <sawRobotIO1394/mtsDigitalInput1394.h>
+#include <sawRobotIO1394/mtsDigitalOutput1394.h>
+#include <sawRobotIO1394/mtsRobot1394.h>
 #include <sawRobotIO1394/osaXML1394.h>
 
-#include "mtsRobot1394.h"
-#include "mtsDigitalInput1394.h"
-#include "mtsDigitalOutput1394.h"
-
+#include <Amp1394/AmpIORevision.h>
+#if Amp1394_HAS_RAW1394
+#include "FirewirePort.h"
+#endif
+#if Amp1394_HAS_PCAP
+#include "Eth1394Port.h"
+#endif
+#include "AmpIO.h"
 
 CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobotIO1394, mtsTaskPeriodic, mtsTaskPeriodicConstructorArg)
 
@@ -62,7 +64,19 @@ mtsRobotIO1394::~mtsRobotIO1394()
 
 void mtsRobotIO1394::SetProtocol(const sawRobotIO1394::ProtocolType & protocol)
 {
-    mPort->SetProtocol(protocol);
+    switch (protocol) {
+    case PROTOCOL_SEQ_RW:
+        mPort->SetProtocol(BasePort::PROTOCOL_SEQ_RW);
+        break;
+    case PROTOCOL_SEQ_R_BC_W:
+        mPort->SetProtocol(BasePort::PROTOCOL_SEQ_R_BC_W);
+        break;
+    case PROTOCOL_BC_QRW:
+        mPort->SetProtocol(BasePort::PROTOCOL_BC_QRW);
+        break;
+    default:
+        break;
+    }
 }
 
 void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
@@ -86,11 +100,34 @@ void mtsRobotIO1394::Init(const int portNumber)
     mStateTableRead->SetAutomaticAdvance(false);
     mStateTableWrite = new mtsStateTable(100, this->GetName() + "Write");
     mStateTableWrite->SetAutomaticAdvance(false);
-        
+
     // construct port
     MessageStream = new std::ostream(this->GetLogMultiplexer());
     try {
-        mPort = new sawRobotIO1394::osaPort1394(portNumber, *MessageStream);
+        // Construct handle to firewire port
+#if Amp1394_HAS_RAW1394
+        mPort = new FirewirePort(portNumber, *MessageStream);
+#else
+        mPort = new Eth1394Port(portNumber, *MessageStream);
+#endif
+
+        // Check number of port users
+        if (mPort->NumberOfUsers() > 1) {
+            std::ostringstream oss;
+            oss << "osaIO1394Port: Found more than one user on firewire port: " << portNumber;
+            cmnThrow(osaRuntimeError1394(oss.str()));
+        }
+
+        // write warning to cerr if not compiled in Release mode
+        if (std::string(CISST_BUILD_TYPE) != "Release") {
+            std::cerr << "---------------------------------------------------- " << std::endl
+                      << " Warning:                                            " << std::endl
+                      << "   It seems that \"cisst\" has not been compiled in  " << std::endl
+                      << "   Release mode.  Make sure your CMake configuration " << std::endl
+                      << "   or catkin profile is configured to compile in     " << std::endl
+                      << "   Release mode for better performance and stability " << std::endl
+                      << "---------------------------------------------------- " << std::endl;
+        }
     } catch (std::runtime_error &err) {
         CMN_LOG_CLASS_INIT_ERROR << err.what();
         abort();
@@ -104,10 +141,6 @@ void mtsRobotIO1394::Init(const int portNumber)
         CMN_LOG_CLASS_INIT_ERROR << "Init: failed to create provided interface \"MainInterface\", method Init should be called only once."
                                  << std::endl;
     }
-
-    //////////////////////////////////////////////////////////////////
-    ////////// RobotIO1394QtManager Configure Connection//////////////
-    //////////////////////////////////////////////////////////////////
 
     // At this stage, the robot interfaces and the digital input interfaces should be ready.
     // Add on Configuration provided interface with functionWrite with vector of strings.
@@ -464,84 +497,19 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
         placeHolder[i] = mPort->Robot(i)->NumberOfBrakes();
     }
 }
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-    */
-/* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
 
-/*
-  Author(s):  Zihan Chen, Peter Kazanzides
-  Created on: 2011-06-10
 
-  (C) Copyright 2011-2016 Johns Hopkins University (JHU), All Rights Reserved.
 
---- begin cisst license - do not edit ---
 
-This software is provided "as is" under an open source license, with
-no warranty.  The complete license can be found in license.txt and
-http://www.cisst.org/cisst/license.txt.
 
---- end cisst license ---
-*/
 
-#include <Amp1394/AmpIORevision.h>
-#if Amp1394_HAS_RAW1394
-#include "FirewirePort.h"
-#endif
-#if Amp1394_HAS_PCAP
-#include "Eth1394Port.h"
-#endif
-#include "AmpIO.h"
+#if TO_BE_PORTED
 
-#include <cisstBuildType.h>
 #include <sawRobotIO1394/osaPort1394.h>
 #include <stdexcept>
 #include <exception>
 
 using namespace sawRobotIO1394;
-
-osaPort1394::osaPort1394(int portNumber, std::ostream & messageStream)
-{
-    // Construct handle to firewire port
-#if Amp1394_HAS_RAW1394
-    mPort = new FirewirePort(portNumber, messageStream);
-#else
-    mPort = new Eth1394Port(portNumber, messageStream);
-#endif
-
-    // Check number of port users
-    if (mPort->NumberOfUsers() > 1) {
-        std::ostringstream oss;
-        oss << "osaIO1394Port: Found more than one user on firewire port: " << portNumber;
-        cmnThrow(osaRuntimeError1394(oss.str()));
-    }
-
-    // write warning to cerr if not compiled in Release mode
-    if (std::string(CISST_BUILD_TYPE) != "Release") {
-        std::cerr << "---------------------------------------------------- " << std::endl
-                  << " Warning:                                            " << std::endl
-                  << "   It seems that \"cisst\" has not been compiled in  " << std::endl
-                  << "   Release mode.  Make sure your CMake configuration " << std::endl
-                  << "   or catkin profile is configured to compile in     " << std::endl
-                  << "   Release mode for better performance and stability " << std::endl
-                  << "---------------------------------------------------- " << std::endl;
-    }
-}
-
-void osaPort1394::SetProtocol(const ProtocolType & protocol)
-{
-    switch (protocol) {
-    case PROTOCOL_SEQ_RW:
-        mPort->SetProtocol(BasePort::PROTOCOL_SEQ_RW);
-        break;
-    case PROTOCOL_SEQ_R_BC_W:
-        mPort->SetProtocol(BasePort::PROTOCOL_SEQ_R_BC_W);
-        break;
-    case PROTOCOL_BC_QRW:
-        mPort->SetProtocol(BasePort::PROTOCOL_BC_QRW);
-        break;
-    default:
-        break;
-    }
-}
 
 void osaPort1394::Configure(const osaPort1394Configuration & config)
 {
@@ -600,13 +568,13 @@ void osaPort1394::AddRobot(osaRobot1394 * robot)
         if (brake) {
             // Board for the brake
             boardId = brake->BoardID;
-            
+
             // If the board hasn't been created, construct it and add it to the port
             if (mBoards.count(boardId) == 0) {
                 mBoards[boardId] = new AmpIO(boardId);
                 mPort->AddBoard(mBoards[boardId]);
             }
-            
+
             // Add the board to the list of boards relevant to this robot
             brakeBoards[currentBrake].Board = mBoards[boardId];
             brakeBoards[currentBrake].Axis = brake->AxisID;
@@ -840,3 +808,6 @@ void osaPort1394::GetDigitalOutputNames(std::vector<std::string> & names) const
         names.push_back((*iter)->Name());
     }
 }
+
+
+#endif // TO_BE_PORTED

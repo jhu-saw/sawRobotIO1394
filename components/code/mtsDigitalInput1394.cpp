@@ -2,7 +2,6 @@
 /* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
 
 /*
-
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
@@ -21,22 +20,40 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstMultiTask/mtsStateTable.h>
 #include <cisstParameterTypes/prmEventButton.h>
 
-#include "AmpIO.h"
-
 #include <sawRobotIO1394/mtsDigitalInput1394.h>
 
-using namespace sawRobotIO1394;
+#include "AmpIO.h"
 
+namespace sawRobotIO1394 {
+    class mtsDigitalInput1394Data {
+    public:
+        mtsDigitalInput1394Data():
+            DigitalInputBits(0x0)
+        {};
+        AmpIO_UInt32 BitMask;       // BitMask for this input. From DigitalInput Stream.
+        AmpIO_UInt32 DigitalInputBits; // BitMask for this input. From DigitalInput Stream.
+    };
+}
+
+using namespace sawRobotIO1394;
 
 mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
                                          const osaDigitalInput1394Configuration & config):
     OwnerServices(owner.Services()),
-    mDigitalInputBits(0x0),
+    mData(0),
     mValue(false),
     mPreviousValue(false),
     mDebounceCounter(-1)
 {
+    mData = new mtsDigitalInput1394Data;
     Configure(config);
+}
+
+mtsDigitalInput1394::~mtsDigitalInput1394()
+{
+    if (mData) {
+        delete mData;
+    }
 }
 
 void mtsDigitalInput1394::SetupStateTable(mtsStateTable & stateTable)
@@ -81,7 +98,7 @@ void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
     mConfiguration = config;
     mName = config.Name;
     mBitID = config.BitID;
-    mBitMask = 0x1 << mBitID;
+    mData->BitMask = 0x1 << mBitID;
     mPressedValue = config.PressedValue;
     mTriggerPress = config.TriggerWhenPressed;
     mTriggerRelease = config.TriggerWhenReleased;
@@ -112,10 +129,11 @@ void mtsDigitalInput1394::PollState(void)
     mPreviousValue = mValue;
 
     // Get the new value
-    mDigitalInputBits =  mBoard->GetDigitalInput();
+    mData->DigitalInputBits =  mBoard->GetDigitalInput();
 
     // If the masked bit is low, set the value to the pressed value
-    bool value = (mDigitalInputBits & mBitMask) ? (!mPressedValue) : (mPressedValue);
+    bool value = (mData->DigitalInputBits & mData->BitMask)
+        ? (!mPressedValue) : (mPressedValue);
 
     // ZC: hack for quick testing
     if (Name() == "HEAD") {

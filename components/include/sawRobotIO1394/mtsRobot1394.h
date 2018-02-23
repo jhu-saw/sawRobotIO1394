@@ -23,7 +23,9 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmPositionJointGet.h>
 #include <cisstParameterTypes/prmVelocityJointGet.h>
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
+
 #include <sawRobotIO1394/osaConfiguration1394.h>
+#include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
 
 // Always include last
 #include <sawRobotIO1394/sawRobotIO1394Export.h>

@@ -22,12 +22,14 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmEventButton.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
 
-class AmpIO;
+#include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
 
 // Always include last
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
 
 namespace sawRobotIO1394 {
+
+    class mtsDigitalInput1394Data;
 
     class mtsDigitalInput1394 {
     public:
@@ -51,6 +53,7 @@ namespace sawRobotIO1394 {
 
         mtsDigitalInput1394(const cmnGenericObject & owner,
                             const osaDigitalInput1394Configuration & config);
+        ~mtsDigitalInput1394();
 
         void SetupStateTable(mtsStateTable & stateTable);
         void SetupProvidedInterface(mtsInterfaceProvided * interfaceProvided, mtsStateTable & stateTable);
@@ -71,13 +74,11 @@ namespace sawRobotIO1394 {
 
     protected:
         mtsFunctionWrite Button;    // The event function for button, will return prmEventButton
-
         AmpIO * mBoard;              // Board Assignment
-
+        mtsDigitalInput1394Data * mData; // Internal data using AmpIO types
         osaDigitalInput1394Configuration mConfiguration;
         std::string mName;
         int mBitID;                  // Board assigned bitID for this Digital Input
-        AmpIO_UInt32 mBitMask;       // BitMask for this input. From DigitalInput Stream.
         bool mPressedValue;          // Boolean Flag for Active High(true)/Active Low(false)
         bool mTriggerPress;          // Boolean Flag for Press Trigger Setting
         bool mTriggerRelease;        // Boolean Flag for Release Trigger Setting
@@ -90,12 +91,10 @@ namespace sawRobotIO1394 {
         double mTestWeight;
 
         // State data
-        AmpIO_UInt32 mDigitalInputBits; // BitMask for this input. From DigitalInput Stream.
         bool mValue;                    // Current read value
         bool mTransitionValue;          // For debouncing
         bool mPreviousValue;            // Saved value from the previous read
         double mDebounceCounter;        // time in seconds with constant value
-
     };
 
 } // namespace sawRobotIO1394

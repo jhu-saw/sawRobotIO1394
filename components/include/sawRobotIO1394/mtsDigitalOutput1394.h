@@ -22,7 +22,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmEventButton.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
 
-class AmpIO;
+#include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
 
 // Always include last
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
@@ -30,7 +30,7 @@ class AmpIO;
 namespace sawRobotIO1394 {
 
     class mtsDigitalOutput1394Data;
-    
+
     class CISST_EXPORT mtsDigitalOutput1394 {
     public:
         /*! Pointer on existing services.  This allows to use the class
