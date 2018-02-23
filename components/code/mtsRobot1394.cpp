@@ -30,8 +30,6 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <AmpIO.h>
 
-#include <sawRobotIO1394/osaConfiguration1394.h>
-
 #include <sawRobotIO1394/mtsRobot1394.h>
 
 using namespace sawRobotIO1394;

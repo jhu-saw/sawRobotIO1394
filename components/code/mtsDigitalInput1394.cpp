@@ -6,7 +6,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2014 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -21,16 +21,22 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstMultiTask/mtsStateTable.h>
 #include <cisstParameterTypes/prmEventButton.h>
 
-#include "mtsDigitalInput1394.h"
+#include "AmpIO.h"
+
+#include <sawRobotIO1394/mtsDigitalInput1394.h>
 
 using namespace sawRobotIO1394;
 
 
 mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
                                          const osaDigitalInput1394Configuration & config):
-    osaDigitalInput1394(config),
-    OwnerServices(owner.Services())
+    OwnerServices(owner.Services()),
+    mDigitalInputBits(0x0),
+    mValue(false),
+    mPreviousValue(false),
+    mDebounceCounter(-1)
 {
+    Configure(config);
 }
 
 void mtsDigitalInput1394::SetupStateTable(mtsStateTable & stateTable)
@@ -68,41 +74,8 @@ void mtsDigitalInput1394::CheckState(void)
         }
     }
 }
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-    */
-/* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
 
-/*
-  Author(s):  Zihan Chen, Peter Kazanzides, Jonathan Bohren
-  Created on: 2011-06-10
-
-  (C) Copyright 2011-2014 Johns Hopkins University (JHU), All Rights Reserved.
-
---- begin cisst license - do not edit ---
-
-This software is provided "as is" under an open source license, with
-no warranty.  The complete license can be found in license.txt and
-http://www.cisst.org/cisst/license.txt.
-
---- end cisst license ---
-*/
-
-#include <sawRobotIO1394/osaDigitalInput1394.h>
-
-#include "FirewirePort.h"
-#include "AmpIO.h"
-
-using namespace sawRobotIO1394;
-
-osaDigitalInput1394::osaDigitalInput1394(const osaDigitalInput1394Configuration & config):
-    mDigitalInputBits(0x0),
-    mValue(false),
-    mPreviousValue(false),
-    mDebounceCounter(-1)
-{
-    this->Configure(config);
-}
-
-void osaDigitalInput1394::Configure(const osaDigitalInput1394Configuration & config)
+void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & config)
 {
     // Store configuration
     mConfiguration = config;
@@ -125,7 +98,7 @@ void osaDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
     mTestWeight = 0.98;
 }
 
-void osaDigitalInput1394::SetBoard(AmpIO * board)
+void mtsDigitalInput1394::SetBoard(AmpIO * board)
 {
     if (board == 0) {
         cmnThrow(osaRuntimeError1394(this->Name() + ": invalid board pointer."));
@@ -133,7 +106,7 @@ void osaDigitalInput1394::SetBoard(AmpIO * board)
     mBoard = board;
 }
 
-void osaDigitalInput1394::PollState(void)
+void mtsDigitalInput1394::PollState(void)
 {
     // Store previous value
     mPreviousValue = mValue;
@@ -146,12 +119,13 @@ void osaDigitalInput1394::PollState(void)
 
     // ZC: hack for quick testing
     if (Name() == "HEAD") {
-      mTestConfidence = mTestWeight * mTestConfidence + (1 - mTestWeight) * value;
-      if (mPreviousValue == true && mTestConfidence < mTestLow) mValue = false;
-      else if (mPreviousValue == false && mTestConfidence > mTestHigh) mValue = true;
-      return;
+        std::cerr << CMN_LOG_DETAILS << " this special case needs to be removed!" << std::endl;
+        mTestConfidence = mTestWeight * mTestConfidence + (1 - mTestWeight) * value;
+        if (mPreviousValue == true && mTestConfidence < mTestLow) mValue = false;
+        else if (mPreviousValue == false && mTestConfidence > mTestHigh) mValue = true;
+        return;
     }
-
+    
     // No debounce needed
     if (mDebounceThreshold == 0.0) {
         mValue = value;
@@ -179,18 +153,18 @@ void osaDigitalInput1394::PollState(void)
     }
 }
 
-const osaDigitalInput1394Configuration & osaDigitalInput1394::Configuration(void) const {
+const osaDigitalInput1394Configuration & mtsDigitalInput1394::Configuration(void) const {
     return mConfiguration;
 }
 
-const std::string & osaDigitalInput1394::Name(void) const {
+const std::string & mtsDigitalInput1394::Name(void) const {
     return mName;
 }
 
-const bool & osaDigitalInput1394::Value(void) const {
+const bool & mtsDigitalInput1394::Value(void) const {
     return mValue;
 }
 
-const bool & osaDigitalInput1394::PreviousValue(void) const {
+const bool & mtsDigitalInput1394::PreviousValue(void) const {
     return mPreviousValue;
 }

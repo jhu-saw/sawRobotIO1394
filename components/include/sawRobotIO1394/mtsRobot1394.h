@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2017 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -23,10 +23,14 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmPositionJointGet.h>
 #include <cisstParameterTypes/prmVelocityJointGet.h>
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
+#include <sawRobotIO1394/osaConfiguration1394.h>
+
+// Always include last
+#include <sawRobotIO1394/sawRobotIO1394Export.h>
 
 namespace sawRobotIO1394 {
 
-    class mtsRobot1394 {
+    class CISST_EXPORT mtsRobot1394 {
     public:
         /*! Pointer on existing services.  This allows to use the class
           name and level of detail of another class, e.g. the class that
