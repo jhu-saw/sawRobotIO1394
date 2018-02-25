@@ -15,10 +15,10 @@ cmake_minimum_required (VERSION 2.8)
 add_subdirectory (Qt)
 
 # utility to calibrate current 0 based on current feedback
-add_subdirectory (current-calibration)
+# add_subdirectory (current-calibration)
 
 # utility to plot velocities
-add_subdirectory (data-plot)
+# add_subdirectory (data-plot)
 
 # utility to collect data
-add_subdirectory (data-collection)
+# add_subdirectory (data-collection)

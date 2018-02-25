@@ -82,8 +82,8 @@ void mtsRobotIO1394::SetProtocol(const sawRobotIO1394::ProtocolType & protocol)
 void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
 {
     mWatchdogPeriod = periodInSeconds;
-    const robots_iterator robotsEnd = mRobots.end();
-    for (robots_iterator robot = mRobots.begin();
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
          robot != robotsEnd;
          ++robot) {
         (*robot)->SetWatchdogPeriod(periodInSeconds);
@@ -149,7 +149,7 @@ void mtsRobotIO1394::Init(const int portNumber)
     // All previous interfaces are ready. Good start. Let's make a new provided interface.
     mtsInterfaceProvided * configurationInterface   = this->AddInterfaceProvided("Configuration");
     if (configurationInterface) {
-        configurationInterface->AddCommandRead(&osaPort1394::GetRobotNames, mPort,
+        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetRobotNames, this,
                                                "GetRobotNames");
         configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfActuatorsPerRobot, this,
                                                "GetNumActuators");
@@ -159,11 +159,11 @@ void mtsRobotIO1394::Init(const int portNumber)
                                                "GetNumRobots");
         configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalInputs, this,
                                                "GetNumDigitalInputs");
-        configurationInterface->AddCommandRead(&osaPort1394::GetDigitalInputNames, mPort,
+        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalInputNames, this,
                                                "GetDigitalInputNames");
         configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalOutputs, this,
                                                "GetNumDigitalOutputs");
-        configurationInterface->AddCommandRead(&osaPort1394::GetDigitalOutputNames, mPort,
+        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalOutputNames, this,
                                                "GetDigitalOutputNames");
         configurationInterface->AddCommandRead<mtsComponent>(&mtsComponent::GetName, this,
                                                              "GetName");
@@ -285,7 +285,7 @@ bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
 
     // Add the robot to the port
     try {
-        mPort->AddRobot(robot);
+        AddRobot(robot);
     } catch (osaRuntimeError1394 & err) {
         CMN_LOG_CLASS_INIT_ERROR << "SetupRobot: unable to add the robot to the port: " << err.what() << std::endl;
         return false;
@@ -304,7 +304,7 @@ bool mtsRobotIO1394::SetupDigitalInput(mtsDigitalInput1394 * digitalInput)
 
     // Add the digital input to the port
     try {
-        mPort->AddDigitalInput(digitalInput);
+        AddDigitalInput(digitalInput);
     } catch (osaRuntimeError1394 & err) {
         CMN_LOG_CLASS_INIT_ERROR << "SetupDigitalInput: unable to add the digital input to the port: " << err.what() << std::endl;
         return false;
@@ -323,7 +323,7 @@ bool mtsRobotIO1394::SetupDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
 
     // Add the digital input to the port
     try {
-        mPort->AddDigitalOutput(digitalOutput);
+        AddDigitalOutput(digitalOutput);
     } catch (osaRuntimeError1394 & err) {
         CMN_LOG_CLASS_INIT_ERROR << "SetupDigitalOutput: unable to add the digital output to the port: " << err.what() << std::endl;
         return false;
@@ -333,9 +333,8 @@ bool mtsRobotIO1394::SetupDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
 
 void mtsRobotIO1394::Startup(void)
 {
-    // osaCPUSetAffinity(OSA_CPU4);
-    const robots_iterator robotsEnd = mRobots.end();
-    for (robots_iterator robot = mRobots.begin();
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
          robot != robotsEnd;
          ++robot) {
         (*robot)->SetEncoderPosition(vctDoubleVec((*robot)->NumberOfActuators(), 0.0));
@@ -345,11 +344,47 @@ void mtsRobotIO1394::Startup(void)
 void mtsRobotIO1394::PreRead(void)
 {
     mStateTableRead->Start();
-    const robots_iterator robotsEnd = mRobots.end();
-    for (robots_iterator robot = mRobots.begin();
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
          robot != robotsEnd;
          ++robot) {
         (*robot)->StartReadStateTable();
+    }
+}
+
+void mtsRobotIO1394::Read(void)
+{
+    // Read from all boards on the port
+    mPort->ReadAllBoards();
+
+    // Poll the state for each robot
+    for (robot_iterator robot = mRobots.begin();
+         robot != mRobots.end();
+         ++robot) {
+        // Poll the board validity
+        (*robot)->PollValidity();
+
+        // Poll this robot's state
+        (*robot)->PollState();
+
+        // Convert bits to usable numbers
+        (*robot)->ConvertState();
+
+        // Perform post conversion checks and computations
+        (*robot)->CheckState();
+    }
+
+    // Poll the state for each digital input
+    for (digital_input_iterator iter = mDigitalInputs.begin();
+         iter != mDigitalInputs.end();
+         ++iter) {
+        (*iter)->PollState();
+    }
+    // Poll the state for each digital output
+    for (digital_output_iterator iter = mDigitalOutputs.begin();
+         iter != mDigitalOutputs.end();
+         ++iter) {
+        (*iter)->PollState();
     }
 }
 
@@ -357,8 +392,8 @@ void mtsRobotIO1394::PostRead(void)
 {
     mStateTableRead->Advance();
     // Trigger robot events
-    const robots_iterator robotsEnd = mRobots.end();
-    for (robots_iterator robot = mRobots.begin();
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
          robot != robotsEnd;
          ++robot) {
         try {
@@ -373,8 +408,8 @@ void mtsRobotIO1394::PostRead(void)
         (*robot)->AdvanceReadStateTable();
     }
     // Trigger digital input events
-    const digital_inputs_iterator digital_inputs_end = mDigitalInputs.end();
-    for (digital_inputs_iterator digital_input = mDigitalInputs.begin();
+    const digital_input_iterator digital_inputs_end = mDigitalInputs.end();
+    for (digital_input_iterator digital_input = mDigitalInputs.begin();
          digital_input != digital_inputs_end;
          ++digital_input) {
         (*digital_input)->CheckState();
@@ -384,20 +419,26 @@ void mtsRobotIO1394::PostRead(void)
 void mtsRobotIO1394::PreWrite(void)
 {
     mStateTableWrite->Start();
-    const robots_iterator robotsEnd = mRobots.end();
-    for (robots_iterator robot = mRobots.begin();
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
          robot != robotsEnd;
          ++robot) {
         (*robot)->StartWriteStateTable();
     }
 }
 
+void mtsRobotIO1394::Write(void)
+{
+    // Write to all boards
+    mPort->WriteAllBoards();
+}
+
 void mtsRobotIO1394::PostWrite(void)
 {
     mStateTableWrite->Advance();
     // Trigger robot events
-    const robots_iterator robotsEnd = mRobots.end();
-    for (robots_iterator robot = mRobots.begin();
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
          robot != robotsEnd;
          ++robot) {
         (*robot)->AdvanceWriteStateTable();
@@ -410,9 +451,9 @@ void mtsRobotIO1394::Run(void)
     bool gotException = false;
     std::string message;
 
-    this->PreRead();
+    PreRead();
     try {
-        mPort->Read();
+        Read();
     } catch (sawRobotIO1394::osaRuntimeError1394 & sawException) {
         gotException = true;
         message = this->Name + ": sawRobotIO1394 exception \"" + sawException.what() + "\"";
@@ -426,14 +467,14 @@ void mtsRobotIO1394::Run(void)
     if (gotException) {
         CMN_LOG_CLASS_RUN_ERROR << "Run: port read, " << message << std::endl;
         // Trigger robot events
-        const robots_iterator robotsEnd = mRobots.end();
-        for (robots_iterator robot = mRobots.begin();
+        const robot_iterator robotsEnd = mRobots.end();
+        for (robot_iterator robot = mRobots.begin();
              robot != robotsEnd;
              ++robot) {
             (*robot)->mInterface->SendError(message);
         }
     }
-    this->PostRead(); // this performs all state conversions and checks
+    PostRead(); // this performs all state conversions and checks
 
     // Invoke connected components (if any)
     this->RunEvent();
@@ -442,9 +483,9 @@ void mtsRobotIO1394::Run(void)
     this->ProcessQueuedCommands();
 
     // Write to all boards
-    this->PreWrite();
-    mPort->Write();
-    this->PostWrite();
+    PreWrite();
+    Write();
+    PostWrite();
 }
 
 void mtsRobotIO1394::Cleanup(void)
@@ -455,85 +496,53 @@ void mtsRobotIO1394::Cleanup(void)
         }
     }
     // Write to all boards
-    mPort->Write();
+    Write();
 }
 
 void mtsRobotIO1394::GetNumberOfDigitalInputs(int & placeHolder) const
 {
-    placeHolder = mPort->NumberOfDigitalInputs();
+    placeHolder = mDigitalInputs.size();
 }
 
 void mtsRobotIO1394::GetNumberOfDigitalOutputs(int & placeHolder) const
 {
-    placeHolder = mPort->NumberOfDigitalOutputs();
+    placeHolder = mDigitalOutputs.size();
 }
 
 void mtsRobotIO1394::GetNumberOfBoards(int & placeHolder) const
 {
-    placeHolder = mPort->NumberOfBoards();
+    placeHolder = mBoards.size();
 }
 
 void mtsRobotIO1394::GetNumberOfRobots(int & placeHolder) const
 {
-    placeHolder = mPort->NumberOfRobots();
+    placeHolder = mRobots.size();
 }
 
 void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
 {
-    size_t numRobots = mPort->NumberOfRobots();
+    size_t numRobots = mRobots.size();
     placeHolder.resize(numRobots);
 
     for (size_t i = 0; i < numRobots; i++) {
-        placeHolder[i] = mPort->Robot(i)->NumberOfActuators();
+        placeHolder[i] = mRobots[i]->NumberOfActuators();
     }
 }
 
 void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
 {
-    size_t numRobots = mPort->NumberOfRobots();
+    size_t numRobots = mRobots.size();
     placeHolder.resize(numRobots);
 
     for (size_t i = 0; i < numRobots; i++) {
-        placeHolder[i] = mPort->Robot(i)->NumberOfBrakes();
+        placeHolder[i] = mRobots[i]->NumberOfBrakes();
     }
 }
 
-
-
-
-
-
-#if TO_BE_PORTED
-
-#include <sawRobotIO1394/osaPort1394.h>
-#include <stdexcept>
-#include <exception>
-
-using namespace sawRobotIO1394;
-
-void osaPort1394::Configure(const osaPort1394Configuration & config)
-{
-    // Add all the robots
-    for (std::vector<osaRobot1394Configuration>::const_iterator iter = config.Robots.begin();
-         iter != config.Robots.end();
-         ++iter) {
-        osaRobot1394 * robot = new osaRobot1394(*iter);
-        this->AddRobot(robot);
-    }
-
-    // Add all the digital inputs
-    for (std::vector<osaDigitalInput1394Configuration>::const_iterator it = config.DigitalInputs.begin();
-         it != config.DigitalInputs.end();
-         ++it) {
-        osaDigitalInput1394 * digitalInput = new osaDigitalInput1394(*it);
-        this->AddDigitalInput(digitalInput);
-    }
-}
-
-void osaPort1394::AddRobot(osaRobot1394 * robot)
+void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
 {
     if (robot == 0) {
-        cmnThrow(osaRuntimeError1394("osaPort1394::AddRobot: Robot pointer is null."));
+        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddRobot: Robot pointer is null."));
     }
 
     const osaRobot1394Configuration & config = robot->GetConfiguration();
@@ -590,32 +599,10 @@ void osaPort1394::AddRobot(osaRobot1394 * robot)
     mRobotsByName[config.Name] = robot;
 }
 
-osaRobot1394 * osaPort1394::Robot(const std::string & name)
-{
-    robotByName_iterator it = mRobotsByName.find(name);
-    return (it == mRobotsByName.end() ? 0 : it->second);
-}
-
-const osaRobot1394 * osaPort1394::Robot(const std::string & name) const
-{
-    robotByName_const_iterator it = mRobotsByName.find(name);
-    return (it == mRobotsByName.end() ? 0 : it->second);
-}
-
-osaRobot1394 * osaPort1394::Robot(const int i)
-{
-    return mRobots[i];
-}
-
-const osaRobot1394 * osaPort1394::Robot(const int i) const
-{
-    return mRobots[i];
-}
-
-void osaPort1394::AddDigitalInput(osaDigitalInput1394 * digitalInput)
+void mtsRobotIO1394::AddDigitalInput(mtsDigitalInput1394 * digitalInput)
 {
     if (digitalInput == 0) {
-        cmnThrow(osaRuntimeError1394("osaPort1394::AddDigitalInput: digital input pointer is null."));
+        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddDigitalInput: digital input pointer is null."));
     }
 
     const osaDigitalInput1394Configuration & config = digitalInput->Configuration();
@@ -642,10 +629,10 @@ void osaPort1394::AddDigitalInput(osaDigitalInput1394 * digitalInput)
     mDigitalInputsByName[config.Name] = digitalInput;
 }
 
-void osaPort1394::AddDigitalOutput(osaDigitalOutput1394 * digitalOutput)
+void mtsRobotIO1394::AddDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
 {
     if (digitalOutput == 0) {
-        cmnThrow(osaRuntimeError1394("osaPort1394::AddDigitalOutput: digital output pointer is null."));
+        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddDigitalOutput: digital output pointer is null."));
     }
 
     const osaDigitalOutput1394Configuration & config = digitalOutput->Configuration();
@@ -671,6 +658,89 @@ void osaPort1394::AddDigitalOutput(osaDigitalOutput1394 * digitalOutput)
     mDigitalOutputs.push_back(digitalOutput);
     mDigitalOutputsByName[config.Name] = digitalOutput;
 }
+
+void mtsRobotIO1394::GetRobotNames(std::vector<std::string> & names) const
+{
+    names.clear();
+    for (robot_const_iterator iter = mRobots.begin();
+         iter != mRobots.end();
+         ++iter) {
+        names.push_back((*iter)->Name());
+    }
+}
+
+void mtsRobotIO1394::GetDigitalInputNames(std::vector<std::string> & names) const
+{
+    names.clear();
+    for (digital_input_const_iterator iter = mDigitalInputs.begin();
+         iter != mDigitalInputs.end();
+         ++iter) {
+        names.push_back((*iter)->Name());
+    }
+}
+
+void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) const
+{
+    names.clear();
+    for (digital_output_const_iterator iter = mDigitalOutputs.begin();
+         iter != mDigitalOutputs.end();
+         ++iter) {
+        names.push_back((*iter)->Name());
+    }
+}
+
+
+
+#if TO_BE_PORTED
+
+#include <sawRobotIO1394/osaPort1394.h>
+#include <stdexcept>
+#include <exception>
+
+using namespace sawRobotIO1394;
+
+void osaPort1394::Configure(const osaPort1394Configuration & config)
+{
+    // Add all the robots
+    for (std::vector<osaRobot1394Configuration>::const_iterator iter = config.Robots.begin();
+         iter != config.Robots.end();
+         ++iter) {
+        osaRobot1394 * robot = new osaRobot1394(*iter);
+        this->AddRobot(robot);
+    }
+
+    // Add all the digital inputs
+    for (std::vector<osaDigitalInput1394Configuration>::const_iterator it = config.DigitalInputs.begin();
+         it != config.DigitalInputs.end();
+         ++it) {
+        osaDigitalInput1394 * digitalInput = new osaDigitalInput1394(*it);
+        this->AddDigitalInput(digitalInput);
+    }
+}
+
+
+osaRobot1394 * osaPort1394::Robot(const std::string & name)
+{
+    robotByName_iterator it = mRobotsByName.find(name);
+    return (it == mRobotsByName.end() ? 0 : it->second);
+}
+
+const osaRobot1394 * osaPort1394::Robot(const std::string & name) const
+{
+    robotByName_const_iterator it = mRobotsByName.find(name);
+    return (it == mRobotsByName.end() ? 0 : it->second);
+}
+
+osaRobot1394 * osaPort1394::Robot(const int i)
+{
+    return mRobots[i];
+}
+
+const osaRobot1394 * osaPort1394::Robot(const int i) const
+{
+    return mRobots[i];
+}
+
 
 osaPort1394::~osaPort1394()
 {
@@ -721,47 +791,7 @@ osaPort1394::~osaPort1394()
     }
 }
 
-void osaPort1394::Read(void)
-{
-    // Read from all boards on the port
-    mPort->ReadAllBoards();
 
-    // Poll the state for each robot
-    for (robot_iterator robot = mRobots.begin();
-         robot != mRobots.end();
-         ++robot) {
-        // Poll the board validity
-        (*robot)->PollValidity();
-
-        // Poll this robot's state
-        (*robot)->PollState();
-
-        // Convert bits to usable numbers
-        (*robot)->ConvertState();
-
-        // Perform post conversion checks and computations
-        (*robot)->CheckState();
-    }
-
-    // Poll the state for each digital input
-    for (digital_input_iterator iter = mDigitalInputs.begin();
-         iter != mDigitalInputs.end();
-         ++iter) {
-        (*iter)->PollState();
-    }
-    // Poll the state for each digital output
-    for (digital_output_iterator iter = mDigitalOutputs.begin();
-         iter != mDigitalOutputs.end();
-         ++iter) {
-        (*iter)->PollState();
-    }
-}
-
-void osaPort1394::Write(void)
-{
-    // Write to all boards
-    mPort->WriteAllBoards();
-}
 
 int osaPort1394::NumberOfBoards(void) const {
     return mBoards.size();
@@ -779,35 +809,6 @@ int osaPort1394::NumberOfDigitalOutputs(void) const {
     return mDigitalOutputs.size();
 }
 
-void osaPort1394::GetRobotNames(std::vector<std::string> & names) const
-{
-    names.clear();
-    for (robot_const_iterator iter = mRobots.begin();
-         iter != mRobots.end();
-         ++iter) {
-        names.push_back((*iter)->Name());
-    }
-}
-
-void osaPort1394::GetDigitalInputNames(std::vector<std::string> & names) const
-{
-    names.clear();
-    for (digital_input_const_iterator iter = mDigitalInputs.begin();
-         iter != mDigitalInputs.end();
-         ++iter) {
-        names.push_back((*iter)->Name());
-    }
-}
-
-void osaPort1394::GetDigitalOutputNames(std::vector<std::string> & names) const
-{
-    names.clear();
-    for (digital_output_const_iterator iter = mDigitalOutputs.begin();
-         iter != mDigitalOutputs.end();
-         ++iter) {
-        names.push_back((*iter)->Name());
-    }
-}
 
 
 #endif // TO_BE_PORTED

@@ -47,16 +47,22 @@ protected:
     typedef std::map<int, AmpIO*>::const_iterator board_const_iterator;
     
     typedef std::vector<sawRobotIO1394::mtsRobot1394*> RobotsType;
-    typedef RobotsType::iterator robots_iterator;
+    typedef RobotsType::iterator robot_iterator;
+    typedef RobotsType::const_iterator robot_const_iterator;
     RobotsType mRobots;
+    std::map<std::string, sawRobotIO1394::mtsRobot1394*> mRobotsByName;
 
     typedef std::vector<sawRobotIO1394::mtsDigitalInput1394*> DigitalInputsType;
-    typedef DigitalInputsType::iterator digital_inputs_iterator;
+    typedef DigitalInputsType::iterator digital_input_iterator;
+    typedef DigitalInputsType::const_iterator digital_input_const_iterator;
     DigitalInputsType mDigitalInputs;
+    std::map<std::string, sawRobotIO1394::mtsDigitalInput1394*> mDigitalInputsByName;
 
     typedef std::vector<sawRobotIO1394::mtsDigitalOutput1394*> DigitalOutputsType;
-    typedef DigitalOutputsType::iterator digital_outputs_iterator;
+    typedef DigitalOutputsType::iterator digital_output_iterator;
+    typedef DigitalOutputsType::const_iterator digital_output_const_iterator;
     DigitalOutputsType mDigitalOutputs;
+    std::map<std::string, sawRobotIO1394::mtsDigitalOutput1394*> mDigitalOutputsByName;
 
     // state tables for statistics
     mtsStateTable * mStateTableRead;
@@ -78,6 +84,10 @@ public:
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     bool SetupDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalOutput);
+    void AddRobot(sawRobotIO1394::mtsRobot1394 * Robot);
+    void AddDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
+    void AddDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalInput);
+
     void Startup(void);
     void Run(void);
     void Cleanup(void);
@@ -90,9 +100,15 @@ protected:
     void GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const;
     void GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const;
 
+    void GetRobotNames(std::vector<std::string> & names) const;
+    void GetDigitalInputNames(std::vector<std::string> & names) const;
+    void GetDigitalOutputNames(std::vector<std::string> & names) const;
+
     void PreRead(void);
+    void Read(void);
     void PostRead(void);
     void PreWrite(void);
+    void Write(void);
     void PostWrite(void);
 
     ////////////// Private Class Methods /////////////////////////////
@@ -122,19 +138,6 @@ CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobotIO1394);
         //  used by the mtsRobotIO1394 SAW component.
         void Configure(const osaPort1394Configuration & config);
 
-        //! Add a robot to this port. This method is used by the mtsRobotIO1394 SAW component,
-        // which provides an instance of an mtsRobot1394 component (derived from osaRobot1394).
-        // This class takes "ownership" of the pointer and deletes it in the destructor (it
-        // assumes the object was dynamically created).
-        void AddRobot(osaRobot1394 * Robot);
-
-        //! Add a digital input to this port. This method is used by the mtsRobotIO1394 SAW component,
-        // which provides an instance of an mtsDigitalInput1394 component (derived from osaDigitalInput1394).
-        // This class takes "ownership" of the pointer and deletes it in the destructor (it
-        // assumes the object was dynamically created).
-        void AddDigitalInput(osaDigitalInput1394 * digitalInput);
-        void AddDigitalOutput(osaDigitalOutput1394 * digitalInput);
-
         //! Robot Accessors
         osaRobot1394 * Robot(const std::string & name);
         const osaRobot1394 * Robot(const std::string & name) const;
@@ -142,13 +145,7 @@ CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobotIO1394);
         osaRobot1394 * Robot(const int index);
         const osaRobot1394 * Robot(const int index) const;
 
-        void GetRobotNames(std::vector<std::string> & names) const;
-        void GetDigitalInputNames(std::vector<std::string> & names) const;
-        void GetDigitalOutputNames(std::vector<std::string> & names) const;
 
-        //! Input/Ouput
-        void Read(void);
-        void Write(void);
 
         int NumberOfBoards(void) const;
         int NumberOfRobots(void) const;
@@ -164,19 +161,16 @@ CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobotIO1394);
 
         //! Robot Objects
         std::vector<osaRobot1394*> mRobots;
-        std::map<std::string, osaRobot1394*> mRobotsByName;
         typedef std::vector<osaRobot1394*>::iterator robot_iterator;
         typedef std::vector<osaRobot1394*>::const_iterator robot_const_iterator;
         typedef std::map<std::string, osaRobot1394*>::iterator robotByName_iterator;
         typedef std::map<std::string, osaRobot1394*>::const_iterator robotByName_const_iterator;
 
         std::vector<osaDigitalInput1394*> mDigitalInputs;
-        std::map<std::string, osaDigitalInput1394*> mDigitalInputsByName;
         typedef std::vector<osaDigitalInput1394*>::iterator digital_input_iterator;
         typedef std::vector<osaDigitalInput1394*>::const_iterator digital_input_const_iterator;
 
         std::vector<osaDigitalOutput1394*> mDigitalOutputs;
-        std::map<std::string, osaDigitalOutput1394*> mDigitalOutputsByName;
         typedef std::vector<osaDigitalOutput1394*>::iterator digital_output_iterator;
         typedef std::vector<osaDigitalOutput1394*>::const_iterator digital_output_const_iterator;
     };
