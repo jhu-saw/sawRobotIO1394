@@ -541,6 +541,16 @@ void mtsRobotIO1394::GetNumberOfRobots(int & placeHolder) const
     placeHolder = mRobots.size();
 }
 
+mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
+{
+    return mRobots.at(index);
+}
+
+const mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index) const
+{
+    return mRobots.at(index);
+}
+
 void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
 {
     size_t numRobots = mRobots.size();
