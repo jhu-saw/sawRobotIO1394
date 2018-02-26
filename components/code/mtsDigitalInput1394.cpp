@@ -171,18 +171,22 @@ void mtsDigitalInput1394::PollState(void)
     }
 }
 
-const osaDigitalInput1394Configuration & mtsDigitalInput1394::Configuration(void) const {
+const osaDigitalInput1394Configuration & mtsDigitalInput1394::Configuration(void) const
+{
     return mConfiguration;
 }
 
-const std::string & mtsDigitalInput1394::Name(void) const {
+const std::string & mtsDigitalInput1394::Name(void) const
+{
     return mName;
 }
 
-const bool & mtsDigitalInput1394::Value(void) const {
+const bool & mtsDigitalInput1394::Value(void) const
+{
     return mValue;
 }
 
-const bool & mtsDigitalInput1394::PreviousValue(void) const {
+const bool & mtsDigitalInput1394::PreviousValue(void) const
+{
     return mPreviousValue;
 }

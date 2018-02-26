@@ -57,8 +57,53 @@ mtsRobotIO1394::mtsRobotIO1394(const mtsTaskPeriodicConstructorArg & arg):
 
 mtsRobotIO1394::~mtsRobotIO1394()
 {
-    // delete port and message stream
-    delete mPort;
+    // delete robots before deleting boards
+    for (robot_iterator iter = mRobots.begin();
+         iter != mRobots.end();
+         ++iter) {
+        if (*iter != 0) {
+            delete *iter;
+        }
+    }
+    mRobots.clear();
+
+    // delete digital inputs before deleting boards
+    for (digital_input_iterator iter = mDigitalInputs.begin();
+         iter != mDigitalInputs.end();
+         ++iter) {
+        if (*iter != 0) {
+            delete *iter;
+        }
+    }
+    mDigitalInputs.clear();
+
+    // delete digital outputs before deleting boards
+    for (digital_output_iterator iter = mDigitalOutputs.begin();
+         iter != mDigitalOutputs.end();
+         ++iter) {
+        if (*iter != 0) {
+            delete *iter;
+        }
+    }
+    mDigitalInputs.clear();
+
+    // delete board structures
+    for (board_iterator iter = mBoards.begin();
+         iter != mBoards.end();
+         ++iter) {
+        if (iter->second != 0) {
+            mPort->RemoveBoard(iter->first);
+            delete iter->second;
+        }
+    }
+    mBoards.clear();
+
+    // delete firewire port
+    if (mPort != 0) {
+        delete mPort;
+    }
+
+    // delete message stream
     delete MessageStream;
 }
 
@@ -204,7 +249,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
                                      << robot->Name() << "\"" << std::endl;
             delete robot;
         } else {
-            mRobots.push_back(robot);
+            AddRobot(robot);
             CMN_LOG_CLASS_INIT_VERBOSE << "Configure: added robot \""
                                        << robot->Name() << "\"" << std::endl;
 
@@ -221,7 +266,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         if (!this->SetupDigitalInput(digitalInput)) {
             delete digitalInput;
         } else {
-            mDigitalInputs.push_back(digitalInput);
+            AddDigitalInput(digitalInput);
         }
     }
 
@@ -235,7 +280,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         if (!this->SetupDigitalOutput(digitalOutput)) {
             delete digitalOutput;
         } else {
-            mDigitalOutputs.push_back(digitalOutput);
+            AddDigitalOutput(digitalOutput);
         }
     }
 }
@@ -283,13 +328,6 @@ bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
     // Use preferred watchdog timeout
     robot->SetWatchdogPeriod(mWatchdogPeriod);
 
-    // Add the robot to the port
-    try {
-        AddRobot(robot);
-    } catch (osaRuntimeError1394 & err) {
-        CMN_LOG_CLASS_INIT_ERROR << "SetupRobot: unable to add the robot to the port: " << err.what() << std::endl;
-        return false;
-    }
     return true;
 }
 
@@ -301,14 +339,6 @@ bool mtsRobotIO1394::SetupDigitalInput(mtsDigitalInput1394 * digitalInput)
     mtsInterfaceProvided * digitalInInterface = this->AddInterfaceProvided(digitalInput->Name());
 
     digitalInput->SetupProvidedInterface(digitalInInterface, this->StateTable);
-
-    // Add the digital input to the port
-    try {
-        AddDigitalInput(digitalInput);
-    } catch (osaRuntimeError1394 & err) {
-        CMN_LOG_CLASS_INIT_ERROR << "SetupDigitalInput: unable to add the digital input to the port: " << err.what() << std::endl;
-        return false;
-    }
     return true;
 }
 
@@ -320,14 +350,6 @@ bool mtsRobotIO1394::SetupDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
     mtsInterfaceProvided * digitalOutInterface = this->AddInterfaceProvided(digitalOutput->Name());
 
     digitalOutput->SetupProvidedInterface(digitalOutInterface, this->StateTable);
-
-    // Add the digital input to the port
-    try {
-        AddDigitalOutput(digitalOutput);
-    } catch (osaRuntimeError1394 & err) {
-        CMN_LOG_CLASS_INIT_ERROR << "SetupDigitalOutput: unable to add the digital output to the port: " << err.what() << std::endl;
-        return false;
-    }
     return true;
 }
 
@@ -688,127 +710,3 @@ void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) con
         names.push_back((*iter)->Name());
     }
 }
-
-
-
-#if TO_BE_PORTED
-
-#include <sawRobotIO1394/osaPort1394.h>
-#include <stdexcept>
-#include <exception>
-
-using namespace sawRobotIO1394;
-
-void osaPort1394::Configure(const osaPort1394Configuration & config)
-{
-    // Add all the robots
-    for (std::vector<osaRobot1394Configuration>::const_iterator iter = config.Robots.begin();
-         iter != config.Robots.end();
-         ++iter) {
-        osaRobot1394 * robot = new osaRobot1394(*iter);
-        this->AddRobot(robot);
-    }
-
-    // Add all the digital inputs
-    for (std::vector<osaDigitalInput1394Configuration>::const_iterator it = config.DigitalInputs.begin();
-         it != config.DigitalInputs.end();
-         ++it) {
-        osaDigitalInput1394 * digitalInput = new osaDigitalInput1394(*it);
-        this->AddDigitalInput(digitalInput);
-    }
-}
-
-
-osaRobot1394 * osaPort1394::Robot(const std::string & name)
-{
-    robotByName_iterator it = mRobotsByName.find(name);
-    return (it == mRobotsByName.end() ? 0 : it->second);
-}
-
-const osaRobot1394 * osaPort1394::Robot(const std::string & name) const
-{
-    robotByName_const_iterator it = mRobotsByName.find(name);
-    return (it == mRobotsByName.end() ? 0 : it->second);
-}
-
-osaRobot1394 * osaPort1394::Robot(const int i)
-{
-    return mRobots[i];
-}
-
-const osaRobot1394 * osaPort1394::Robot(const int i) const
-{
-    return mRobots[i];
-}
-
-
-osaPort1394::~osaPort1394()
-{
-    // Delete robots before deleting boards
-    for (robot_iterator iter = mRobots.begin();
-         iter != mRobots.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
-        }
-    }
-    mRobots.clear();
-
-    // Delete digital inputs before deleting boards
-    for (digital_input_iterator iter = mDigitalInputs.begin();
-         iter != mDigitalInputs.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
-        }
-    }
-    mDigitalInputs.clear();
-
-    // Delete digital outputs before deleting boards
-    for (digital_output_iterator iter = mDigitalOutputs.begin();
-         iter != mDigitalOutputs.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
-        }
-    }
-    mDigitalInputs.clear();
-
-    // Delete board structures
-    for (board_iterator iter = mBoards.begin();
-         iter != mBoards.end();
-         ++iter) {
-        if (iter->second != 0) {
-            mPort->RemoveBoard(iter->first);
-            delete iter->second;
-        }
-    }
-    mBoards.clear();
-
-    // Delete firewire port
-    if (mPort != 0) {
-        delete mPort;
-    }
-}
-
-
-
-int osaPort1394::NumberOfBoards(void) const {
-    return mBoards.size();
-}
-
-int osaPort1394::NumberOfRobots(void) const {
-    return mRobots.size();
-}
-
-int osaPort1394::NumberOfDigitalInputs(void) const {
-    return mDigitalInputs.size();
-}
-
-int osaPort1394::NumberOfDigitalOutputs(void) const {
-    return mDigitalOutputs.size();
-}
-
-
-
-#endif // TO_BE_PORTED

@@ -108,15 +108,18 @@ void mtsDigitalOutput1394::PollState(void)
     mValue = (mData->DigitalOutputBits & mData->BitMask);
 }
 
-const osaDigitalOutput1394Configuration & mtsDigitalOutput1394::Configuration(void) const {
+const osaDigitalOutput1394Configuration & mtsDigitalOutput1394::Configuration(void) const
+{
     return mConfiguration;
 }
 
-const std::string & mtsDigitalOutput1394::Name(void) const {
+const std::string & mtsDigitalOutput1394::Name(void) const
+{
     return mName;
 }
 
-const bool & mtsDigitalOutput1394::Value(void) const {
+const bool & mtsDigitalOutput1394::Value(void) const
+{
     return mValue;
 }
 
