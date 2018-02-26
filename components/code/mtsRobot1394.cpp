@@ -1030,21 +1030,40 @@ void mtsRobot1394::CheckState(void)
 
     // Perform safety checks
     bool currentSafetyViolation = false;
-    for (size_t i = 0; i < mNumberOfActuators; i++) {
-        if (fabs(mActuatorCurrentFeedback[i]) >= mActuatorCurrentFeedbackLimits[i]) {
-            CMN_LOG_RUN_WARNING << "CheckState: " << this->mName << ", actuator " << i
-                                << " power: " << mActuatorCurrentFeedback[i]
-                                << " > limit: " << mActuatorCurrentFeedbackLimits[i] << std::endl;
-            currentSafetyViolation = true;
+    // actuators
+    {
+        const vctDoubleVec::const_iterator end = mActuatorCurrentFeedback.end();
+        vctDoubleVec::const_iterator feedback = mActuatorCurrentFeedback.begin();
+        vctDoubleVec::const_iterator limit = mActuatorCurrentFeedbackLimits.begin();
+        size_t index = 0;
+        for (; feedback < end;
+             ++feedback,
+                 ++limit,
+                 ++index) {
+            if (fabs(*feedback) >= *limit) {
+                CMN_LOG_RUN_WARNING << "CheckState: " << this->mName << ", actuator " << index
+                                    << " power: " << *feedback
+                                    << " > limit: " << *limit << std::endl;
+                currentSafetyViolation = true;
+            }
         }
     }
-
-    for (size_t i = 0; i < mNumberOfBrakes; i++) {
-        if (fabs(mBrakeCurrentFeedback[i]) >= mBrakeCurrentFeedbackLimits[i]) {
-            CMN_LOG_RUN_WARNING << "CheckState: " << this->mName << ", brake " << i
-                                << " power: " << mBrakeCurrentFeedback[i]
-                                << " > limit: " << mBrakeCurrentFeedbackLimits[i] << std::endl;
-            currentSafetyViolation = true;
+    // brakes
+    {
+        const vctDoubleVec::const_iterator end = mBrakeCurrentFeedback.end();
+        vctDoubleVec::const_iterator feedback = mBrakeCurrentFeedback.begin();
+        vctDoubleVec::const_iterator limit = mBrakeCurrentFeedbackLimits.begin();
+        size_t index = 0;
+        for (; feedback < end;
+             ++feedback,
+                 ++limit,
+                 ++index) {
+            if (fabs(*feedback) >= *limit) {
+                CMN_LOG_RUN_WARNING << "CheckState: " << this->mName << ", brake " << index
+                                    << " power: " << *feedback
+                                    << " > limit: " << *limit << std::endl;
+                currentSafetyViolation = true;
+            }
         }
     }
 
@@ -1409,7 +1428,7 @@ void mtsRobot1394::SetActuatorCurrent(const vctDoubleVec & currents)
 
 void mtsRobot1394::SetActuatorCurrentBits(const vctIntVec & bits)
 {
-    for (size_t i=0; i<mNumberOfActuators; i++) {
+    for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->SetMotorCurrent(mActuatorInfo[i].Axis, bits[i]);
     }
 
@@ -1433,7 +1452,7 @@ void mtsRobot1394::SetBrakeCurrent(const vctDoubleVec & currents)
 
 void mtsRobot1394::SetBrakeCurrentBits(const vctIntVec & bits)
 {
-    for (size_t i=0; i<mNumberOfBrakes; i++) {
+    for (size_t i = 0; i < mNumberOfBrakes; i++) {
         mBrakeInfo[i].Board->SetMotorCurrent(mBrakeInfo[i].Axis, bits[i]);
     }
 
