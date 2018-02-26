@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2015 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -20,8 +20,8 @@ http://www.cisst.org/cisst/license.txt.
 #include "plotObject.h"
 #include <cisstNumerical/nmrSavitzkyGolay.h>
 
-plotObject::plotObject(sawRobotIO1394::osaPort1394 * port,
-                       sawRobotIO1394::osaRobot1394 * robot,
+plotObject::plotObject(mtsRobotIO1394 * port,
+                       mtsRobot1394 * robot,
                        int actuatorIndex):
     mPort(port),
     mRobot(robot),

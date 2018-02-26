@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2015 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -24,20 +24,22 @@ http://www.cisst.org/cisst/license.txt.
 #include <iostream>
 
 // cisst/saw
-#include <sawRobotIO1394/osaPort1394.h>
-#include <sawRobotIO1394/osaRobot1394.h>
+#include <sawRobotIO1394/mtsRobotIO1394.h>
+#include <sawRobotIO1394/mtsRobot1394.h>
 
 // Qt
 #include <QFrame>
 #include <QVBoxLayout>
 #include <cisstVector/vctPlot2DOpenGLQtWidget.h>
 
+using namespace sawRobotIO1394;
+
 class plotObject: public QObject
 {
     Q_OBJECT;
 public:
-    plotObject(sawRobotIO1394::osaPort1394 * port,
-               sawRobotIO1394::osaRobot1394 * robot,
+    plotObject(mtsRobotIO1394 * port,
+               mtsRobot1394 * robot,
                int actuatorIndex);
 
 private slots:
@@ -55,8 +57,8 @@ protected:
     vctPlot2DBase::Signal * mEncoderSoftware;
     vctPlot2DBase::Signal * mPotDxSignal;
 
-    sawRobotIO1394::osaPort1394 * mPort;
-    sawRobotIO1394::osaRobot1394 * mRobot;
+    mtsRobotIO1394 * mPort;
+    mtsRobot1394 * mRobot;
     int mActuatorIndex;
 
     double mElapsedTime;

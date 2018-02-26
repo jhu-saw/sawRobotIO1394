@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2015 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -24,16 +24,16 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnCommandLineOptions.h>
 #include <cisstOSAbstraction/osaSleep.h>
-#include <sawRobotIO1394/osaConfiguration1394.h>
-#include <sawRobotIO1394/osaXML1394.h>
-#include <sawRobotIO1394/osaPort1394.h>
-#include <sawRobotIO1394/osaRobot1394.h>
+#include <sawRobotIO1394/mtsRobotIO1394.h>
+#include <sawRobotIO1394/mtsRobot1394.h>
 
 // plot object
 #include "plotObject.h"
 
 // Qt
 #include <QApplication>
+
+using namespace sawRobotIO1394;
 
 int main(int argc, char * argv[])
 {
@@ -65,23 +65,21 @@ int main(int argc, char * argv[])
               << "Port: " << portNumber << std::endl;
 
     std::cout << "Loading config file ..." << std::endl;
-    sawRobotIO1394::osaPort1394Configuration config;
-    sawRobotIO1394::osaXML1394ConfigurePort(configFile, config);
+    mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
+    port->Configure(configFile);
 
     std::cout << "Creating robot ..." << std::endl;
-    if (config.Robots.size() == 0) {
+    int numberOfRobots;
+    port->GetNumberOfRobots(numberOfRobots);
+    if (numberOfRobots == 0) {
         std::cerr << "Error: the config file doesn't define a robot." << std::endl;
         return -1;
     }
-    if (config.Robots.size() != 1) {
+    if (numberOfRobots != 1) {
         std::cerr << "Error: the config file defines more than one robot." << std::endl;
         return -1;
     }
-    sawRobotIO1394::osaRobot1394 * robot = new sawRobotIO1394::osaRobot1394(config.Robots[0]);
-
-    std::cout << "Creating port ..." << std::endl;
-    sawRobotIO1394::osaPort1394 * port = new sawRobotIO1394::osaPort1394(portNumber);
-    port->AddRobot(robot);
+    mtsRobot1394 * robot = port->Robot(0);
 
     // make sure we have at least one set of pots values
     try {
