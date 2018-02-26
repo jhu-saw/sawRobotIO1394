@@ -36,6 +36,7 @@ using namespace sawRobotIO1394;
 
 mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
                            const osaRobot1394Configuration & config):
+    OwnerServices(owner.Services()),
     // IO Structures
     mActuatorInfo(),
     mUniqueBoards(),
@@ -43,6 +44,7 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mValid(false),
     mPowerStatus(false),
     mPreviousPowerStatus(false),
+    mFirstWatchdog(true),
     mWatchdogStatus(false),
     mPreviousWatchdogStatus(false),
     mWatchdogPeriod(15.0),
@@ -50,10 +52,8 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mCurrentSafetyViolationsCounter(0),
     mCurrentSafetyViolationsMaximum(100),
     mInvalidReadCounter(0),
-    OwnerServices(owner.Services()),
     mStateTableRead(0),
     mStateTableWrite(0),
-    mFirstWatchdog(true),
     mSamplesForCalibrateEncoderOffsetsFromPots(0)
 {
     this->Configure(config);
@@ -291,7 +291,7 @@ void mtsRobot1394::DisablePower(void)
          ++board) {
         board->second->WriteAmpEnable(0x0f, 0x00);
     }
-    
+
     // disable all boards
     DisableBoardPower();
     mPreviousPowerStatus = false;
@@ -1281,7 +1281,7 @@ void mtsRobot1394::CheckState(void)
             EventTriggers.BiasEncoder(nbElements);
             mSamplesForCalibrateEncoderOffsetsFromPots = 0; // not needed anymore
         }
-    }    
+    }
 }
 
 void mtsRobot1394::WriteSafetyRelay(const bool & enabled)
