@@ -23,20 +23,19 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstCommon/cmnPath.h>
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnGetChar.h>
+#include <cisstCommon/cmnXMLPath.h>
 #include <cisstCommon/cmnCommandLineOptions.h>
 #include <cisstOSAbstraction/osaSleep.h>
-#include <sawRobotIO1394/osaConfiguration1394.h>
-#include <sawRobotIO1394/osaXML1394.h>
-#include <sawRobotIO1394/osaPort1394.h>
-#include <sawRobotIO1394/osaRobot1394.h>
+#include <sawRobotIO1394/mtsRobotIO1394.h>
+#include <sawRobotIO1394/mtsRobot1394.h>
 
 using namespace sawRobotIO1394;
 
 const double WatchdogPeriod = 100.0 * cmn_ms;
 enum PowerType {ALL, BOARD, ACTUATOR, BRAKE};
 bool brakes;
-osaRobot1394 * robot;
-osaPort1394 * port;
+mtsRobot1394 * robot;
+mtsRobotIO1394 * port;
 vctDoubleVec zeros;
 size_t numberOfAxis = 0;
 
@@ -226,19 +225,21 @@ int main(int argc, char * argv[])
     cmnGetChar();
 
     std::cout << "Loading config file ..." << std::endl;
-    osaPort1394Configuration config;
-    osaXML1394ConfigurePort(configFile, config);
+    port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
+    port->Configure(configFile);
 
     std::cout << "Creating robot ..." << std::endl;
-    if (config.Robots.size() == 0) {
+    int numberOfRobots;
+    port->GetNumberOfRobots(numberOfRobots);
+    if (numberOfRobots == 0) {
         std::cerr << "Error: the config file doesn't define a robot." << std::endl;
         return -1;
     }
-    if (config.Robots.size() != 1) {
+    if (numberOfRobots != 1) {
         std::cerr << "Error: the config file defines more than one robot." << std::endl;
         return -1;
     }
-    robot = new osaRobot1394(config.Robots[0]);
+    robot = port->Robot(0);
     brakes = false;
     if (options.IsSet("brakes")) {
         brakes = true;
@@ -249,10 +250,6 @@ int main(int argc, char * argv[])
     }
     zeros.SetSize(numberOfAxis);
     zeros.SetAll(0.0);
-
-    std::cout << "Creating port ..." << std::endl;
-    port = new osaPort1394(portNumber);
-    port->AddRobot(robot);
 
     // make sure we have at least one set of pots values
     try {
