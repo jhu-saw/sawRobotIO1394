@@ -1613,35 +1613,58 @@ void mtsRobot1394::GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const
     limits = mActuatorCurrentCommandLimits;
 }
 
-void mtsRobot1394::EncoderPositionToBits(const vctDoubleVec & pos, vctIntVec & bits) const {
-    for (size_t i = 0; i < bits.size() && i < pos.size(); i++) {
-        bits[i] = static_cast<long>(pos[i] / mBitsToPositionScales[i]);
+void mtsRobot1394::EncoderPositionToBits(const vctDoubleVec & pos, vctIntVec & bits) const
+{
+    const vctDoubleVec::const_iterator end = pos.end();
+    vctDoubleVec::const_iterator position = pos.begin();
+    vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
+    vctIntVec::iterator bit = bits.begin();
+    for (; position != end;
+         ++position,
+             ++scale,
+             ++bit) {
+        *bit = static_cast<int>(*position / *scale);
     }
 }
 
-void mtsRobot1394::EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & pos) const {
-    for (size_t i = 0; i < bits.size() && i < pos.size(); i++) {
-        pos[i] = static_cast<double>(bits[i]) * mBitsToPositionScales[i];
+void mtsRobot1394::EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & pos) const
+{
+    const vctIntVec::const_iterator end = bits.end();
+    vctIntVec::const_iterator bit = bits.begin();
+    vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
+    vctDoubleVec::iterator position = pos.begin();
+    for (; bit != end;
+         ++bit,
+             ++scale,
+             ++position) {
+        *position = static_cast<double>(*bit) * *scale;
     }
 }
 
 void mtsRobot1394::EncoderBitsToVelocityPredicted(vctDoubleVec & vel) const
 {
     if ((mLowestFirmWareVersion == 6) && (mHighestFirmWareVersion == 6)) {
-        vctDoubleVec acc_term_vec(mNumberOfActuators);
-        acc_term_vec.ElementwiseProductOf(mEncoderAccelerationCountsPerSecSec, mEncoderVelocityDelay);
-
-        for (size_t i = 0; i < mEncoderVelocityCountsPerSecond.size() && i < vel.size(); i++) {
-            const double vel_term = mEncoderVelocityCountsPerSecond[i];
-            const double acc_term = acc_term_vec[i];
-
+        const vctDoubleVec::iterator end = vel.end();
+        vctDoubleVec::iterator velocity = vel.begin();
+        vctDoubleVec::const_iterator enc_vel_cnts_per_sec = mEncoderVelocityCountsPerSecond.begin();
+        vctDoubleVec::const_iterator enc_acc_cnts_per_sec_sec = mEncoderAccelerationCountsPerSecSec.begin();
+        vctDoubleVec::const_iterator enc_vel_delay = mEncoderVelocityDelay.begin();
+        vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
+        for (; velocity != end;
+             ++velocity,
+                 ++enc_vel_cnts_per_sec,
+                 ++enc_acc_cnts_per_sec_sec,
+                 ++enc_vel_delay,
+                 ++scale) {
+            const double vel_term = *enc_vel_cnts_per_sec;
+            const double acc_term = *enc_acc_cnts_per_sec_sec * *enc_vel_delay;
             // Don't decelerate past a zero-crossing; first expression checks whether vel_term and
             // acc_term have different signs (i.e., one positive and one negative).
-            if ((vel_term*acc_term < 0) && (abs(acc_term) > abs(vel_term))){
-                vel[i] = 0;
+            if ((vel_term * acc_term < 0.0) && (abs(acc_term) > abs(vel_term))){
+                *velocity = 0.0;
             }
             else {
-                vel[i] = mBitsToPositionScales[i] * (vel_term + acc_term);
+                *velocity = *scale * (vel_term + acc_term);
             }
         }
     }
@@ -1651,15 +1674,35 @@ void mtsRobot1394::ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoub
     currents.ElementwiseProductOf(efforts, mEffortToCurrentScales);
 }
 
-void mtsRobot1394::ActuatorCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const {
-    for (size_t i = 0; i < bits.size() && i < currents.size(); i++) {
-        bits[i] = static_cast<long>(currents[i] * mActuatorCurrentToBitsScales[i] + mActuatorCurrentToBitsOffsets[i]);
+void mtsRobot1394::ActuatorCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const
+{
+    const vctDoubleVec::const_iterator end = currents.end();
+    vctDoubleVec::const_iterator current = currents.begin();
+    vctDoubleVec::const_iterator scale = mActuatorCurrentToBitsScales.begin();
+    vctDoubleVec::const_iterator offset = mActuatorCurrentToBitsOffsets.begin();
+    vctIntVec::iterator bit = bits.begin();
+    for (; current != end;
+         ++current,
+             ++scale,
+             ++offset,
+             ++bit) {
+        *bit = static_cast<int>(*current * *scale + *offset);
     }
 }
 
-void mtsRobot1394::ActuatorBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const {
-    for (size_t i = 0; i < bits.size() && i < currents.size(); i++) {
-        currents[i] = static_cast<double>(bits[i]) * mActuatorBitsToCurrentScales[i] + mActuatorBitsToCurrentOffsets[i];
+void mtsRobot1394::ActuatorBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const
+{
+    const vctIntVec::const_iterator end = bits.end();
+    vctIntVec::const_iterator bit = bits.begin();
+    vctDoubleVec::const_iterator scale =  mActuatorBitsToCurrentScales.begin();
+    vctDoubleVec::const_iterator offset = mActuatorBitsToCurrentOffsets.begin();
+    vctDoubleVec::iterator current = currents.begin();
+    for (; bit != end;
+         ++bit,
+             ++scale,
+             ++offset,
+             ++current) {
+        *current = static_cast<double>(*bit) * *scale + *offset;
     }
 }
 
@@ -1667,25 +1710,57 @@ void mtsRobot1394::ActuatorCurrentToEffort(const vctDoubleVec & currents, vctDou
     efforts.ElementwiseRatioOf(currents, mEffortToCurrentScales);
 }
 
-void mtsRobot1394::BrakeCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const {
-    for (size_t i = 0; i < bits.size() && i < currents.size(); i++) {
-        bits[i] = static_cast<long>(currents[i] * mBrakeCurrentToBitsScales[i] + mBrakeCurrentToBitsOffsets[i]);
+void mtsRobot1394::BrakeCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const
+{
+    const vctDoubleVec::const_iterator end = currents.end();
+    vctDoubleVec::const_iterator current = currents.begin();
+    vctDoubleVec::const_iterator scale = mBrakeCurrentToBitsScales.begin();
+    vctDoubleVec::const_iterator offset = mBrakeCurrentToBitsOffsets.begin();
+    vctIntVec::iterator bit = bits.begin();
+    for (; current != end;
+         ++current,
+             ++scale,
+             ++offset,
+             ++bit) {
+        *bit = static_cast<int>(*current * *scale + *offset);
     }
 }
 
-void mtsRobot1394::BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const {
-    for (size_t i = 0; i < bits.size() && i < currents.size(); i++) {
-        currents[i] = static_cast<double>(bits[i]) * mBrakeBitsToCurrentScales[i] + mBrakeBitsToCurrentOffsets[i];
+void mtsRobot1394::BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const
+{
+    const vctIntVec::const_iterator end = bits.end();
+    vctIntVec::const_iterator bit = bits.begin();
+    vctDoubleVec::const_iterator scale =  mBrakeBitsToCurrentScales.begin();
+    vctDoubleVec::const_iterator offset = mBrakeBitsToCurrentOffsets.begin();
+    vctDoubleVec::iterator current = currents.begin();
+    for (; bit != end;
+         ++bit,
+             ++scale,
+             ++offset,
+             ++current) {
+        *current = static_cast<double>(*bit) * *scale + *offset;
     }
 }
 
-void mtsRobot1394::PotBitsToVoltage(const vctIntVec & bits, vctDoubleVec & voltages) const {
-    for (size_t i = 0; i < bits.size() && i < voltages.size(); i++) {
-        voltages[i] = static_cast<double>(bits[i]) * mBitsToVoltageScales[i] + mBitsToVoltageOffsets[i];
+void mtsRobot1394::PotBitsToVoltage(const vctIntVec & bits, vctDoubleVec & voltages) const
+{
+    const vctIntVec::const_iterator end = bits.end();
+    vctIntVec::const_iterator bit = bits.begin();
+    vctDoubleVec::const_iterator scale = mBitsToVoltageScales.begin();
+    vctDoubleVec::const_iterator offset = mBitsToVoltageOffsets.begin();
+    vctDoubleVec::iterator voltage = voltages.begin();
+
+    for (; bit != end;
+         ++bit,
+             ++scale,
+             ++offset,
+             ++voltage) {
+        *voltage = static_cast<double>(*bit) * *scale + *offset;
     }
 }
 
-void mtsRobot1394::PotVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const {
+void mtsRobot1394::PotVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const
+{
     pos.ElementwiseProductOf(voltages, mVoltageToPositionScales);
     pos.SumOf(pos, mVoltageToPositionOffsets);
 }
