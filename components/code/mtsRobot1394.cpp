@@ -790,13 +790,14 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                              << "----------------------------------------------------" << std::endl;
     }
     if (mHighestFirmWareVersion > currentFirmwareRevision) {
-        CMN_LOG_INIT_WARNING << "osaRobot1394::SetBoards" << std::endl
-                             << "----------------------------------------------------" << std::endl
-                             << " Warning:" << std::endl
-                             << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
-                             << "   This software is compatible with firmware version " << currentFirmwareRevision << "." << std::endl
-                             << "   Please update this software." << std::endl
-                             << "----------------------------------------------------" << std::endl;
+        CMN_LOG_INIT_ERROR << "osaRobot1394::SetBoards" << std::endl
+                           << "----------------------------------------------------" << std::endl
+                           << " Warning:" << std::endl
+                           << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
+                           << "   This software is compatible with firmware version " << currentFirmwareRevision << "." << std::endl
+                           << "   Please update this software." << std::endl
+                           << "----------------------------------------------------" << std::endl;
+        exit(EXIT_FAILURE);
     }
 }
 

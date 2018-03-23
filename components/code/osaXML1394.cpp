@@ -35,6 +35,7 @@ namespace sawRobotIO1394 {
             CMN_LOG_INIT_ERROR << "Configure: Config/Version is missing in file: "
                                << filename << std::endl
                                << "Make sure you generate your XML files with the latest config generator." << std::endl;
+            exit(EXIT_FAILURE);
             return;
         } else {
             const int minimumVersion = 3;
@@ -43,6 +44,7 @@ namespace sawRobotIO1394 {
                                    << ", version found is " << version << std::endl
                                    << "File: " << filename << std::endl
                                    << "Make sure you generate your XML files with the latest config generator." << std::endl;
+                exit(EXIT_FAILURE);
                 return;
             }
         }
@@ -60,6 +62,7 @@ namespace sawRobotIO1394 {
             } else {
                 CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure robot from file \""
                                      << filename << "\"" << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -73,6 +76,10 @@ namespace sawRobotIO1394 {
             // Store the digitalInput in the config if it's succesfully parsed
             if (osaXML1394ConfigureDigitalInput(xmlConfig, i + 1, digitalInput)) {
                 config.DigitalInputs.push_back(digitalInput);
+            } else {
+                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure digital input from file \""
+                                     << filename << "\"" << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -86,6 +93,10 @@ namespace sawRobotIO1394 {
             // Store the digitalOutput in the config if it's succesfully parsed
             if (osaXML1394ConfigureDigitalOutput(xmlConfig, i + 1, digitalOutput)) {
                 config.DigitalOutputs.push_back(digitalOutput);
+            } else {
+                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure digital input from file \""
+                                     << filename << "\"" << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -93,6 +104,7 @@ namespace sawRobotIO1394 {
         if ((numRobots + numDigitalInputs + numDigitalOutputs) == 0) {
             CMN_LOG_INIT_ERROR << "osaXML1394ConfigurePort: file " << filename
                                << " doesn't contain any Config/Robot, Config/DigitalIn not Config/DigitalOut" << std::endl;
+            exit(EXIT_FAILURE);
         }
     }
 

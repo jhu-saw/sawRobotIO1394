@@ -226,6 +226,7 @@ int main(int argc, char * argv[])
 
     std::cout << "Loading config file ..." << std::endl;
     port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
+    port->SkipConfigurationCheck(true);
     port->Configure(configFile);
 
     std::cout << "Creating robot ..." << std::endl;

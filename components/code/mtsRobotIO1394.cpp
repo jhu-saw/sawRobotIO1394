@@ -139,6 +139,7 @@ void mtsRobotIO1394::Init(const int portNumber)
 {
     // default watchdog period
     mWatchdogPeriod = 15.0 * cmn_ms;
+    mSkipConfigurationCheck = false;
 
     // add state tables for stats
     mStateTableRead = new mtsStateTable(100, this->GetName() + "Read");
@@ -175,7 +176,7 @@ void mtsRobotIO1394::Init(const int portNumber)
         }
     } catch (std::runtime_error &err) {
         CMN_LOG_CLASS_INIT_ERROR << err.what();
-        abort();
+        exit(EXIT_FAILURE);
     }
 
     mtsInterfaceProvided * mainInterface = AddInterfaceProvided("MainInterface");
@@ -223,6 +224,11 @@ void mtsRobotIO1394::Init(const int portNumber)
     }
 }
 
+void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
+{
+    mSkipConfigurationCheck = skip;
+}
+
 void mtsRobotIO1394::Configure(const std::string & filename)
 {
     CMN_LOG_CLASS_INIT_VERBOSE << "Configure: configuring from " << filename << std::endl;
@@ -236,12 +242,14 @@ void mtsRobotIO1394::Configure(const std::string & filename)
          ++it) {
         // Create a new robot
         mtsRobot1394 * robot = new mtsRobot1394(*this, *it);
-        // Check the configuration
-        if (!robot->CheckConfiguration()) {
-            CMN_LOG_CLASS_INIT_ERROR << "Configure: error in configuration file \""
-                                     << filename << "\" for robot \""
-                                     << robot->Name() << "\"" << std::endl;
-            abort();
+        // Check the configuration if needed
+        if (!mSkipConfigurationCheck) {
+            if (!robot->CheckConfiguration()) {
+                CMN_LOG_CLASS_INIT_ERROR << "Configure: error in configuration file \""
+                                         << filename << "\" for robot \""
+                                         << robot->Name() << "\"" << std::endl;
+                exit(EXIT_FAILURE);
+            }
         }
         // Set up the cisstMultiTask interfaces
         if (!this->SetupRobot(robot)) {

@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2017 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -40,11 +40,12 @@ protected:
     BasePort * mPort;
 
     double mWatchdogPeriod; // prefered watchdog period for all boards
+    bool mSkipConfigurationCheck;
 
     std::map<int, AmpIO*> mBoards;
     typedef std::map<int, AmpIO*>::iterator board_iterator;
     typedef std::map<int, AmpIO*>::const_iterator board_const_iterator;
-    
+
     typedef std::vector<sawRobotIO1394::mtsRobot1394*> RobotsType;
     typedef RobotsType::iterator robot_iterator;
     typedef RobotsType::const_iterator robot_const_iterator;
@@ -79,6 +80,7 @@ public:
 
     void Init(const int portNumber);
 
+    void SkipConfigurationCheck(const bool skip); // must be called before configure
     void Configure(const std::string & filename);
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
@@ -123,4 +125,3 @@ private:
 CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobotIO1394);
 
 #endif // _mtsRobotIO1394_h
-
