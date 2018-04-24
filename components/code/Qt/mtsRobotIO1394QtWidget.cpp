@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-16
 
-  (C) Copyright 2013-2017 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2018 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -234,6 +234,10 @@ void mtsRobotIO1394QtWidget::SlotEnableDirectControl(bool toggle)
     QVWActuatorCurrentSpinBox->setEnabled(toggle);
     QVWActuatorCurrentSlider->setEnabled(toggle);
     QPBResetCurrentAll->setEnabled(toggle);
+    QPBBrakeRelease->setEnabled(toggle);
+    QPBBrakeEngage->setEnabled(toggle);
+    QVWBrakeCurrentEnableEach->setEnabled(toggle);
+
     // set all current to 0
     SlotResetCurrentAll();
 }
