@@ -234,9 +234,11 @@ void mtsRobotIO1394QtWidget::SlotEnableDirectControl(bool toggle)
     QVWActuatorCurrentSpinBox->setEnabled(toggle);
     QVWActuatorCurrentSlider->setEnabled(toggle);
     QPBResetCurrentAll->setEnabled(toggle);
-    QPBBrakeRelease->setEnabled(toggle);
-    QPBBrakeEngage->setEnabled(toggle);
-    QVWBrakeCurrentEnableEach->setEnabled(toggle);
+    if (NumberOfBrakes != 0) {
+        QPBBrakeRelease->setEnabled(toggle);
+        QPBBrakeEngage->setEnabled(toggle);
+        QVWBrakeCurrentEnableEach->setEnabled(toggle);
+    }
 
     // set all current to 0
     SlotResetCurrentAll();
