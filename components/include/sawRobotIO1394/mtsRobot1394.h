@@ -268,7 +268,6 @@ namespace sawRobotIO1394 {
             mValid,
             mPowerStatus,
             mPreviousPowerStatus,
-            mFirstWatchdog,
             mWatchdogStatus,
             mPreviousWatchdogStatus;
 

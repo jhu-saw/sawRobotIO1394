@@ -44,9 +44,8 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mValid(false),
     mPowerStatus(false),
     mPreviousPowerStatus(false),
-    mFirstWatchdog(true),
-    mWatchdogStatus(false),
-    mPreviousWatchdogStatus(false),
+    mWatchdogStatus(true),
+    mPreviousWatchdogStatus(true),
     mWatchdogPeriod(15.0),
     mSafetyRelay(false),
     mCurrentSafetyViolationsCounter(0),
@@ -816,7 +815,7 @@ void mtsRobot1394::PollValidity(void)
     mValid = true;
     mPowerStatus = true;
     mSafetyRelay = true;
-    mWatchdogStatus = true;
+    mWatchdogStatus = false;
 
     for (unique_board_iterator board = mUniqueBoards.begin();
          board != mUniqueBoards.end();
@@ -824,7 +823,7 @@ void mtsRobot1394::PollValidity(void)
         mValid &= board->second->ValidRead();
         mPowerStatus &= board->second->GetPowerStatus();
         mSafetyRelay &= board->second->GetSafetyRelayStatus();
-        mWatchdogStatus &= board->second->GetWatchdogTimeoutStatus();
+        mWatchdogStatus |= board->second->GetWatchdogTimeoutStatus();
     }
 
     if (!mValid) {
@@ -1230,13 +1229,10 @@ void mtsRobot1394::CheckState(void)
 
     if (mPreviousWatchdogStatus != mWatchdogStatus) {
         EventTriggers.WatchdogStatus(mWatchdogStatus);
-        if (!mWatchdogStatus) {
-            if (mFirstWatchdog) {
-                mInterface->SendStatus("IO: " + this->Name() + " watchdog triggered");
-                mFirstWatchdog = false;
-            } else {
-                mInterface->SendError("IO: " + this->Name() + " watchdog triggered");
-            }
+        if (mWatchdogStatus) {
+            mInterface->SendError("IO: " + this->Name() + " watchdog triggered");
+        } else {
+            mInterface->SendStatus("IO: " + this->Name() + " watchdog ok");
         }
     }
 

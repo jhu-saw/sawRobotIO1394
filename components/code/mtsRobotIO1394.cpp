@@ -399,9 +399,6 @@ void mtsRobotIO1394::Read(void)
 
         // Convert bits to usable numbers
         (*robot)->ConvertState();
-
-        // Perform post conversion checks and computations
-        (*robot)->CheckState();
     }
 
     // Poll the state for each digital input

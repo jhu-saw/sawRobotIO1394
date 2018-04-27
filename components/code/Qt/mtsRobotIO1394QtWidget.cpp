@@ -534,9 +534,9 @@ void mtsRobotIO1394QtWidget::setupUi(void)
     QLSafetyRelay = new QLabel("Safety relay ON");
     QLSafetyRelay->setAlignment(Qt::AlignCenter);
     watchdogLayout->addWidget(QLSafetyRelay);
-    QLWatchdog = new QLabel("Timeout FALSE");
+    QLWatchdog = new QLabel("Timeout TRUE");
     QLWatchdog->setAlignment(Qt::AlignCenter);
-    QLWatchdog->setStyleSheet("QLabel { background-color: green }");
+    QLWatchdog->setStyleSheet("QLabel { background-color: red }");
     watchdogLayout->addWidget(QLWatchdog);
     QLWatchdogLastTimeout = new QLabel("Last timeout: n/a");
     QLWatchdogLastTimeout->setAlignment(Qt::AlignCenter);
