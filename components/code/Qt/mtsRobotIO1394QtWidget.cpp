@@ -602,10 +602,10 @@ void mtsRobotIO1394QtWidget::setupUi(void)
     // Commands layout
     QHBoxLayout * commandLayout = new QHBoxLayout;
     commandLayout->setContentsMargins(2, 2, 2, 2);
-    commandLayout->addWidget(powerFrame);
-    commandLayout->addWidget(watchdogFrame);
-    commandLayout->addWidget(encoderFrame);
-    commandLayout->addWidget(currentFrame);
+    commandLayout->addWidget(powerFrame, 1);
+    commandLayout->addWidget(watchdogFrame, 1);
+    commandLayout->addWidget(encoderFrame, 1);
+    commandLayout->addWidget(currentFrame, 1);
     commandLayout->addWidget(timingFrame);
 
     // Feedbacks Label
