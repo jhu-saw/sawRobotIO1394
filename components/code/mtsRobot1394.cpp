@@ -779,26 +779,60 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                              << ", QLA serial: " << serialQLA
                              << std::endl;
     }
+
     const AmpIO_UInt32 currentFirmwareRevision = 6;
-    if (mLowestFirmWareVersion < currentFirmwareRevision) {
-        CMN_LOG_INIT_WARNING << "osaRobot1394::SetBoards" << std::endl
-                             << "----------------------------------------------------" << std::endl
-                             << " Warning:" << std::endl
-                             << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
-                             << "   Lowest version found is " << mLowestFirmWareVersion << "." << std::endl
-                             << "----------------------------------------------------" << std::endl;
+    const AmpIO_UInt32 lowestFirmwareSupported = 4;
+
+    std::stringstream message;
+    bool fatal = false;
+    bool firmwareSuggested = false;
+    // supported
+    if ((mLowestFirmWareVersion >= lowestFirmwareSupported)
+        && (mLowestFirmWareVersion < currentFirmwareRevision)) {
+        message << "osaRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Suggestion:" << std::endl
+                << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
+                << "   Lowest version found is " << mLowestFirmWareVersion << "." << std::endl
+                << "----------------------------------------------------" << std::endl;
+        firmwareSuggested = true;
     }
+    // too low
+    if (mLowestFirmWareVersion < lowestFirmwareSupported) {
+        message << "osaRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Error:" << std::endl
+                << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
+                << "   Lowest version found is " << mLowestFirmWareVersion << "." << std::endl
+                << "   This software supports firmware revision(s) " << lowestFirmwareSupported << " to " << currentFirmwareRevision << std::endl
+                << "----------------------------------------------------" << std::endl;
+        fatal = true;
+    }
+    // too high
     if (mHighestFirmWareVersion > currentFirmwareRevision) {
-        CMN_LOG_INIT_ERROR << "osaRobot1394::SetBoards" << std::endl
-                           << "----------------------------------------------------" << std::endl
-                           << " Warning:" << std::endl
-                           << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
-                           << "   This software is compatible with firmware version " << currentFirmwareRevision << "." << std::endl
-                           << "   Please update this software." << std::endl
-                           << "----------------------------------------------------" << std::endl;
-        exit(EXIT_FAILURE);
+        message << "osaRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Error:" << std::endl
+                << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
+                << "   The highest firmware revision supported by this software is " << currentFirmwareRevision << "." << std::endl
+                << "   Please update this software or downgrade your firmware." << std::endl
+                << "----------------------------------------------------" << std::endl;
+        fatal = true;
+    }
+    if (fatal || firmwareSuggested) {
+        message << " To upgrade (or downgrade) the FPGA firmware, please follow instructions from:" << std::endl
+                << "  https://github.com/jhu-cisst/mechatronics-firmware/wiki/FPGA-Program" << std::endl
+                << "----------------------------------------------------" << std::endl;
+        if (fatal) {
+            std::cerr << message.str();
+            CMN_LOG_INIT_ERROR << message.str();
+            exit(EXIT_FAILURE);
+        } else {
+            CMN_LOG_INIT_WARNING << message.str();
+        }
     }
 }
+
 
 void mtsRobot1394::PollValidity(void)
 {
@@ -926,7 +960,7 @@ void mtsRobot1394::ConvertState(void)
     // Velocity computation
 
     // If we have firmware 6, use FPGA acceleration to predict current velocity
-    if ((mLowestFirmWareVersion == 6) && (mHighestFirmWareVersion == 6)) {
+    if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
         EncoderBitsToVelocityPredicted(mEncoderVelocityPredicted);
     }
 
@@ -993,7 +1027,7 @@ void mtsRobot1394::ConvertState(void)
 
     // Figure out which velocity to use based on firmware version
     vctDoubleVec *velToUse;
-    if ((mLowestFirmWareVersion == 6) && (mHighestFirmWareVersion == 6)) {
+    if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
         velToUse = &mEncoderVelocityPredicted;   // velocity based on FPGA measurement of velocity and acceleration
     } else {
         velToUse = &mEncoderVelocitySoftware;    // velocity based on software computation (from position)
@@ -1640,7 +1674,7 @@ void mtsRobot1394::EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & 
 
 void mtsRobot1394::EncoderBitsToVelocityPredicted(vctDoubleVec & vel) const
 {
-    if ((mLowestFirmWareVersion == 6) && (mHighestFirmWareVersion == 6)) {
+    if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
         const vctDoubleVec::iterator end = vel.end();
         vctDoubleVec::iterator velocity = vel.begin();
         vctDoubleVec::const_iterator enc_vel_cnts_per_sec = mEncoderVelocityCountsPerSecond.begin();
