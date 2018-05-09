@@ -1,6 +1,23 @@
 Change log
 ==========
 
+1.6.0 (2018-xx-xx)
+==================
+
+* API changes:
+  * All classes with `osa` and `mts` levels have been merged to simplify code
+* Deprecated features:
+  * Since all `osa` classes have been removed, programs that used the `osa` level need to be updated.  See for example `applications/current-calibration` 
+  * Firmware Rev 3 and below are not supported anymore
+* New features:
+  * Use FPGA based velocity with firmware Rev 6
+  * Application exists when the configuration fails, it makes it easier to find configuration errors
+  * Setting encoder/pot error to 0 disables the check completly (e.g. MTM last two joints)
+  * Reports 3 different timing statisctics, time to "read", "write" and overall.  These are also exposed using ROS topics
+* Bug fixes:
+  * Interval statistics were base on the "Read" phase only, it was missing the PID computing time as well as "Write" to IO 
+  * Qt widget: brake control requires "direct control"
+
 1.5.0 (2017-11-07)
 ==================
 
