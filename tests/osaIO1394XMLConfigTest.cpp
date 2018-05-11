@@ -32,7 +32,8 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmPositionJointGet.h>
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
 
-#include <sawRobotIO1394/osaRobot1394.h>
+#include <sawRobotIO1394/mtsRobotIO1394.h>
+#include <sawRobotIO1394/mtsRobot1394.h>
 #include <sawRobotIO1394/osaXML1394.h>
 
 using namespace sawRobotIO1394;
