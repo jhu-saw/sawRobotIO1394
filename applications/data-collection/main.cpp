@@ -73,16 +73,15 @@ int main(int argc, char * argv[])
     std::cout << "Configuration file: " << configFile << std::endl
               << "Port: " << portNumber << std::endl;
 
-    // add arrays here for all data collected....
+    // add arrays here for all data collected....   don't forget to delete these at the end
     std::cout << "Allocation memory for " << numberOfIterations << " samples." << std::endl;
-    size_t allIterations[numberOfIterations];
-    //    double * allActuatorTimeStamps = new double[numberOfIterations];
-    double allCPUTimes[numberOfIterations];
-    double allPositions[numberOfIterations][4];
-    double allVelocities[numberOfIterations][4];
-    double allAccelerations[numberOfIterations][4];
-    double allVelocitiesSoftware[numberOfIterations][4];
-    
+    size_t * allIterations = new size_t[numberOfIterations];
+    double * allCPUTimes = new double[numberOfIterations];
+    vct4 * allPositions = new vct4[numberOfIterations];
+    vct4 * allVelocities = new vct4[numberOfIterations];
+    vct4 * allAccelerations = new vct4[numberOfIterations];
+    vct4 * allVelocitiesSoftware = new vct4[numberOfIterations];
+
     std::cout << "Loading config file ..." << std::endl;
     mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
     port->Configure(configFile);
@@ -152,14 +151,14 @@ int main(int argc, char * argv[])
 
                 allVelocities[iter][actuatorIndex-startIndex] =
                     robot->EncoderVelocity()[actuatorIndex];
-     
+
                 allAccelerations[iter][actuatorIndex-startIndex] =
                     robot->EncoderAcceleration()[actuatorIndex];
-                
+
                 allVelocitiesSoftware[iter][actuatorIndex-startIndex] =
                     robot->EncoderVelocitySoftware()[actuatorIndex];
             }
-        
+
         // display progress
         progress++;
         if (progress == percent) {
@@ -212,6 +211,13 @@ int main(int argc, char * argv[])
         output << std::endl;
     }
     output.close();
+
+    delete[] allIterations;
+    delete[] allCPUTimes;
+    delete[] allPositions;
+    delete[] allVelocities;
+    delete[] allAccelerations;
+    delete[] allVelocitiesSoftware;
 
     delete port;
     return 0;
