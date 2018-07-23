@@ -84,12 +84,6 @@ namespace sawRobotIO1394 {
         bool mTriggerRelease;        // Boolean Flag for Release Trigger Setting
         double mDebounceThreshold;   // 0, no debounce required otherwise time in seconds
 
-        // ZC: hysteresis
-        double mTestConfidence;
-        double mTestLow;
-        double mTestHigh;
-        double mTestWeight;
-
         // State data
         bool mValue;                    // Current read value
         bool mTransitionValue;          // For debouncing

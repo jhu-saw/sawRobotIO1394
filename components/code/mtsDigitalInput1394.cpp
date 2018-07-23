@@ -107,12 +107,6 @@ void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
     // Set the value to un-pressed
     mValue = !mPressedValue;
     mPreviousValue = mValue;
-
-    // ZC: HEAD
-    mTestConfidence = 0;
-    mTestLow = 0.2;
-    mTestHigh = 0.8;
-    mTestWeight = 0.98;
 }
 
 void mtsDigitalInput1394::SetBoard(AmpIO * board)
@@ -135,15 +129,6 @@ void mtsDigitalInput1394::PollState(void)
     bool value = (mData->DigitalInputBits & mData->BitMask)
         ? (!mPressedValue) : (mPressedValue);
 
-    // ZC: hack for quick testing
-    if (Name() == "HEAD") {
-        std::cerr << CMN_LOG_DETAILS << " this special case needs to be removed!" << std::endl;
-        mTestConfidence = mTestWeight * mTestConfidence + (1 - mTestWeight) * value;
-        if (mPreviousValue == true && mTestConfidence < mTestLow) mValue = false;
-        else if (mPreviousValue == false && mTestConfidence > mTestHigh) mValue = true;
-        return;
-    }
-    
     // No debounce needed
     if (mDebounceThreshold == 0.0) {
         mValue = value;
@@ -162,6 +147,10 @@ void mtsDigitalInput1394::PollState(void)
             if (value == mTransitionValue) {
                 mDebounceCounter += mBoard->GetTimestamp() / (49.125 * 1000.0 * 1000.0); // clock is 49.125 MHz
             } else {
+                if (mDebounceCounter >  0.5 * mDebounceThreshold) {
+                    static const prmEventButton clicked = prmEventButton::CLICKED;
+                    Button(clicked);
+                }
                 mDebounceCounter = -1.0;
             }
         } else {
