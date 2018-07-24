@@ -295,6 +295,13 @@ void mtsRobotIO1394QtWidget::SlotSliderActuatorCurrentValueChanged()
 
 void mtsRobotIO1394QtWidget::SlotResetEncodersAll()
 {
+    int answer = QMessageBox::warning(this, tr("mtsRobotIO1394QtWidget"),
+                                      tr("Don't reset the encoders if there is an active controller (e.g. PID).\nAre you sure you want to continue?"),
+                                      QMessageBox::No | QMessageBox::Yes);
+    if (answer == QMessageBox::No) {
+        return;
+    }
+
     vctDoubleVec newEncoderValues(NumberOfActuators);
     newEncoderValues.SetAll(0.0);
     mtsExecutionResult result = Robot.SetEncoderPosition(newEncoderValues);
@@ -305,6 +312,13 @@ void mtsRobotIO1394QtWidget::SlotResetEncodersAll()
 
 void mtsRobotIO1394QtWidget::SlotBiasEncodersAll()
 {
+    int answer = QMessageBox::warning(this, tr("mtsRobotIO1394QtWidget"),
+                                      tr("Don't reset the encoders if there is an active controller (e.g. PID).\nAre you sure you want to continue?"),
+                                      QMessageBox::No | QMessageBox::Yes);
+    if (answer == QMessageBox::No) {
+        return;
+    }
+
     mtsExecutionResult result = Robot.BiasEncoder(1000);
     if (!result.IsOK()) {
         CMN_LOG_CLASS_RUN_WARNING << "SlotBiasEncodersAll: command failed \"" << result << "\"" << std::endl;
