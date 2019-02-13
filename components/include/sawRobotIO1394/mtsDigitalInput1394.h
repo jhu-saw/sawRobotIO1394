@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Jonathan Bohren
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -89,6 +89,13 @@ namespace sawRobotIO1394 {
         bool mTransitionValue;          // For debouncing
         bool mPreviousValue;            // Saved value from the previous read
         double mDebounceCounter;        // time in seconds with constant value
+        mtsStateTable * mStateTable = nullptr;
+
+        struct {
+            prmEventButton Pressed;
+            prmEventButton Released;
+            prmEventButton Clicked;
+        } mEventPayloads;
     };
 
 } // namespace sawRobotIO1394
