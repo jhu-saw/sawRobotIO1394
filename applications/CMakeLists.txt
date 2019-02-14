@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2018 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2019 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -10,6 +10,10 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 2.8)
+
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
 
 # Qt based example, CMake will look for cisstQt
 add_subdirectory (Qt)
