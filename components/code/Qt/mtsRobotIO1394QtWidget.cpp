@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-16
 
-  (C) Copyright 2013-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -550,7 +550,7 @@ void mtsRobotIO1394QtWidget::setupUi(void)
     watchdogLayout->addWidget(QLSafetyRelay);
     QLWatchdog = new QLabel("Timeout TRUE");
     QLWatchdog->setAlignment(Qt::AlignCenter);
-    QLWatchdog->setStyleSheet("QLabel { background-color: red }");
+    QLWatchdog->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     watchdogLayout->addWidget(QLWatchdog);
     QLWatchdogLastTimeout = new QLabel("Last timeout: n/a");
     QLWatchdogLastTimeout->setAlignment(Qt::AlignCenter);
@@ -793,10 +793,10 @@ void mtsRobotIO1394QtWidget::UpdateRobotInfo(void)
     }
     if (ampStatusGood) {
         QLAmpStatus->setText("Actuators ON");
-        QLAmpStatus->setStyleSheet("QLabel { background-color: green }");
+        QLAmpStatus->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
         QLAmpStatus->setText("Actuators OFF");
-        QLAmpStatus->setStyleSheet("QLabel { background-color: red }");
+        QLAmpStatus->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 
     // brake amplifier status
@@ -807,10 +807,10 @@ void mtsRobotIO1394QtWidget::UpdateRobotInfo(void)
     // power status
     if (PowerStatus) {
         QLPowerStatus->setText("Boards ON");
-        QLPowerStatus->setStyleSheet("QLabel { background-color: green }");
+        QLPowerStatus->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
         QLPowerStatus->setText("Boards OFF");
-        QLPowerStatus->setStyleSheet("QLabel { background-color: red }");
+        QLPowerStatus->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 
     // update check box to enable/disable based on current state
@@ -831,10 +831,10 @@ void mtsRobotIO1394QtWidget::UpdateRobotInfo(void)
     // safety Relay
     if (SafetyRelay) {
         QLSafetyRelay->setText("Safety Relay ON");
-        QLSafetyRelay->setStyleSheet("QLabel { background-color: green }");
+        QLSafetyRelay->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
         QLSafetyRelay->setText("Safety Relay OFF");
-        QLSafetyRelay->setStyleSheet("QLabel { background-color: red }");
+        QLSafetyRelay->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 }
 
@@ -859,11 +859,11 @@ void mtsRobotIO1394QtWidget::SlotWatchdogStatusEvent(bool status)
 {
     if (status) {
         QLWatchdog->setText("Timeout TRUE");
-        QLWatchdog->setStyleSheet("QLabel { background-color: red }");
+        QLWatchdog->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
         QLWatchdogLastTimeout->setText(QString("Last timeout: " + QTime::currentTime().toString("hh:mm:ss")));
     } else {
         QLWatchdog->setText("Timeout FALSE");
-        QLWatchdog->setStyleSheet("QLabel { background-color: green }");
+        QLWatchdog->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     }
 }
 
