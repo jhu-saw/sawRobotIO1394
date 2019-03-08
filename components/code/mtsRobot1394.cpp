@@ -757,6 +757,13 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
          board != mUniqueBoards.end();
          ++board, ++boardCounter) {
         AmpIO_UInt32 fversion = board->second->GetFirmwareVersion();
+        if (fversion == 0) {
+            CMN_LOG_INIT_ERROR << "osaRobot1394::SetBoards: " << this->mName
+                               << ", unable to get firware version for board: " << boardCounter
+                               << ", Id: " << static_cast<int>(board->second->GetBoardId())
+                               << ".  Make sure the controller is powered and connected" << std::endl;
+            exit(EXIT_FAILURE);
+        }
         std::string serialQLA = board->second->GetQLASerialNumber();
         if (serialQLA.empty()) {
             serialQLA = "unknown";
