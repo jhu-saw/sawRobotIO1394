@@ -771,7 +771,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
         if (fversion > mHighestFirmWareVersion) {
             mHighestFirmWareVersion = fversion;
         }
-        CMN_LOG_INIT_WARNING << "osaRobot1394::SetBoards: " << this->mName
+        CMN_LOG_INIT_WARNING << "mtsRobot1394::SetBoards: " << this->mName
                              << ", board: " << boardCounter
                              << ", Id: " << static_cast<int>(board->second->GetBoardId())
                              << ", firmware: " << fversion
@@ -789,7 +789,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     // supported
     if ((mLowestFirmWareVersion >= lowestFirmwareSupported)
         && (mLowestFirmWareVersion < currentFirmwareRevision)) {
-        message << "osaRobot1394::SetBoards" << std::endl
+        message << "mtsRobot1394::SetBoards" << std::endl
                 << "----------------------------------------------------" << std::endl
                 << " Suggestion:" << std::endl
                 << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
@@ -799,7 +799,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     }
     // too low
     if (mLowestFirmWareVersion < lowestFirmwareSupported) {
-        message << "osaRobot1394::SetBoards" << std::endl
+        message << "mtsRobot1394::SetBoards" << std::endl
                 << "----------------------------------------------------" << std::endl
                 << " Error:" << std::endl
                 << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
@@ -810,7 +810,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     }
     // too high
     if (mHighestFirmWareVersion > currentFirmwareRevision) {
-        message << "osaRobot1394::SetBoards" << std::endl
+        message << "mtsRobot1394::SetBoards" << std::endl
                 << "----------------------------------------------------" << std::endl
                 << " Error:" << std::endl
                 << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
@@ -1515,7 +1515,7 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
     switch(mPotType) {
 
     case POTENTIOMETER_UNDEFINED:
-        cmnThrow("osaRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
+        cmnThrow("mtsRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
         break;
 
     case POTENTIOMETER_ON_JOINTS:
