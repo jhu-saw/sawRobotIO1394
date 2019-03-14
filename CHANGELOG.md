@@ -1,6 +1,21 @@
 Change log
 ==========
 
+1.7.0 (2019-03-xx)
+==================
+
+* API changes:
+  * None
+* Deprecated features:
+  * None
+* New features:
+  * DigitInputs: added "quick" click feature to emulate da Vinci
+  * QtWidget: added confirmation dialog before resetting encoders from pots
+* Bug fixes:
+  * When loading XML, set scales to 1 if not provided
+  * Set valid flag and timestamps for button events
+
+
 1.6.0 (2018-05-16)
 ==================
 
