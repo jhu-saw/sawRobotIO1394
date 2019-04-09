@@ -26,7 +26,7 @@ set (REQUIRED_CISST_LIBRARIES
      cisstMultiTask
      cisstParameterTypes)
 
-find_package (cisst 1.0.10 REQUIRED ${REQUIRED_CISST_LIBRARIES})
+find_package (cisst 1.0.11 REQUIRED ${REQUIRED_CISST_LIBRARIES})
 
 if (cisst_FOUND_AS_REQUIRED)
 
@@ -61,7 +61,7 @@ if (cisst_FOUND_AS_REQUIRED)
 
   # Set the version number
   set (sawRobotIO1394_VERSION_MAJOR "1")
-  set (sawRobotIO1394_VERSION_MINOR "6")
+  set (sawRobotIO1394_VERSION_MINOR "7")
   set (sawRobotIO1394_VERSION_PATCH "0")
   set (sawRobotIO1394_VERSION "${sawRobotIO1394_VERSION_MAJOR}.${sawRobotIO1394_VERSION_MINOR}.${sawRobotIO1394_VERSION_PATCH}")
 

@@ -1,11 +1,11 @@
 Change log
 ==========
 
-1.7.0 (2019-03-xx)
+1.7.0 (2019-04-09)
 ==================
 
 * API changes:
-  * None
+  * Using c++ 14 features: **Ubuntu 16.04 or higher required**
 * Deprecated features:
   * None
 * New features:
