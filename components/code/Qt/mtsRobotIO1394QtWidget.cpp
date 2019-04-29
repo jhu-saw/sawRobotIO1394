@@ -325,8 +325,9 @@ void mtsRobotIO1394QtWidget::SlotBiasEncodersAll()
     }
 }
 
-void mtsRobotIO1394QtWidget::SlotWatchdogPeriod(double period_ms)
+void mtsRobotIO1394QtWidget::SlotWatchdogPeriod(void)
 {
+    double period_ms = QSBWatchdogPeriod->value();
     if (period_ms == 0.0) {
         QMessageBox message;
         message.setText("Setting the watchdog period to 0 disables the watchdog!");
@@ -428,10 +429,13 @@ void mtsRobotIO1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         UpdateRobotInfo();
     }
 
-    // refresh watchdog period
+    // refresh watchdog period if needed
     double watchdogPeriodInSeconds;
     Robot.WatchdogPeriod(watchdogPeriodInSeconds);
-    QSBWatchdogPeriod->setValue(cmnInternalTo_ms(watchdogPeriodInSeconds));
+    if (watchdogPeriodInSeconds != WatchdogPeriodInSeconds) {
+        WatchdogPeriodInSeconds = watchdogPeriodInSeconds;
+        QSBWatchdogPeriod->setValue(cmnInternalTo_ms(watchdogPeriodInSeconds));
+    }
 }
 
 ////------------ Private Methods ----------------
@@ -750,8 +754,8 @@ void mtsRobotIO1394QtWidget::setupUi(void)
             this, SLOT(SlotBiasEncodersAll()));
     connect(QCBUsePotsForSafetyCheck, SIGNAL(toggled(bool)),
             this, SLOT(SlotUsePotsForSafetyCheck(bool)));
-    connect(QSBWatchdogPeriod, SIGNAL(valueChanged(double)),
-            this, SLOT(SlotWatchdogPeriod(double)));
+    connect(QSBWatchdogPeriod, SIGNAL(editingFinished()),
+            this, SLOT(SlotWatchdogPeriod()));
     connect(QVWActuatorCurrentEnableEach, SIGNAL(valueChanged()),
             this, SLOT(SlotActuatorAmpEnable()));
     connect(QVWActuatorCurrentSpinBox, SIGNAL(valueChanged()),
