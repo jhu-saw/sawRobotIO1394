@@ -787,8 +787,8 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                                    << std::endl;
     }
 
-    const AmpIO_UInt32 currentFirmwareRevision = 6;
-    const AmpIO_UInt32 lowestFirmwareSupported = 4;
+    const AmpIO_UInt32 currentFirmwareRevision = 7;
+    const AmpIO_UInt32 lowestFirmwareSupported = 6;
 
     std::stringstream message;
     bool fatal = false;
