@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2015 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -62,6 +62,10 @@ namespace sawRobotIO1394 {
     bool CISST_EXPORT osaXML1394ConfigureDigitalOutput(cmnXMLPath & xmlConfig,
                                                        const int outputIndex,
                                                        osaDigitalOutput1394Configuration & digitalOutput);
+
+    bool CISST_EXPORT osaXML1394ConfigureDallasChip(cmnXMLPath & xmlConfig,
+                                                    const int outputIndex,
+                                                    osaDallasChip1394Configuration & dallasChip);
 
 } // namespace sawRobotIO1394
 

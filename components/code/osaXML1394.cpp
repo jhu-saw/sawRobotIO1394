@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2017 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -38,7 +38,7 @@ namespace sawRobotIO1394 {
             exit(EXIT_FAILURE);
             return;
         } else {
-            const int minimumVersion = 3;
+            const int minimumVersion = 4;
             if (version < minimumVersion) {
                 CMN_LOG_INIT_ERROR << "Configure: Config/Version must be at least " << minimumVersion
                                    << ", version found is " << version << std::endl
@@ -100,10 +100,27 @@ namespace sawRobotIO1394 {
             }
         }
 
+        // Get the number of digital output elements
+        int numDallasChips = 0;
+        xmlConfig.GetXMLValue("", "count(/Config/DallasChip)", numDallasChips);
+
+        for (int i = 0; i < numDallasChips; i++) {
+            osaDallasChip1394Configuration dallasChip;
+
+            // Store the dallasChip in the config if it's succesfully parsed
+            if (osaXML1394ConfigureDallasChip(xmlConfig, i + 1, dallasChip)) {
+                config.DallasChips.push_back(dallasChip);
+            } else {
+                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure digital input from file \""
+                                     << filename << "\"" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+
         // Check to make sure something was found
-        if ((numRobots + numDigitalInputs + numDigitalOutputs) == 0) {
+        if ((numRobots + numDigitalInputs + numDigitalOutputs + numDallasChips) == 0) {
             CMN_LOG_INIT_ERROR << "osaXML1394ConfigurePort: file " << filename
-                               << " doesn't contain any Config/Robot, Config/DigitalIn not Config/DigitalOut" << std::endl;
+                               << " doesn't contain any Config/Robot, Config/DigitalIn, Config/DigitalOut or Config/DallasChip" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -589,4 +606,28 @@ namespace sawRobotIO1394 {
         }
         return true;
     }
+
+
+    bool osaXML1394ConfigureDallasChip(cmnXMLPath & xmlConfig,
+                                       const int outputIndex,
+                                       osaDallasChip1394Configuration & dallasChip)
+    {
+        // Digital Input Setup Stage
+        char path[64];
+        const char * context = "Config";
+        bool tagsFound = true;
+
+        // Check there is digital output entry. Return boolean result for success/fail.
+        sprintf(path,"DigitalOut[%i]/@Name", outputIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.Name);
+        sprintf(path,"DigitalOut[%i]/@BoardID", outputIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.BoardID);
+
+        if (!tagsFound) {
+            CMN_LOG_INIT_ERROR << "Configuration for " << path << " failed. Stopping config." << std::endl;
+            return false;
+        }
+        return true;
+    }
+
 }

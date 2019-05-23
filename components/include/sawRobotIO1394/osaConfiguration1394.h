@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2015 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -139,10 +139,16 @@ namespace sawRobotIO1394 {
         double PWMFrequency;
     };
 
+    struct osaDallasChip1394Configuration {
+        std::string Name;
+        int BoardID;
+    };
+
     struct osaPort1394Configuration {
         std::vector<osaRobot1394Configuration> Robots;
         std::vector<osaDigitalInput1394Configuration> DigitalInputs;
         std::vector<osaDigitalOutput1394Configuration> DigitalOutputs;
+        std::vector<osaDallasChip1394Configuration> DallasChips;
     };
 
     // Maps an actuator to the hardware (board and axis)

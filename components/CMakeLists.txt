@@ -82,10 +82,12 @@ if (cisst_FOUND_AS_REQUIRED)
                ${sawRobotIO1394_HEADER_DIR}/mtsRobot1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsDigitalInput1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsDigitalOutput1394.h
+               ${sawRobotIO1394_HEADER_DIR}/mtsDallasChip1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsRobotIO1394.h
                code/mtsRobot1394.cpp
                code/mtsDigitalInput1394.cpp
                code/mtsDigitalOutput1394.cpp
+               code/mtsDallasChip1394.cpp
                code/mtsRobotIO1394.cpp)
 
   set_property (TARGET sawRobotIO1394 PROPERTY FOLDER "sawRobotIO1394")
