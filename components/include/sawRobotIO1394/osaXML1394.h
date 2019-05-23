@@ -64,7 +64,7 @@ namespace sawRobotIO1394 {
                                                        osaDigitalOutput1394Configuration & digitalOutput);
 
     bool CISST_EXPORT osaXML1394ConfigureDallasChip(cmnXMLPath & xmlConfig,
-                                                    const int outputIndex,
+                                                    const int dallasIndex,
                                                     osaDallasChip1394Configuration & dallasChip);
 
 } // namespace sawRobotIO1394

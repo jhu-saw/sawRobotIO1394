@@ -29,6 +29,7 @@ namespace sawRobotIO1394 {
     class mtsRobot1394;
     class mtsDigitalInput1394;
     class mtsDigitalOutput1394;
+    class mtsDallasChip1394;
 
     //! Enum redefined from AmpIO/BasePort
     typedef enum {PROTOCOL_SEQ_RW, PROTOCOL_SEQ_R_BC_W, PROTOCOL_BC_QRW} ProtocolType;

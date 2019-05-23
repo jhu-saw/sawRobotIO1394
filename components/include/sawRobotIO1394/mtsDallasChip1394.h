@@ -80,7 +80,8 @@ namespace sawRobotIO1394 {
         mtsDallasChip1394Data * mData; // Internal data using AmpIO types
         osaDallasChip1394Configuration mConfiguration;
         std::string mName;
-        std::string mToolType = UndefinedToolType;
+        mtsStdString mToolType = UndefinedToolType;
+        int mStatus = 0; // 0: nothing to do, 1: sent ctrl, waiting for status, 2: reading data
     };
 
 } // namespace sawRobotIO1394

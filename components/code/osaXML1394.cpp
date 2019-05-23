@@ -38,7 +38,7 @@ namespace sawRobotIO1394 {
             exit(EXIT_FAILURE);
             return;
         } else {
-            const int minimumVersion = 4;
+            const int minimumVersion = 4; // backward compatibility
             if (version < minimumVersion) {
                 CMN_LOG_INIT_ERROR << "Configure: Config/Version must be at least " << minimumVersion
                                    << ", version found is " << version << std::endl
@@ -46,6 +46,13 @@ namespace sawRobotIO1394 {
                                    << "Make sure you generate your XML files with the latest config generator." << std::endl;
                 exit(EXIT_FAILURE);
                 return;
+            }
+            const int currentVersion = 4;
+            if (version > currentVersion) {
+                CMN_LOG_INIT_ERROR << "Configure: current Config/Version is " << currentVersion
+                                   << ", version found is " << version << ", you might want to upgrade your code" << std::endl
+                                   << "File: " << filename << std::endl
+                                   << "Make sure you generate your XML files with the latest config generator." << std::endl;
             }
         }
 
@@ -94,13 +101,13 @@ namespace sawRobotIO1394 {
             if (osaXML1394ConfigureDigitalOutput(xmlConfig, i + 1, digitalOutput)) {
                 config.DigitalOutputs.push_back(digitalOutput);
             } else {
-                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure digital input from file \""
+                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure digital output from file \""
                                      << filename << "\"" << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
 
-        // Get the number of digital output elements
+        // Get the number of Dallas chip elements
         int numDallasChips = 0;
         xmlConfig.GetXMLValue("", "count(/Config/DallasChip)", numDallasChips);
 
@@ -111,7 +118,7 @@ namespace sawRobotIO1394 {
             if (osaXML1394ConfigureDallasChip(xmlConfig, i + 1, dallasChip)) {
                 config.DallasChips.push_back(dallasChip);
             } else {
-                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure digital input from file \""
+                CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure Dallas chip from file \""
                                      << filename << "\"" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -609,7 +616,7 @@ namespace sawRobotIO1394 {
 
 
     bool osaXML1394ConfigureDallasChip(cmnXMLPath & xmlConfig,
-                                       const int outputIndex,
+                                       const int dallasIndex,
                                        osaDallasChip1394Configuration & dallasChip)
     {
         // Digital Input Setup Stage
@@ -618,9 +625,9 @@ namespace sawRobotIO1394 {
         bool tagsFound = true;
 
         // Check there is digital output entry. Return boolean result for success/fail.
-        sprintf(path,"DigitalOut[%i]/@Name", outputIndex);
+        sprintf(path,"DallasChip[%i]/@Name", dallasIndex);
         tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.Name);
-        sprintf(path,"DigitalOut[%i]/@BoardID", outputIndex);
+        sprintf(path,"DallasChip[%i]/@BoardID", dallasIndex);
         tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.BoardID);
 
         if (!tagsFound) {

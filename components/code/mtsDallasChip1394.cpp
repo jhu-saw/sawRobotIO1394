@@ -38,7 +38,7 @@ namespace sawRobotIO1394 {
 using namespace sawRobotIO1394;
 
 mtsDallasChip1394::mtsDallasChip1394(const cmnGenericObject & owner,
-                                           const osaDallasChip1394Configuration & config):
+                                     const osaDallasChip1394Configuration & config):
     OwnerServices(owner.Services()),
     mData(0)
 {
@@ -62,6 +62,7 @@ void mtsDallasChip1394::SetupProvidedInterface(mtsInterfaceProvided * interfaceP
 {
     interfaceProvided->AddCommandReadState(stateTable, this->mToolType, "GetToolType");
     interfaceProvided->AddCommandVoid(&mtsDallasChip1394::TriggerRead, this, "TriggerRead");
+    interfaceProvided->AddEventWrite(ToolTypeEvent, "ToolType", UndefinedToolType);
 }
 
 void mtsDallasChip1394::CheckState(void)
@@ -76,6 +77,7 @@ void mtsDallasChip1394::Configure(const osaDallasChip1394Configuration & config)
     mConfiguration = config;
     mName = config.Name;
     mToolType = UndefinedToolType;
+    mStatus = 0; // nothing happened so far
 }
 
 void mtsDallasChip1394::SetBoard(AmpIO * board)
@@ -84,22 +86,27 @@ void mtsDallasChip1394::SetBoard(AmpIO * board)
         cmnThrow(osaRuntimeError1394(this->Name() + ": invalid board pointer."));
     }
     mBoard = board;
-#if 0
-    mBoard->WriteDoutControl(mBitID,
-                             mBoard->GetDoutCounts(mConfiguration.HighDuration),
-                             mBoard->GetDoutCounts(mConfiguration.LowDuration));
-#endif
 }
 
 void mtsDallasChip1394::PollState(void)
 {
-#if 0
-    // Get the new value
-    mData->DallasChipBits = mBoard->GetDallasChip();
+    if (mStatus > 0) {
+        if (mStatus == 1) {
+            AmpIO_UInt32 status;
+            if (!mBoard->DallasReadStatus(status)) {
+                std::cerr << CMN_LOG_DETAILS << "DallasReadStatus failed" << std::endl;
+                mStatus = 0;
+                return;
+            } else {
+                if ((status&0x000000F0) == 0) {
+                    std::cerr << CMN_LOG_DETAILS << " ------- debug, ready to read!" << std::endl;
+                    mStatus = 2;
+                }
+            }
+        } else if (mStatus == 2) {
 
-    // Use masked bit
-    mValue = (mData->DallasChipBits & mData->BitMask);
-#endif
+        }
+    }
 }
 
 const osaDallasChip1394Configuration & mtsDallasChip1394::Configuration(void) const
@@ -119,14 +126,31 @@ const std::string & mtsDallasChip1394::ToolType(void) const
 
 void mtsDallasChip1394::TriggerRead(void)
 {
-#if 0
-    // read from the boards
-    mData->DallasChipBits = mBoard->GetDallasChip();
-    if (newValue) {
-        mData->DallasChipBits |= mData->BitMask;
-    } else {
-        mData->DallasChipBits &= ~(mData->BitMask);
+    std::cerr << CMN_LOG_DETAILS << " ---- read started " << std::endl;
+
+    if (mStatus > 0) {
+        std::cerr << CMN_LOG_DETAILS << " read is already in progress, ignoring" << std::endl;
+        return;
     }
-    mBoard->WriteDallasChip(0x0f, mData->DallasChipBits);
-#endif
+
+    AmpIO_UInt32 fver = mBoard->GetFirmwareVersion();
+    if (fver < 7) {
+        std::cerr << CMN_LOG_DETAILS << "Instrument read requires firmware version 7+ (detected version " << fver << ")" << std::endl;
+        return;
+    }
+    AmpIO_UInt32 status = mBoard->ReadStatus();
+    // Check whether bi-directional I/O is available
+    if ((status & 0x00300000) != 0x00300000) {
+        std::cerr << CMN_LOG_DETAILS << "QLA does not support bidirectional I/O (QLA Rev 1.4+ required)" << std::endl;
+        return;
+    }
+
+    // Address to read tool info
+    unsigned short address = 0x160; // offset in Dallas chip with tool type string
+    if (!(mBoard->DallasWriteControl( (address<<16)|2 ))) {
+        std::cerr << CMN_LOG_DETAILS << "DallasWriteControl failed" << std::endl;
+        return;
+    }
+
+    mStatus = 1;
 }

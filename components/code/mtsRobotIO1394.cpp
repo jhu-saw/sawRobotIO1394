@@ -27,6 +27,7 @@
 #include <sawRobotIO1394/mtsRobotIO1394.h>
 #include <sawRobotIO1394/mtsDigitalInput1394.h>
 #include <sawRobotIO1394/mtsDigitalOutput1394.h>
+#include <sawRobotIO1394/mtsDallasChip1394.h>
 #include <sawRobotIO1394/mtsRobot1394.h>
 #include <sawRobotIO1394/osaXML1394.h>
 
@@ -66,6 +67,7 @@ mtsRobotIO1394::~mtsRobotIO1394()
         }
     }
     mRobots.clear();
+    mRobotsByName.clear();
 
     // delete digital inputs before deleting boards
     for (digital_input_iterator iter = mDigitalInputs.begin();
@@ -76,6 +78,7 @@ mtsRobotIO1394::~mtsRobotIO1394()
         }
     }
     mDigitalInputs.clear();
+    mDigitalInputsByName.clear();
 
     // delete digital outputs before deleting boards
     for (digital_output_iterator iter = mDigitalOutputs.begin();
@@ -85,7 +88,19 @@ mtsRobotIO1394::~mtsRobotIO1394()
             delete *iter;
         }
     }
-    mDigitalInputs.clear();
+    mDigitalOutputs.clear();
+    mDigitalOutputsByName.clear();
+
+    // delete Dallas chips before deleting boards
+    for (dallas_chip_iterator iter = mDallasChips.begin();
+         iter != mDallasChips.end();
+         ++iter) {
+        if (*iter != 0) {
+            delete *iter;
+        }
+    }
+    mDallasChips.clear();
+    mDallasChipsByName.clear();
 
     // delete board structures
     for (board_iterator iter = mBoards.begin();
@@ -291,6 +306,20 @@ void mtsRobotIO1394::Configure(const std::string & filename)
             AddDigitalOutput(digitalOutput);
         }
     }
+
+    // Add all the Dallas chips
+    for (std::vector<osaDallasChip1394Configuration>::const_iterator it = config.DallasChips.begin();
+         it != config.DallasChips.end();
+         ++it) {
+        // Create a new digital input
+        mtsDallasChip1394 * dallasChip = new mtsDallasChip1394(*this, *it);
+        // Set up the cisstMultiTask interfaces
+        if (!this->SetupDallasChip(dallasChip)) {
+            delete dallasChip;
+        } else {
+            AddDallasChip(dallasChip);
+        }
+    }
 }
 
 bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
@@ -361,6 +390,17 @@ bool mtsRobotIO1394::SetupDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
     return true;
 }
 
+bool mtsRobotIO1394::SetupDallasChip(mtsDallasChip1394 * dallasChip)
+{
+    // Configure pressed active direction and edge detection
+    dallasChip->SetupStateTable(this->StateTable);
+
+    mtsInterfaceProvided * dallasChipInterface = this->AddInterfaceProvided(dallasChip->Name());
+
+    dallasChip->SetupProvidedInterface(dallasChipInterface, this->StateTable);
+    return true;
+}
+
 void mtsRobotIO1394::Startup(void)
 {
     const robot_iterator robotsEnd = mRobots.end();
@@ -410,6 +450,12 @@ void mtsRobotIO1394::Read(void)
     // Poll the state for each digital output
     for (digital_output_iterator iter = mDigitalOutputs.begin();
          iter != mDigitalOutputs.end();
+         ++iter) {
+        (*iter)->PollState();
+    }
+    // Poll the state for each Dallas chip
+    for (dallas_chip_iterator iter = mDallasChips.begin();
+         iter != mDallasChips.end();
          ++iter) {
         (*iter)->PollState();
     }
@@ -694,6 +740,36 @@ void mtsRobotIO1394::AddDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
     // Store the digital output by name
     mDigitalOutputs.push_back(digitalOutput);
     mDigitalOutputsByName[config.Name] = digitalOutput;
+}
+
+void mtsRobotIO1394::AddDallasChip(mtsDallasChip1394 * dallasChip)
+{
+    if (dallasChip == 0) {
+        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddDallasChip: Dallas chip pointer is null."));
+    }
+
+    const osaDallasChip1394Configuration & config = dallasChip->Configuration();
+
+    // Check to make sure this Dallas chip isn't already added
+    if (mDallasChipsByName.count(config.Name) > 0) {
+        cmnThrow(osaRuntimeError1394(dallasChip->Name() + ": Dallas chip name is not unique."));
+    }
+
+    // Construct a vector of boards relevant to this Dallas chip
+    int boardID = config.BoardID;
+
+    // If the board hasn't been created, construct it and add it to the port
+    if (mBoards.count(boardID) == 0) {
+        mBoards[boardID] = new AmpIO(boardID);
+        mPort->AddBoard(mBoards[boardID]);
+    }
+
+    // Assign the board to the Dallas chip
+    dallasChip->SetBoard(mBoards[boardID]);
+
+    // Store the digital output by name
+    mDallasChips.push_back(dallasChip);
+    mDallasChipsByName[config.Name] = dallasChip;
 }
 
 void mtsRobotIO1394::GetRobotNames(std::vector<std::string> & names) const

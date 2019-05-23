@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -64,6 +64,12 @@ protected:
     DigitalOutputsType mDigitalOutputs;
     std::map<std::string, sawRobotIO1394::mtsDigitalOutput1394*> mDigitalOutputsByName;
 
+    typedef std::vector<sawRobotIO1394::mtsDallasChip1394*> DallasChipsType;
+    typedef DallasChipsType::iterator dallas_chip_iterator;
+    typedef DallasChipsType::const_iterator dallas_chip_const_iterator;
+    DallasChipsType mDallasChips;
+    std::map<std::string, sawRobotIO1394::mtsDallasChip1394*> mDallasChipsByName;
+
     // state tables for statistics
     mtsStateTable * mStateTableRead;
     mtsStateTable * mStateTableWrite;
@@ -85,9 +91,11 @@ public:
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     bool SetupDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalOutput);
+    bool SetupDallasChip(sawRobotIO1394::mtsDallasChip1394 * dallasChip);
     void AddRobot(sawRobotIO1394::mtsRobot1394 * Robot);
     void AddDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     void AddDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalInput);
+    void AddDallasChip(sawRobotIO1394::mtsDallasChip1394 * dallasChip);
 
     void Startup(void);
     void Run(void);
