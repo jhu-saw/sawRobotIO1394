@@ -24,33 +24,17 @@ http://www.cisst.org/cisst/license.txt.
 
 #include "AmpIO.h"
 
-namespace sawRobotIO1394 {
-    class mtsDallasChip1394Data {
-    public:
-        mtsDallasChip1394Data():
-            DigitalOutputBits(0x0)
-        {};
-        AmpIO_UInt32 BitMask;       // BitMask for this output. From DigitalOutput Stream.
-        AmpIO_UInt32 DigitalOutputBits; // BitMask for this output. From DigitalOutput Stream.
-    };
-}
-
 using namespace sawRobotIO1394;
 
 mtsDallasChip1394::mtsDallasChip1394(const cmnGenericObject & owner,
                                      const osaDallasChip1394Configuration & config):
-    OwnerServices(owner.Services()),
-    mData(0)
+    OwnerServices(owner.Services())
 {
-    mData = new mtsDallasChip1394Data;
     Configure(config);
 }
 
 mtsDallasChip1394::~mtsDallasChip1394()
 {
-    if (mData) {
-        delete mData;
-    }
 }
 
 void mtsDallasChip1394::SetupStateTable(mtsStateTable & stateTable)
@@ -58,11 +42,14 @@ void mtsDallasChip1394::SetupStateTable(mtsStateTable & stateTable)
     stateTable.AddData(mToolType, "ToolType");
 }
 
-void mtsDallasChip1394::SetupProvidedInterface(mtsInterfaceProvided * interfaceProvided, mtsStateTable & stateTable)
+void mtsDallasChip1394::SetupProvidedInterface(mtsInterfaceProvided * interfaceProvided,
+                                               mtsStateTable & stateTable)
 {
-    interfaceProvided->AddCommandReadState(stateTable, this->mToolType, "GetToolType");
-    interfaceProvided->AddCommandVoid(&mtsDallasChip1394::TriggerRead, this, "TriggerRead");
-    interfaceProvided->AddEventWrite(ToolTypeEvent, "ToolType", UndefinedToolType);
+    mInterface = interfaceProvided;
+    mInterface->AddMessageEvents();
+    mInterface->AddCommandReadState(stateTable, this->mToolType, "GetToolType");
+    mInterface->AddCommandVoid(&mtsDallasChip1394::TriggerRead, this, "TriggerRead");
+    mInterface->AddEventWrite(ToolTypeEvent, "ToolType", ToolTypeUndefined);
 }
 
 void mtsDallasChip1394::CheckState(void)
@@ -76,7 +63,7 @@ void mtsDallasChip1394::Configure(const osaDallasChip1394Configuration & config)
     // Store configuration
     mConfiguration = config;
     mName = config.Name;
-    mToolType = UndefinedToolType;
+    mToolType = ToolTypeUndefined;
     mStatus = 0; // nothing happened so far
 }
 
@@ -94,17 +81,38 @@ void mtsDallasChip1394::PollState(void)
         if (mStatus == 1) {
             AmpIO_UInt32 status;
             if (!mBoard->DallasReadStatus(status)) {
-                std::cerr << CMN_LOG_DETAILS << "DallasReadStatus failed" << std::endl;
+                mInterface->SendWarning(mName + ": DallasReadStatus failed");
+                ToolTypeEvent(ToolTypeError);
                 mStatus = 0;
                 return;
             } else {
                 if ((status&0x000000F0) == 0) {
-                    std::cerr << CMN_LOG_DETAILS << " ------- debug, ready to read!" << std::endl;
+                    // Check family_code, dout_cfg_bidir, ds_reset, and ds_enable
+                    if ((status & 0xFF00000F) != 0x0B00000B) {
+                        mInterface->SendWarning(mName + ": check family_code, dout_cfg_bidir, ds_reset and/or ds_enable failed");
+                        ToolTypeEvent(ToolTypeError);
+                        mStatus = 0;
+                        return;
+                    }
+                    mInterface->SendStatus(mName + ": reading tool info");
                     mStatus = 2;
                 }
             }
         } else if (mStatus == 2) {
-
+            nodeaddr_t address = 0x6000;
+            char buffer[256];
+            // Read first block of data (up to 256 bytes)
+            if (!mBoard->ReadBlock(address, reinterpret_cast<quadlet_t *>(buffer), 256)) {
+                mInterface->SendWarning(mName + "ReadBlock failed");
+                ToolTypeEvent(ToolTypeError);
+                mStatus = 0;
+                return;
+            } else {
+                mToolType.Data = std::string(buffer);
+                mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
+                ToolTypeEvent(mToolType);
+                mStatus = 0;
+            }
         }
     }
 }
@@ -126,29 +134,31 @@ const std::string & mtsDallasChip1394::ToolType(void) const
 
 void mtsDallasChip1394::TriggerRead(void)
 {
-    std::cerr << CMN_LOG_DETAILS << " ---- read started " << std::endl;
-
     if (mStatus > 0) {
-        std::cerr << CMN_LOG_DETAILS << " read is already in progress, ignoring" << std::endl;
+        mInterface->SendWarning(mName + ": tool info read is already in progress, ignoring");
+        ToolTypeEvent(ToolTypeError);
         return;
     }
 
     AmpIO_UInt32 fver = mBoard->GetFirmwareVersion();
     if (fver < 7) {
-        std::cerr << CMN_LOG_DETAILS << "Instrument read requires firmware version 7+ (detected version " << fver << ")" << std::endl;
+        mInterface->SendWarning(mName + ": tool info read requires firmware version 7 or greater");
+        ToolTypeEvent(ToolTypeError);
         return;
     }
     AmpIO_UInt32 status = mBoard->ReadStatus();
     // Check whether bi-directional I/O is available
     if ((status & 0x00300000) != 0x00300000) {
-        std::cerr << CMN_LOG_DETAILS << "QLA does not support bidirectional I/O (QLA Rev 1.4+ required)" << std::endl;
+        mInterface->SendWarning(mName + ": QLA does not support bidirectional I/O (QLA Rev 1.4+ required)");
+        ToolTypeEvent(ToolTypeError);
         return;
     }
 
     // Address to read tool info
     unsigned short address = 0x160; // offset in Dallas chip with tool type string
     if (!(mBoard->DallasWriteControl( (address<<16)|2 ))) {
-        std::cerr << CMN_LOG_DETAILS << "DallasWriteControl failed" << std::endl;
+        mInterface->SendWarning(mName + ": DallasWriteControl failed");
+        ToolTypeEvent(ToolTypeError);
         return;
     }
 

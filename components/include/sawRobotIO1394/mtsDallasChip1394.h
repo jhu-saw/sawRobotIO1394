@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsDallasChip1394_h
 #define _mtsDallasChip1394_h
 
+#include <cisstMultiTask/mtsForwardDeclarations.h>
 #include <cisstParameterTypes/prmEventButton.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
 
@@ -28,8 +29,6 @@ http://www.cisst.org/cisst/license.txt.
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
 
 namespace sawRobotIO1394 {
-
-    class mtsDallasChip1394Data;
 
     class CISST_EXPORT mtsDallasChip1394 {
     public:
@@ -55,7 +54,8 @@ namespace sawRobotIO1394 {
                              const osaDallasChip1394Configuration & config);
         ~mtsDallasChip1394();
 
-        const std::string UndefinedToolType = "UNDEFINED";
+        const std::string ToolTypeUndefined = "UNDEFINED";
+        const std::string ToolTypeError = "ERROR";
 
         void SetupStateTable(mtsStateTable & stateTable);
         void SetupProvidedInterface(mtsInterfaceProvided * interfaceProvided, mtsStateTable & stateTable);
@@ -75,12 +75,12 @@ namespace sawRobotIO1394 {
 
 
     protected:
-        mtsFunctionWrite ToolTypeEvent;    // The event function for button, will return prmEventButton
-        AmpIO * mBoard;              // Board Assignment
-        mtsDallasChip1394Data * mData; // Internal data using AmpIO types
+        mtsInterfaceProvided * mInterface = nullptr;
+        mtsFunctionWrite ToolTypeEvent;
+        AmpIO * mBoard = nullptr;
         osaDallasChip1394Configuration mConfiguration;
         std::string mName;
-        mtsStdString mToolType = UndefinedToolType;
+        mtsStdString mToolType = ToolTypeUndefined;
         int mStatus = 0; // 0: nothing to do, 1: sent ctrl, waiting for status, 2: reading data
     };
 
