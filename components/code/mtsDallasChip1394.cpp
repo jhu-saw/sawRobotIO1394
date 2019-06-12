@@ -16,6 +16,14 @@ http://www.cisst.org/cisst/license.txt.
 --- end cisst license ---
 */
 
+// to read model number
+#ifdef _MSC_VER
+#include <stdlib.h>
+inline quadlet_t bswap_32(quadlet_t data) { return _byteswap_ulong(data); }
+#else
+#include <byteswap.h>
+#endif
+
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
 #include <cisstParameterTypes/prmEventButton.h>
@@ -108,7 +116,16 @@ void mtsDallasChip1394::PollState(void)
                 mStatus = 0;
                 return;
             } else {
-                mToolType.Data = std::string(buffer);
+                // we start buffer at 0xa0, model number is 4 bytes
+                // offset, name as string is 192 bytes offset
+                int32_t * model = reinterpret_cast<int32_t *>(buffer + 4);
+                std::stringstream toolType;
+                toolType << std::string(buffer + 192) << "-" << bswap_32(*model);
+                mToolType.Data = toolType.str();
+                // replace spaces with "-" and use lower case
+                std::replace(mToolType.Data.begin(), mToolType.Data.end(), ' ', '-');
+                std::transform(mToolType.Data.begin(), mToolType.Data.end(), mToolType.Data.begin(), ::tolower);
+                // send info
                 mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
                 ToolTypeEvent(mToolType);
                 mStatus = 0;
@@ -155,7 +172,7 @@ void mtsDallasChip1394::TriggerRead(void)
     }
 
     // Address to read tool info
-    unsigned short address = 0x160; // offset in Dallas chip with tool type string
+    unsigned short address = 0xa0; // offset in Dallas chip with tool type string
     if (!(mBoard->DallasWriteControl( (address<<16)|2 ))) {
         mInterface->SendWarning(mName + ": DallasWriteControl failed");
         ToolTypeEvent(ToolTypeError);
