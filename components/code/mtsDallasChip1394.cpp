@@ -16,14 +16,6 @@ http://www.cisst.org/cisst/license.txt.
 --- end cisst license ---
 */
 
-// to read model number
-#ifdef _MSC_VER
-#include <stdlib.h>
-inline quadlet_t bswap_32(quadlet_t data) { return _byteswap_ulong(data); }
-#else
-#include <byteswap.h>
-#endif
-
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
 #include <cisstParameterTypes/prmEventButton.h>
@@ -31,6 +23,10 @@ inline quadlet_t bswap_32(quadlet_t data) { return _byteswap_ulong(data); }
 #include <sawRobotIO1394/mtsDallasChip1394.h>
 
 #include "AmpIO.h"
+
+#define DALLAS_START_READ   0x80
+#define DALLAS_MODEL_OFFSET 0xa4
+#define DALLAS_NAME_OFFSET  0x160
 
 using namespace sawRobotIO1394;
 
@@ -111,16 +107,27 @@ void mtsDallasChip1394::PollState(void)
             char buffer[256];
             // Read first block of data (up to 256 bytes)
             if (!mBoard->ReadBlock(address, reinterpret_cast<quadlet_t *>(buffer), 256)) {
-                mInterface->SendWarning(mName + "ReadBlock failed");
+                mInterface->SendWarning(mName + ": ReadBlock failed");
                 ToolTypeEvent(ToolTypeError);
                 mStatus = 0;
                 return;
             } else {
-                // we start buffer at 0xa0, model number is 4 bytes
-                // offset, name as string is 192 bytes offset
-                int32_t * model = reinterpret_cast<int32_t *>(buffer + 4);
+                // make sure we read the 997 from company statement
+                buffer[3] = '\0';
+                if (std::string(buffer) != std::string("997")) {
+                    mInterface->SendWarning(mName + ": failed to find string \"997\" in tool data.");
+                    ToolTypeEvent(ToolTypeError);
+                    mStatus = 0;
+                    return;
+                }
+                // get model and name of tool to create unique string identifier
+                // model number uses only 3 bytes, set first one to zero just in case
+                buffer[DALLAS_MODEL_OFFSET] = 0;
+                int32_t * model = reinterpret_cast<int32_t *>(buffer + (DALLAS_MODEL_OFFSET - DALLAS_START_READ));
                 std::stringstream toolType;
-                toolType << std::string(buffer + 192) << "-" << bswap_32(*model);
+                cmnDataByteSwap(*model);
+                // concatenate name and model
+                toolType << std::string(buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ)) << "-" << *model;
                 mToolType.Data = toolType.str();
                 // replace spaces with "-" and use lower case
                 std::replace(mToolType.Data.begin(), mToolType.Data.end(), ' ', '-');
@@ -172,7 +179,7 @@ void mtsDallasChip1394::TriggerRead(void)
     }
 
     // Address to read tool info
-    unsigned short address = 0xa0; // offset in Dallas chip with tool type string
+    unsigned short address = DALLAS_START_READ;
     if (!(mBoard->DallasWriteControl( (address<<16)|2 ))) {
         mInterface->SendWarning(mName + ": DallasWriteControl failed");
         ToolTypeEvent(ToolTypeError);
