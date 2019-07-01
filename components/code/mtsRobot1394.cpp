@@ -1569,6 +1569,18 @@ const vctDoubleVec & mtsRobot1394::ActuatorCurrentFeedback(void) const {
     return mActuatorCurrentFeedback;
 }
 
+const vctDoubleVec & mtsRobot1394::ActuatorCurrentCommand(void) const {
+    return mActuatorCurrentCommand;
+}
+
+const vctDoubleVec & mtsRobot1394::ActuatorEffortFeedback(void) const {
+    return mActuatorEffortFeedback;
+}
+
+const vctDoubleVec & mtsRobot1394::ActuatorEffortCommand(void) const {
+    return mActuatorEffortCommand;
+}
+
 const vctDoubleVec & mtsRobot1394::BrakeCurrentFeedback(void) const {
     return mBrakeCurrentFeedback;
 }
