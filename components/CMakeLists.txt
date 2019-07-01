@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2018 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2019 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -13,6 +13,10 @@ cmake_minimum_required (VERSION 2.8)
 
 project (sawRobotIO1394)
 
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
+
 set (REQUIRED_CISST_LIBRARIES
      cisstCommon
      cisstCommonXML
@@ -22,7 +26,7 @@ set (REQUIRED_CISST_LIBRARIES
      cisstMultiTask
      cisstParameterTypes)
 
-find_package (cisst 1.0.10 REQUIRED ${REQUIRED_CISST_LIBRARIES})
+find_package (cisst 1.0.11 REQUIRED ${REQUIRED_CISST_LIBRARIES})
 
 if (cisst_FOUND_AS_REQUIRED)
 
@@ -57,7 +61,7 @@ if (cisst_FOUND_AS_REQUIRED)
 
   # Set the version number
   set (sawRobotIO1394_VERSION_MAJOR "1")
-  set (sawRobotIO1394_VERSION_MINOR "6")
+  set (sawRobotIO1394_VERSION_MINOR "7")
   set (sawRobotIO1394_VERSION_PATCH "0")
   set (sawRobotIO1394_VERSION "${sawRobotIO1394_VERSION_MAJOR}.${sawRobotIO1394_VERSION_MINOR}.${sawRobotIO1394_VERSION_PATCH}")
 

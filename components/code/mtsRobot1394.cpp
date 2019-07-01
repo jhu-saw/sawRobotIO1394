@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -50,7 +50,6 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mSafetyRelay(false),
     mCurrentSafetyViolationsCounter(0),
     mCurrentSafetyViolationsMaximum(100),
-    mInvalidReadCounter(0),
     mStateTableRead(0),
     mStateTableWrite(0),
     mSamplesForCalibrateEncoderOffsetsFromPots(0)
@@ -265,6 +264,7 @@ void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
 void mtsRobot1394::EnablePower(void)
 {
     mUserExpectsPower = true;
+    mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
     EnableBoardsPower();
     SetActuatorPower(true);
     SetBrakePower(true);
@@ -758,10 +758,10 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
          ++board, ++boardCounter) {
         AmpIO_UInt32 fversion = board->second->GetFirmwareVersion();
         if (fversion == 0) {
-            CMN_LOG_INIT_ERROR << "osaRobot1394::SetBoards: " << this->mName
-                               << ", unable to get firware version for board: " << boardCounter
-                               << ", Id: " << static_cast<int>(board->second->GetBoardId())
-                               << ".  Make sure the controller is powered and connected" << std::endl;
+            CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
+                                     << ", unable to get firware version for board: " << boardCounter
+                                     << ", Id: " << static_cast<int>(board->second->GetBoardId())
+                                     << ".  Make sure the controller is powered and connected" << std::endl;
             exit(EXIT_FAILURE);
         }
         std::string serialQLA = board->second->GetQLASerialNumber();
@@ -778,17 +778,17 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
         if (fversion > mHighestFirmWareVersion) {
             mHighestFirmWareVersion = fversion;
         }
-        CMN_LOG_INIT_WARNING << "osaRobot1394::SetBoards: " << this->mName
-                             << ", board: " << boardCounter
-                             << ", Id: " << static_cast<int>(board->second->GetBoardId())
-                             << ", firmware: " << fversion
-                             << ", FPGA serial: " << serialFPGA
-                             << ", QLA serial: " << serialQLA
-                             << std::endl;
+        CMN_LOG_CLASS_INIT_WARNING << "SetBoards: " << this->mName
+                                   << ", board: " << boardCounter
+                                   << ", Id: " << static_cast<int>(board->second->GetBoardId())
+                                   << ", firmware: " << fversion
+                                   << ", FPGA serial: " << serialFPGA
+                                   << ", QLA serial: " << serialQLA
+                                   << std::endl;
     }
 
-    const AmpIO_UInt32 currentFirmwareRevision = 6;
-    const AmpIO_UInt32 lowestFirmwareSupported = 4;
+    const AmpIO_UInt32 currentFirmwareRevision = 7;
+    const AmpIO_UInt32 lowestFirmwareSupported = 6;
 
     std::stringstream message;
     bool fatal = false;
@@ -796,7 +796,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     // supported
     if ((mLowestFirmWareVersion >= lowestFirmwareSupported)
         && (mLowestFirmWareVersion < currentFirmwareRevision)) {
-        message << "osaRobot1394::SetBoards" << std::endl
+        message << "mtsRobot1394::SetBoards" << std::endl
                 << "----------------------------------------------------" << std::endl
                 << " Suggestion:" << std::endl
                 << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
@@ -806,7 +806,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     }
     // too low
     if (mLowestFirmWareVersion < lowestFirmwareSupported) {
-        message << "osaRobot1394::SetBoards" << std::endl
+        message << "mtsRobot1394::SetBoards" << std::endl
                 << "----------------------------------------------------" << std::endl
                 << " Error:" << std::endl
                 << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
@@ -817,7 +817,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     }
     // too high
     if (mHighestFirmWareVersion > currentFirmwareRevision) {
-        message << "osaRobot1394::SetBoards" << std::endl
+        message << "SetBoards" << std::endl
                 << "----------------------------------------------------" << std::endl
                 << " Error:" << std::endl
                 << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
@@ -832,10 +832,10 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                 << "----------------------------------------------------" << std::endl;
         if (fatal) {
             std::cerr << message.str();
-            CMN_LOG_INIT_ERROR << message.str();
+            CMN_LOG_CLASS_INIT_ERROR << message.str();
             exit(EXIT_FAILURE);
         } else {
-            CMN_LOG_INIT_WARNING << message.str();
+            CMN_LOG_CLASS_INIT_WARNING << message.str();
         }
     }
 }
@@ -1082,9 +1082,9 @@ void mtsRobot1394::CheckState(void)
                  ++limit,
                  ++index) {
             if (fabs(*feedback) >= *limit) {
-                CMN_LOG_RUN_WARNING << "CheckState: " << this->mName << ", actuator " << index
-                                    << " power: " << *feedback
-                                    << " > limit: " << *limit << std::endl;
+                CMN_LOG_CLASS_RUN_WARNING << "CheckState: " << this->mName << ", actuator " << index
+                                          << " power: " << *feedback
+                                          << " > limit: " << *limit << std::endl;
                 currentSafetyViolation = true;
             }
         }
@@ -1100,9 +1100,9 @@ void mtsRobot1394::CheckState(void)
                  ++limit,
                  ++index) {
             if (fabs(*feedback) >= *limit) {
-                CMN_LOG_RUN_WARNING << "CheckState: " << this->mName << ", brake " << index
-                                    << " power: " << *feedback
-                                    << " > limit: " << *limit << std::endl;
+                CMN_LOG_CLASS_RUN_WARNING << "CheckState: " << this->mName << ", brake " << index
+                                          << " power: " << *feedback
+                                          << " > limit: " << *limit << std::endl;
                 currentSafetyViolation = true;
             }
         }
@@ -1126,6 +1126,77 @@ void mtsRobot1394::CheckState(void)
         AmpIO_UInt32 safetyAmpDisable = board->second->GetSafetyAmpDisable();
         if (safetyAmpDisable) {
             cmnThrow(osaRuntimeError1394(this->Name() + ": hardware current safety amp disable tripped." + mActuatorTimestamp.ToString()));
+        }
+    }
+
+    // check temperature when powered
+    if (mUserExpectsPower) {
+        bool temperatureError = false;
+        bool temperatureWarning = false;
+        // actuators
+        {
+            const vctDoubleVec::const_iterator end = mActuatorTemperature.end();
+            vctDoubleVec::const_iterator temperature = mActuatorTemperature.begin();
+            size_t index = 0;
+            for (; temperature < end;
+                 ++temperature,
+                     ++index) {
+                if (*temperature > sawRobotIO1394::TemperatureErrorThreshold) {
+                    CMN_LOG_CLASS_RUN_ERROR << "CheckState: " << this->mName << ", actuator " << index
+                                            << " temperature: " << *temperature
+                                            << " greater than error threshold: " << sawRobotIO1394::TemperatureErrorThreshold << std::endl;
+                    temperatureError = true;
+                } else {
+                    if (*temperature > sawRobotIO1394::TemperatureWarningThreshold) {
+                        CMN_LOG_CLASS_RUN_DEBUG << "CheckState: " << this->mName << ", actuator " << index
+                                                << " temperature: " << *temperature
+                                                << " greater than warning threshold: " << sawRobotIO1394::TemperatureWarningThreshold << std::endl;
+                        temperatureWarning = true;
+                    }
+                }
+            }
+        }
+        // brakes
+        {
+            const vctDoubleVec::const_iterator end = mBrakeTemperature.end();
+            vctDoubleVec::const_iterator temperature = mBrakeTemperature.begin();
+            size_t index = 0;
+            for (; temperature < end;
+                 ++temperature,
+                     ++index) {
+                if (*temperature > sawRobotIO1394::TemperatureErrorThreshold) {
+                    CMN_LOG_CLASS_RUN_ERROR << "CheckState: " << this->mName << ", brake " << index
+                                            << " temperature: " << *temperature
+                                            << " greater than error threshold: " << sawRobotIO1394::TemperatureErrorThreshold << std::endl;
+                    temperatureError = true;
+                } else {
+                    if (*temperature > sawRobotIO1394::TemperatureWarningThreshold) {
+                        CMN_LOG_CLASS_RUN_DEBUG << "CheckState: " << this->mName << ", brake " << index
+                                                << " temperature: " << *temperature
+                                                << " greater than warning threshold: " << sawRobotIO1394::TemperatureWarningThreshold << std::endl;
+                        temperatureWarning = true;
+                    }
+                }
+            }
+        }
+
+        if (temperatureError) {
+            this->DisablePower();
+            mInterface->SendError("IO: " + this->Name() + " reached temperature error threshold (over heating!)");
+        } else if (temperatureWarning) {
+            if (mTimeLastTemperatureWarning >= sawRobotIO1394::TimeBetweenTemperatureWarnings) {
+                mInterface->SendWarning("IO: " + this->Name() + " above warning temperature (running hot!)");
+                mTimeLastTemperatureWarning = 0.0;
+            }
+            double time = 0.0;
+            if (!mActuatorTimestamp.empty()) {
+                time = *(mActuatorTimestamp.begin());
+            } else if (!mBrakeTimestamp.empty()) {
+                time = *(mBrakeTimestamp.begin());
+            }
+            mTimeLastTemperatureWarning+= time;
+        } else {
+            mTimeLastTemperatureWarning = mTimeLastTemperatureWarning;
         }
     }
 
@@ -1228,9 +1299,9 @@ void mtsRobot1394::CheckState(void)
                         errorMessage.append(mPotErrorDuration.ToString());
                         cmnThrow(osaRuntimeError1394(errorMessage));
                     } else {
-                        CMN_LOG_RUN_VERBOSE << "IO: " << this->Name()
-                                            << ": check between encoders and potentiomenters, recovery.  Valid pots:" << std::endl
-                                            << mPotValid << std::endl;
+                        CMN_LOG_CLASS_RUN_VERBOSE << "IO: " << this->Name()
+                                                  << ": check between encoders and potentiomenters, recovery.  Valid pots:" << std::endl
+                                                  << mPotValid << std::endl;
                     }
                 }
             }
@@ -1522,7 +1593,7 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
     switch(mPotType) {
 
     case POTENTIOMETER_UNDEFINED:
-        cmnThrow("osaRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
+        cmnThrow("mtsRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
         break;
 
     case POTENTIOMETER_ON_JOINTS:

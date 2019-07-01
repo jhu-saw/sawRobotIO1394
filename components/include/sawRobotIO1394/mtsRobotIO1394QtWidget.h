@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen
   Created on: 2012-07-20
 
-  (C) Copyright 2012-2017 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2012-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -62,13 +62,13 @@ private slots:
     void SlotEnableDirectControl(bool toggle);
     void SlotActuatorAmpEnable(void);
     void SlotResetCurrentAll(void);
-    void SlotActuatorCurrentValueChanged();
+    void SlotActuatorCurrentValueChanged(void);
     void SlotSliderActuatorCurrentValueChanged(void);
     void SlotBrakeAmpEnable(void);
     void SlotResetEncodersAll(void);
     void SlotBiasEncodersAll(void);
     void SlotUsePotsForSafetyCheck(bool status);
-    void SlotWatchdogPeriod(double period_ms);
+    void SlotWatchdogPeriod(void);
     void SlotBrakeEngage(void);
     void SlotBrakeRelease(void);
 

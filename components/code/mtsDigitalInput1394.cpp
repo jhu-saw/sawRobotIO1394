@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -46,6 +46,14 @@ mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
     mDebounceCounter(-1)
 {
     mData = new mtsDigitalInput1394Data;
+
+    // predefined payloads
+    mEventPayloads.Pressed.SetType(prmEventButton::PRESSED);
+    mEventPayloads.Pressed.SetValid(true);
+    mEventPayloads.Released.SetType(prmEventButton::RELEASED);
+    mEventPayloads.Released.SetValid(true);
+    mEventPayloads.Clicked.SetType(prmEventButton::CLICKED);
+    mEventPayloads.Clicked.SetValid(true);
     Configure(config);
 }
 
@@ -59,6 +67,7 @@ mtsDigitalInput1394::~mtsDigitalInput1394()
 void mtsDigitalInput1394::SetupStateTable(mtsStateTable & stateTable)
 {
     stateTable.AddData(mValue, mName + "Value");
+    mStateTable = &stateTable;
 }
 
 void mtsDigitalInput1394::SetupProvidedInterface(mtsInterfaceProvided * prov, mtsStateTable & stateTable)
@@ -69,10 +78,6 @@ void mtsDigitalInput1394::SetupProvidedInterface(mtsInterfaceProvided * prov, mt
 
 void mtsDigitalInput1394::CheckState(void)
 {
-    static const prmEventButton
-        pressed = prmEventButton::PRESSED,
-        released = prmEventButton::RELEASED;
-
     // Send appropriate events if the value changed in the last update
 
     // Check if value has changed
@@ -81,12 +86,18 @@ void mtsDigitalInput1394::CheckState(void)
         if (mValue) {
             // Emit a press event
             if (mTriggerPress) {
-                Button(pressed);
+                if (mStateTable) {
+                    mEventPayloads.Pressed.SetTimestamp(mStateTable->GetTic());
+                }
+                Button(mEventPayloads.Pressed);
             }
         } else {
             // Emit a release event
             if (mTriggerRelease) {
-                Button(released);
+                if (mStateTable) {
+                    mEventPayloads.Released.SetTimestamp(mStateTable->GetTic());
+                }
+                Button(mEventPayloads.Released);
             }
         }
     }
@@ -148,8 +159,10 @@ void mtsDigitalInput1394::PollState(void)
                 mDebounceCounter += mBoard->GetTimestamp() / (49.125 * 1000.0 * 1000.0); // clock is 49.125 MHz
             } else {
                 if (mDebounceCounter >  0.5 * mDebounceThreshold) {
-                    static const prmEventButton clicked = prmEventButton::CLICKED;
-                    Button(clicked);
+                    if (mStateTable) {
+                        mEventPayloads.Clicked.SetTimestamp(mStateTable->GetTic());
+                    }
+                    Button(mEventPayloads.Clicked);
                 }
                 mDebounceCounter = -1.0;
             }

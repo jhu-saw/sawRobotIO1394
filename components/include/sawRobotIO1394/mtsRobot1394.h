@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -344,7 +344,11 @@ namespace sawRobotIO1394 {
             mCurrentSafetyViolationsCounter,
             mCurrentSafetyViolationsMaximum;
 
-        size_t mInvalidReadCounter;
+        size_t
+            mInvalidReadCounter = 0;
+
+        double
+            mTimeLastTemperatureWarning = 0.0;
 
         mtsStateTable * mStateTableRead;
         mtsStateTable * mStateTableWrite;
@@ -377,15 +381,3 @@ namespace sawRobotIO1394 {
 } // namespace sawRobotIO1394
 
 #endif // _mtsRobot1394_h
-
-
-
-
-
-#if TO_BE_PORTED
-
-    };
-
-
-
-#endif // _osaRobot1394_h
