@@ -127,11 +127,11 @@ void mtsDallasChip1394::PollState(void)
                 std::stringstream toolType;
                 cmnDataByteSwap(*model);
                 // concatenate name and model
-                toolType << std::string(buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ)) << "-" << *model;
+                toolType << std::string(buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ)) << "_" << *model;
                 mToolType.Data = toolType.str();
-                // replace spaces with "-" and use lower case
-                std::replace(mToolType.Data.begin(), mToolType.Data.end(), ' ', '-');
-                std::transform(mToolType.Data.begin(), mToolType.Data.end(), mToolType.Data.begin(), ::tolower);
+                // replace spaces with "_" and use upper case (see mtsIntuitiveResearchKitToolTypes.cdg)
+                std::replace(mToolType.Data.begin(), mToolType.Data.end(), ' ', '_');
+                std::transform(mToolType.Data.begin(), mToolType.Data.end(), mToolType.Data.begin(), ::toupper);
                 // send info
                 mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
                 ToolTypeEvent(mToolType);
