@@ -93,10 +93,29 @@ void mtsDallasChip1394::PollState(void)
                 if ((status&0x000000F0) == 0) {
                     // Check family_code, dout_cfg_bidir, ds_reset, and ds_enable
                     if ((status & 0xFF00000F) != 0x0B00000B) {
-                        mInterface->SendWarning(mName + ": check family_code, dout_cfg_bidir, ds_reset and/or ds_enable failed");
+                        mInterface->SendWarning(mName + ": check family_code, dout_cfg_bidir, ds_reset and/or ds_enable failed (see logs)");
                         ToolTypeEvent(ToolTypeError);
                         mStatus = 0;
-                        return;
+                        // detailled messages in logs
+                        if ((status & 0x00000001) != 0x00000001) {
+                            CMN_LOG_CLASS_RUN_ERROR << "PollState: DS2505 interface not enabled (hardware problem)" << std::endl;
+                        }
+                        unsigned char ds_reset = static_cast<unsigned char>((status & 0x00000006)>>1);
+                        if (ds_reset != 1) {
+                            CMN_LOG_CLASS_RUN_ERROR << "PollState: failed to communicate with DS2505" << std::endl;
+                            if (ds_reset == 2) {
+                                CMN_LOG_CLASS_RUN_ERROR << "PollState: DOUT3 did not reach high state -- is pullup resistor missing?" << std::endl;
+                            } else if (ds_reset == 3) {
+                                CMN_LOG_CLASS_RUN_ERROR << "PollState: did not received ACK from DS2505 -- is dMIB signal jumpered?" << std::endl;
+                            }
+                        }
+                        unsigned char family_code = static_cast<unsigned char>((status&0xFF000000)>>24);
+                        if (family_code != 0x0B) {
+                            CMN_LOG_CLASS_RUN_ERROR << "PollState: unknown device family code: 0x" << std::hex << static_cast<unsigned int>(family_code)
+                                                    << " (DS2505 should be 0x0B)" << std::endl;
+                        }
+                        unsigned char rise_time = static_cast<unsigned char>((status&0x00FF0000)>>16);
+                        CMN_LOG_CLASS_RUN_ERROR << "PollState: measured rise time: " << (rise_time/49.152) << " microseconds" << std::endl;
                     }
                     mInterface->SendStatus(mName + ": reading tool info");
                     mStatus = 2;
