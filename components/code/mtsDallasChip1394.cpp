@@ -116,9 +116,11 @@ void mtsDallasChip1394::PollState(void)
                         }
                         unsigned char rise_time = static_cast<unsigned char>((status&0x00FF0000)>>16);
                         CMN_LOG_CLASS_RUN_ERROR << "PollState: measured rise time: " << (rise_time/49.152) << " microseconds" << std::endl;
+                        return;
+                    } else {
+                        mInterface->SendStatus(mName + ": reading tool info");
+                        mStatus = 2;
                     }
-                    mInterface->SendStatus(mName + ": reading tool info");
-                    mStatus = 2;
                 }
             }
         } else if (mStatus == 2) {
@@ -205,5 +207,6 @@ void mtsDallasChip1394::TriggerRead(void)
         return;
     }
 
+    mInterface->SendStatus(mName + ": requested tool read"); 
     mStatus = 1;
 }
