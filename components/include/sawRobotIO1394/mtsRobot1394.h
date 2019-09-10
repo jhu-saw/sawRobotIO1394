@@ -154,6 +154,9 @@ namespace sawRobotIO1394 {
         const vctBoolVec & ActuatorPowerStatus(void) const;
         const vctBoolVec & BrakePowerStatus(void) const;
         const vctDoubleVec & ActuatorCurrentFeedback(void) const;
+        const vctDoubleVec & ActuatorCurrentCommand(void) const;
+        const vctDoubleVec & ActuatorEffortFeedback(void) const;
+        const vctDoubleVec & ActuatorEffortCommand(void) const;
         const vctDoubleVec & BrakeCurrentFeedback(void) const;
         const vctDoubleVec & PotPosition(void) const;
         const vctDoubleVec & ActuatorTimeStamp(void) const;

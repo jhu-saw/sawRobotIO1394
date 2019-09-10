@@ -1064,6 +1064,11 @@ void mtsRobot1394::ConvertState(void)
 
 void mtsRobot1394::CheckState(void)
 {
+    // set data as invalid by default
+    mPositionJointGet.SetValid(false);
+    mPositionActuatorGet.SetValid(false);
+    mVelocityJointGet.SetValid(false);
+
     // If we had a read error, all checks are pretty much useless
     if (mInvalidReadCounter > 0) {
         return;
@@ -1322,14 +1327,15 @@ void mtsRobot1394::CheckState(void)
         }
     }
 
-
-
     mPositionJointGet.Position().Assign(mJointPosition);
-    mPositionJointGet.Timestamps().Add(mActuatorTimestamp); // todo: we don't take coupling into account here
+    mPositionJointGet.Timestamps().Add(mActuatorTimestamp);
+    mPositionJointGet.SetValid(true);
     mPositionActuatorGet.Position().Assign(mEncoderPosition);
     mPositionActuatorGet.Timestamps().Add(mActuatorTimestamp);
+    mPositionActuatorGet.SetValid(true);
 
     mVelocityJointGet.Velocity().ForceAssign(mJointVelocity);
+    mVelocityJointGet.SetValid(true);
 
     if (mPreviousPowerStatus != mPowerStatus) {
         EventTriggers.PowerStatus(mPowerStatus);
@@ -1638,6 +1644,18 @@ const vctBoolVec & mtsRobot1394::BrakePowerStatus(void) const {
 
 const vctDoubleVec & mtsRobot1394::ActuatorCurrentFeedback(void) const {
     return mActuatorCurrentFeedback;
+}
+
+const vctDoubleVec & mtsRobot1394::ActuatorCurrentCommand(void) const {
+    return mActuatorCurrentCommand;
+}
+
+const vctDoubleVec & mtsRobot1394::ActuatorEffortFeedback(void) const {
+    return mActuatorEffortFeedback;
+}
+
+const vctDoubleVec & mtsRobot1394::ActuatorEffortCommand(void) const {
+    return mActuatorEffortCommand;
 }
 
 const vctDoubleVec & mtsRobot1394::BrakeCurrentFeedback(void) const {
