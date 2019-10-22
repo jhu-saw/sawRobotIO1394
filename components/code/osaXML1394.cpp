@@ -347,38 +347,54 @@ namespace sawRobotIO1394 {
                 osaPotTolerance1394Configuration pot;
                 int xmlPotIndex = potIndex + 1;
                 // check that axis index is valid
-                int axis = -1;
+                int axis = -12345;
                 sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Axis", robotIndex, xmlPotIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, axis);
-                if (axis != potIndex) {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Axis=\"\"> must be provided in order, for tolerance "
-                                       << potIndex << " Axis should match but found " << axis << " for robot "
-                                       << robotIndex << std::endl;
-                    good = false;
-                }
-                // get data
-                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Distance", robotIndex, xmlPotIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, pot.Distance);
-                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Latency", robotIndex, xmlPotIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, pot.Latency);
-                std::string units;
-                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Unit", robotIndex, xmlPotIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, units);
-                if (units == "deg") {
-                    pot.Distance *= cmnPI_180;
-                } else if (units == "rad") {
-                    // SI ok
-                } else if (units == "mm") {
-                    pot.Distance *= cmn_mm;
-                } else if (units == "m") {
-                    pot.Distance *= cmn_m;
+                good &= osaXML1394GetValue(xmlConfig, context, path, axis, false);
+                // if set to -12345, no value found and disables check
+                if (axis == -12345) {
+                    pot.Latency = 0.0;
+                    pot.Distance = 0.0;
                 } else {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Unit=\"\"> must be rad, deg, mm, m but found \""
-                                       << units << "\" for Axis " << axis << " for robot "
-                                       << robotIndex << std::endl;
-                    good = false;
+                    // still make sure tolerances are provided in order
+                    if (axis != potIndex) {
+                        CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Axis=\"\"> must be provided in order, for tolerance "
+                                           << potIndex << " Axis should match but found " << axis << " for robot "
+                                           << robotIndex << "(" << robot.Name << ")" << std::endl;
+                        good = false;
+                    }
+                    // get data
+                    sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Distance", robotIndex, xmlPotIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, pot.Distance);
+                    sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Latency", robotIndex, xmlPotIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, pot.Latency);
+                    // convert to proper units
+                    std::string units;
+                    sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Unit", robotIndex, xmlPotIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, units);
+                    if (units == "deg") {
+                        pot.Distance *= cmnPI_180;
+                    } else if (units == "rad") {
+                        // SI ok
+                    } else if (units == "mm") {
+                        pot.Distance *= cmn_mm;
+                    } else if (units == "m") {
+                        pot.Distance *= cmn_m;
+                    } else {
+                        CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Unit=\"\"> must be rad, deg, mm, m but found \""
+                                           << units << "\" for Axis " << axis << " for robot "
+                                           << robotIndex << "(" << robot.Name << ")" << std::endl;
+                        good = false;
+                    }
                 }
                 robot.PotTolerances.push_back(pot);
+                // send warning just to make sure user understands safety check is effectively disabled for this axis
+                if ((pot.Distance == 0.0) || (pot.Latency == 0.0)) {
+                    CMN_LOG_INIT_WARNING << "Configure: potentiometer to encoder latency ("
+                                         << pot.Latency << ") and/or distance ("
+                                         << pot.Distance << ") set to zero, safety check is DISABLED for Axis "
+                                         << axis << " for robot "
+                                         << robotIndex << "(" << robot.Name << ")" << std::endl;
+                }
             }
         }
 
