@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen
   Created on: 2013-02-07
 
-  (C) Copyright 2013-2014 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -44,6 +44,7 @@ int main(int argc, char ** argv)
     int port = 0;
     std::string configFile;
     std::string robotName = "Robot";
+    double periodInSeconds = 1.0 * cmn_ms;
     options.AddOptionOneValue("c", "config",
                               "configuration file",
                               cmnCommandLineOptions::REQUIRED_OPTION, &configFile);
@@ -53,6 +54,9 @@ int main(int argc, char ** argv)
     options.AddOptionOneValue("n", "name",
                               "robot name",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &robotName);
+    options.AddOptionOneValue("i", "io-period",
+                              "IO read/write period interval in seconds (default is 1 ms, 0.001)",
+                              cmnCommandLineOptions::OPTIONAL_OPTION, &periodInSeconds);
 
     std::string errorMessage;
     if (!options.Parse(argc, argv, errorMessage)) {
@@ -65,13 +69,15 @@ int main(int argc, char ** argv)
         std::cerr << "Can't find file \"" << configFile << "\"" << std::endl;
         return -1;
     }
-    std::cout << "Configuration file: " << configFile << std::endl
-              << "Port: " << port << std::endl;
+
+    std::string arguments;
+    options.PrintParsedArguments(arguments);
+    std::cout << "Options provided:" << std::endl << arguments;
 
     mtsManagerLocal * componentManager = mtsManagerLocal::GetInstance();
 
     // RobotIO
-    mtsRobotIO1394 * robotIO = new mtsRobotIO1394("robotIO", 1 * cmn_ms, port);
+    mtsRobotIO1394 * robotIO = new mtsRobotIO1394("robotIO", periodInSeconds, port);
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
 
     componentManager->AddComponent(robotIO);
