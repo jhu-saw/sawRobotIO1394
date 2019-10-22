@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<Config>
+<Config Version="4">
 
   <!-- Definition of da Vinci left PSM -->
   <!-- This one is MODIFIED!!! -->
@@ -9,7 +9,7 @@
   <Robot Name="Robot" NumOfActuator="4" NumOfJoint="4">
     <Actuator ActuatorID="0" BoardID="0" AxisID="0" Type="Revolute">
         <Drive>
-            <AmpsToBits Scale="5242.80" Offset="32768"/>
+            <AmpsToBits Scale="5242.80" Offset="32769"/>
             <BitsToFeedbackAmps Scale="0.000190738" Offset="-6.25"/>
             <NmToAmps Scale="1"/>
             <MaxCurrent Value="6.5"/>
@@ -83,7 +83,7 @@
     </Actuator>
 
     <Potentiometers Position="Actuators"/>
-    
+
     <Coupling Value="1">
         <ActuatorToJointPosition>
             <Row Val="0 1 0 0"/>
@@ -91,26 +91,6 @@
             <Row Val="0 0 1 1"/>
             <Row Val="0 0 0 1"/>
         </ActuatorToJointPosition>
-        <JointToActuatorPosition> 
-            <Row Val="0 1 0 0"/>
-            <Row Val="1 0 0 0"/>
-            <Row Val="0 0 1 -1"/>
-            <Row Val="0 0 0 1"/>
-        </JointToActuatorPosition>
-
-        <ActuatorToJointTorque>
-            <Row Val="0 1 0 0"/>
-            <Row Val="1 0 0 0"/>
-            <Row Val="0 0 1 1"/>
-            <Row Val="0 0 0 1"/>
-        </ActuatorToJointTorque>
-
-        <JointToActuatorTorque>
-            <Row Val="0 1 0 0"/>
-            <Row Val="1 0 0 0"/>
-            <Row Val="0 0 1 -1"/>
-            <Row Val="0 0 0 1"/>
-        </JointToActuatorTorque>
     </Coupling>
 
   </Robot>
