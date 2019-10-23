@@ -1138,6 +1138,7 @@ void mtsRobot1394::CheckState(void)
     if (mUserExpectsPower) {
         bool temperatureError = false;
         bool temperatureWarning = false;
+        double temperatureTrigger = 0.0;
         // actuators
         {
             const vctDoubleVec::const_iterator end = mActuatorTemperature.end();
@@ -1151,12 +1152,14 @@ void mtsRobot1394::CheckState(void)
                                             << " temperature: " << *temperature
                                             << " greater than error threshold: " << sawRobotIO1394::TemperatureErrorThreshold << std::endl;
                     temperatureError = true;
+                    temperatureTrigger = *temperature;
                 } else {
                     if (*temperature > sawRobotIO1394::TemperatureWarningThreshold) {
                         CMN_LOG_CLASS_RUN_DEBUG << "CheckState: " << this->mName << ", actuator " << index
                                                 << " temperature: " << *temperature
                                                 << " greater than warning threshold: " << sawRobotIO1394::TemperatureWarningThreshold << std::endl;
                         temperatureWarning = true;
+                        temperatureTrigger = *temperature;
                     }
                 }
             }
@@ -1174,12 +1177,14 @@ void mtsRobot1394::CheckState(void)
                                             << " temperature: " << *temperature
                                             << " greater than error threshold: " << sawRobotIO1394::TemperatureErrorThreshold << std::endl;
                     temperatureError = true;
+                    temperatureTrigger = *temperature;
                 } else {
                     if (*temperature > sawRobotIO1394::TemperatureWarningThreshold) {
                         CMN_LOG_CLASS_RUN_DEBUG << "CheckState: " << this->mName << ", brake " << index
                                                 << " temperature: " << *temperature
                                                 << " greater than warning threshold: " << sawRobotIO1394::TemperatureWarningThreshold << std::endl;
                         temperatureWarning = true;
+                        temperatureTrigger = *temperature;
                     }
                 }
             }
@@ -1187,10 +1192,16 @@ void mtsRobot1394::CheckState(void)
 
         if (temperatureError) {
             this->DisablePower();
-            mInterface->SendError("IO: " + this->Name() + " reached temperature error threshold (over heating!)");
+            std::stringstream message;
+            message << "IO: " << this->Name() << " controller measured temperature is " << temperatureTrigger
+                    << "ºC, error threshold is set to " << sawRobotIO1394::TemperatureErrorThreshold << "ºC";
+            mInterface->SendError(message.str());
         } else if (temperatureWarning) {
             if (mTimeLastTemperatureWarning >= sawRobotIO1394::TimeBetweenTemperatureWarnings) {
-                mInterface->SendWarning("IO: " + this->Name() + " above warning temperature (running hot!)");
+                std::stringstream message;
+                message << "IO: " << this->Name() << " controller measured temperature is " << temperatureTrigger
+                        << "ºC, warning threshold is set to " << sawRobotIO1394::TemperatureWarningThreshold << "ºC";
+                mInterface->SendWarning(message.str());
                 mTimeLastTemperatureWarning = 0.0;
             }
             double time = 0.0;
@@ -1201,7 +1212,8 @@ void mtsRobot1394::CheckState(void)
             }
             mTimeLastTemperatureWarning+= time;
         } else {
-            mTimeLastTemperatureWarning = mTimeLastTemperatureWarning;
+            // reset time so next time we hit a warning it displays immediately
+            mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
         }
     }
 

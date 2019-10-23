@@ -348,7 +348,7 @@ namespace sawRobotIO1394 {
             mInvalidReadCounter = 0;
 
         double
-            mTimeLastTemperatureWarning = 0.0;
+            mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
 
         mtsStateTable * mStateTableRead;
         mtsStateTable * mStateTableWrite;
