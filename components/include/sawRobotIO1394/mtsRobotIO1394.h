@@ -124,6 +124,8 @@ protected:
     void PreWrite(void);
     void PostWrite(void);
 
+    void IntervalStatisticsCallback(void);
+
 private:
     // Make uncopyable
     mtsRobotIO1394(const mtsRobotIO1394 &);

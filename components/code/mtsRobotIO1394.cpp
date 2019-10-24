@@ -237,6 +237,9 @@ void mtsRobotIO1394::Init(const int portNumber)
     } else {
         CMN_LOG_CLASS_INIT_ERROR << "Configure: unable to create configuration interface." << std::endl;
     }
+
+    // Set callback for interval statistics
+    StateTable.PeriodStats.SetCallback(&mtsRobotIO1394::IntervalStatisticsCallback, this);
 }
 
 void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
@@ -559,6 +562,18 @@ void mtsRobotIO1394::Run(void)
     PreWrite();
     Write();
     PostWrite();
+
+    // Check periodicity
+    double expected = GetPeriodicity();
+    
+    /*
+    const robot_iterator robotsEnd = mRobots.end();
+    for (robot_iterator robot = mRobots.begin();
+         robot != robotsEnd;
+         ++robot) {
+        (*robot)->mInterface->SendError("IO unknown exception: " + (*robot)->Name());
+    }
+    */
 }
 
 void mtsRobotIO1394::Cleanup(void)
@@ -799,5 +814,21 @@ void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) con
          iter != mDigitalOutputs.end();
          ++iter) {
         names.push_back((*iter)->Name());
+    }
+}
+
+void mtsRobotIO1394::IntervalStatisticsCallback(void)
+{
+    // check if the average is somewhat close to the expected period
+    
+    // linux/mtsTask periodic always introduces a small time delay in
+    // sleep.  Cause is not known so far
+    const double expectedDelay = 0.05 * cmn_ms;
+    const double expectedPeriod = GetPeriodicity() + expectedDelay;
+    const double errorPeriod = std::abs(expectedPeriod - StateTable.PeriodStats.PeriodAvg());
+    if (errorPeriod > 0.10 * expectedPeriod) {
+        std::cerr << "Average period (" << StateTable.PeriodStats.PeriodAvg()
+                  << ") is diverging by more that 10% from expected period ("
+                  << expectedPeriod << ")" << std::endl;
     }
 }
