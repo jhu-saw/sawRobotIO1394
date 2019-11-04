@@ -562,18 +562,6 @@ void mtsRobotIO1394::Run(void)
     PreWrite();
     Write();
     PostWrite();
-
-    // Check periodicity
-    double expected = GetPeriodicity();
-    
-    /*
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
-        (*robot)->mInterface->SendError("IO unknown exception: " + (*robot)->Name());
-    }
-    */
 }
 
 void mtsRobotIO1394::Cleanup(void)
@@ -819,16 +807,53 @@ void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) con
 
 void mtsRobotIO1394::IntervalStatisticsCallback(void)
 {
+    // if the data is recent, arbitrary 5 seconds, ignore stats
+    if (StateTable.PeriodStats.Timestamp() < 5.0 * cmn_s) {
+        return;
+    }
+
     // check if the average is somewhat close to the expected period
-    
     // linux/mtsTask periodic always introduces a small time delay in
     // sleep.  Cause is not known so far
-    const double expectedDelay = 0.05 * cmn_ms;
+    const double expectedDelay = 0.06 * cmn_ms;
     const double expectedPeriod = GetPeriodicity() + expectedDelay;
-    const double errorPeriod = std::abs(expectedPeriod - StateTable.PeriodStats.PeriodAvg());
-    if (errorPeriod > 0.10 * expectedPeriod) {
-        std::cerr << "Average period (" << StateTable.PeriodStats.PeriodAvg()
-                  << ") is diverging by more that 10% from expected period ("
-                  << expectedPeriod << ")" << std::endl;
+    bool sendingMessage = false;
+    bool error = false;
+    std::stringstream message;
+    message.precision(2);
+
+    // check periodicity
+    if (StateTable.PeriodStats.PeriodAvg() > 1.5 * expectedPeriod) {
+        sendingMessage = true;
+        error = true;
+        message << "average period (" << cmnInternalTo_ms(StateTable.PeriodStats.PeriodAvg())
+                << " ms) exceeded expected period by 50% ("
+                << cmnInternalTo_ms(expectedPeriod) << " ms)";
+    }
+
+    // check load
+    if (!error) {
+        if (StateTable.PeriodStats.ComputeTimeAvg() > expectedPeriod) {
+            sendingMessage = true;
+            message << "average compute time (" << cmnInternalTo_ms(StateTable.PeriodStats.ComputeTimeAvg())
+                    << " ms) exceeds expected period ("
+                    << cmnInternalTo_ms(expectedPeriod) << " ms)";
+        }
+    }
+
+    // send message as needed
+    if (sendingMessage) {
+        std::cerr << StateTable.PeriodStats << std::endl;
+        std::string messageString = " IO: " + message.str();
+        const robot_iterator robotsEnd = mRobots.end();
+        for (robot_iterator robot = mRobots.begin();
+             robot != robotsEnd;
+             ++robot) {
+            if (error) {
+                (*robot)->mInterface->SendError((*robot)->Name() + messageString);
+            } else {
+                (*robot)->mInterface->SendWarning((*robot)->Name() + messageString);
+            }
+        }
     }
 }
