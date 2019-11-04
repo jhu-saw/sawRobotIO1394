@@ -22,8 +22,6 @@ http://www.cisst.org/cisst/license.txt.
 
 // project include
 #include <sawRobotIO1394/mtsRobotIO1394.h>
-#include <cisstOSAbstraction/osaGetTime.h>
-#include <cisstOSAbstraction/osaSleep.h>
 #include <cisstMultiTask/mtsInterfaceRequired.h>
 #include <cisstMultiTask/mtsManagerLocal.h>
 
