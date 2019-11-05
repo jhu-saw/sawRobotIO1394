@@ -759,7 +759,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
         AmpIO_UInt32 fversion = board->second->GetFirmwareVersion();
         if (fversion == 0) {
             CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
-                                     << ", unable to get firware version for board: " << boardCounter
+                                     << ", unable to get firmware version for board: " << boardCounter
                                      << ", Id: " << static_cast<int>(board->second->GetBoardId())
                                      << ".  Make sure the controller is powered and connected" << std::endl;
             exit(EXIT_FAILURE);
