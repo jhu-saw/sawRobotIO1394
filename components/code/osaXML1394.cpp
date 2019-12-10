@@ -279,7 +279,7 @@ namespace sawRobotIO1394 {
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.BitsToPositionScale, !robot.OnlyIO);
             actuator.Encoder.BitsToPositionScale *= unitPosConversion; // -------------------------------------------- adeguet1, make sure these are degrees
             if (robot.OnlyIO) {
-                actuator.Encoder.BitsToPositionScale = 1.0;
+                actuator.Encoder.BitsToPositionScale = 0.0;
             }
 
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Scale", robotIndex, actuatorIndex);
