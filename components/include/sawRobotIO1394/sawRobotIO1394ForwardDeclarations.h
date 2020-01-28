@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2016-08-26
 
-  (C) Copyright 2016-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2016-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -34,10 +34,13 @@ namespace sawRobotIO1394 {
     //! Enum redefined from AmpIO/BasePort
     typedef enum {PROTOCOL_SEQ_RW, PROTOCOL_SEQ_R_BC_W, PROTOCOL_BC_QRW} ProtocolType;
 
+    const double TimingMaxRatio = 2.0;
+    const double TimeBetweenTimingWarnings = 60.0 * cmn_s;
+    
     //! Temperature thresholds
-    const double TemperatureWarningThreshold = 55.0;
-    const double TemperatureErrorThreshold = 60.0;
-    const double TimeBetweenTemperatureWarnings = 30.0 * cmn_s;
+    const double TemperatureWarningThreshold = 60.0;
+    const double TemperatureErrorThreshold = 65.0;
+    const double TimeBetweenTemperatureWarnings = 60.0 * cmn_s;
 
 } // namespace sawRobotIO1394
 

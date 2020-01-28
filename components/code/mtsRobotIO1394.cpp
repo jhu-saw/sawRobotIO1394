@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
  --- begin cisst license - do not edit ---
 
@@ -807,8 +807,9 @@ void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) con
 
 void mtsRobotIO1394::IntervalStatisticsCallback(void)
 {
-    // if the data is recent, arbitrary 5 seconds, ignore stats
-    if (StateTable.PeriodStats.Timestamp() < 5.0 * cmn_s) {
+    // if the data is recent, arbitrary 10 seconds, ignore stats
+    const double now = StateTable.PeriodStats.Timestamp();
+    if (now < 10.0 * cmn_s) {
         return;
     }
 
@@ -823,21 +824,27 @@ void mtsRobotIO1394::IntervalStatisticsCallback(void)
     message.precision(2);
 
     // check periodicity
-    if (StateTable.PeriodStats.PeriodAvg() > 1.5 * expectedPeriod) {
+    if (StateTable.PeriodStats.PeriodAvg() > sawRobotIO1394::TimingMaxRatio * expectedPeriod) {
         sendingMessage = true;
         error = true;
         message << "average period (" << cmnInternalTo_ms(StateTable.PeriodStats.PeriodAvg())
-                << " ms) exceeded expected period by 50% ("
+                << " ms) exceeded " << sawRobotIO1394::TimingMaxRatio << " time expected period ("
                 << cmnInternalTo_ms(expectedPeriod) << " ms)";
     }
 
     // check load
     if (!error) {
         if (StateTable.PeriodStats.ComputeTimeAvg() > expectedPeriod) {
-            sendingMessage = true;
-            message << "average compute time (" << cmnInternalTo_ms(StateTable.PeriodStats.ComputeTimeAvg())
-                    << " ms) exceeds expected period ("
-                    << cmnInternalTo_ms(expectedPeriod) << " ms)";
+            if (now >= (mTimeLastTimingWarning + sawRobotIO1394::TimeBetweenTimingWarnings)) {
+                sendingMessage = true;
+                message << "average compute time (" << cmnInternalTo_ms(StateTable.PeriodStats.ComputeTimeAvg())
+                        << " ms) exceeds expected period ("
+                        << cmnInternalTo_ms(expectedPeriod) << " ms)";
+                mTimeLastTimingWarning = now;
+            }
+        } else {
+            // reset time so next time we hit a warning it displays immediately
+            mTimeLastTimingWarning = 0.0;
         }
     }
 
