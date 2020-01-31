@@ -1494,14 +1494,6 @@ void mtsRobot1394::SetEncoderPosition(const vctDoubleVec & pos)
 
 void mtsRobot1394::SetEncoderPositionBits(const vctIntVec & bits)
 {
-    vctIntVec oldPreload;
-    vctBoolVec results;
-    oldPreload.SetSize(bits.size());
-
-    for (size_t i = 0; i < mNumberOfActuators; i++) {
-        mActuatorInfo[i].Board->ReadEncoderPreload(mActuatorInfo[i].Axis, oldPreload[i]);
-    }
-
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->WriteEncoderPreload(mActuatorInfo[i].Axis, bits[i]);
     }
