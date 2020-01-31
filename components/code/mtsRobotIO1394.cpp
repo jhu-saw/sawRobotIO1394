@@ -406,12 +406,6 @@ bool mtsRobotIO1394::SetupDallasChip(mtsDallasChip1394 * dallasChip)
 
 void mtsRobotIO1394::Startup(void)
 {
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
-        (*robot)->SetEncoderPosition(vctDoubleVec((*robot)->NumberOfActuators(), 0.0));
-    }
 }
 
 void mtsRobotIO1394::PreRead(void)

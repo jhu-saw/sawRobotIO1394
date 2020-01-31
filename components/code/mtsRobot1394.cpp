@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -334,8 +334,25 @@ void mtsRobot1394::SetWatchdogPeriod(const double & periodInSeconds)
 
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
 {
-    mSamplesForCalibrateEncoderOffsetsFromPots = numberOfSamples + 1;
-    mSamplesForCalibrateEncoderOffsetsFromPotsRequested = numberOfSamples;
+    // if the number of samples is negative, user wants to first check
+    // if the encoders are not already preloaded
+    if (numberOfSamples < 0) {
+        // get encoder preload values re. midrange
+        bool isMidrange = true;
+        for (size_t i = 0; i < mNumberOfActuators; i++) {
+            bool thisAxis;
+            mActuatorInfo[i].Board->IsEncoderPreloadMidrange(mActuatorInfo[i].Axis, thisAxis);
+            isMidrange = (isMidrange && thisAxis);
+        }
+        // if all encoders are at midrange, assume encoder bias on pots is already done
+        if (!isMidrange) {
+            mSamplesForCalibrateEncoderOffsetsFromPots = 0;
+            EventTriggers.BiasEncoder(-1);
+            return;
+        }
+    }
+    mSamplesForCalibrateEncoderOffsetsFromPots = std::abs(numberOfSamples) + 1;
+    mSamplesForCalibrateEncoderOffsetsFromPotsRequested = std::abs(numberOfSamples);
 }
 
 void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
@@ -1477,6 +1494,14 @@ void mtsRobot1394::SetEncoderPosition(const vctDoubleVec & pos)
 
 void mtsRobot1394::SetEncoderPositionBits(const vctIntVec & bits)
 {
+    vctIntVec oldPreload;
+    vctBoolVec results;
+    oldPreload.SetSize(bits.size());
+
+    for (size_t i = 0; i < mNumberOfActuators; i++) {
+        mActuatorInfo[i].Board->ReadEncoderPreload(mActuatorInfo[i].Axis, oldPreload[i]);
+    }
+
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->WriteEncoderPreload(mActuatorInfo[i].Axis, bits[i]);
     }
