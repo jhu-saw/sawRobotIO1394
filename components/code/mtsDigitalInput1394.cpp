@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -158,7 +158,7 @@ void mtsDigitalInput1394::PollState(void)
             if (value == mTransitionValue) {
                 mDebounceCounter += mBoard->GetTimestamp() / (49.125 * 1000.0 * 1000.0); // clock is 49.125 MHz
             } else {
-                if (mDebounceCounter >  0.5 * mDebounceThreshold) {
+                if (mDebounceCounter >  0.2 * mDebounceThreshold) {
                     if (mStateTable) {
                         mEventPayloads.Clicked.SetTimestamp(mStateTable->GetTic());
                     }
