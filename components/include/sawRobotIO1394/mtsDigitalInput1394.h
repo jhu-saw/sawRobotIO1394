@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Jonathan Bohren
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -83,6 +83,7 @@ namespace sawRobotIO1394 {
         bool mTriggerPress;          // Boolean Flag for Press Trigger Setting
         bool mTriggerRelease;        // Boolean Flag for Release Trigger Setting
         double mDebounceThreshold;   // 0, no debounce required otherwise time in seconds
+        double mDebounceThresholdClick; // Quick transition, i.e. single click
 
         // State data
         bool mValue;                    // Current read value

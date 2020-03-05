@@ -114,6 +114,7 @@ void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
     mTriggerPress = config.TriggerWhenPressed;
     mTriggerRelease = config.TriggerWhenReleased;
     mDebounceThreshold = config.DebounceThreshold;
+    mDebounceThresholdClick = config.DebounceThresholdClick;
 
     // Set the value to un-pressed
     mValue = !mPressedValue;
@@ -158,7 +159,8 @@ void mtsDigitalInput1394::PollState(void)
             if (value == mTransitionValue) {
                 mDebounceCounter += mBoard->GetTimestamp() / (49.125 * 1000.0 * 1000.0); // clock is 49.125 MHz
             } else {
-                if (mDebounceCounter >  0.2 * mDebounceThreshold) {
+                // click if button is now released and counter is short enough
+                if (!value && (mDebounceCounter >  mDebounceThresholdClick)) {
                     if (mStateTable) {
                         mEventPayloads.Clicked.SetTimestamp(mStateTable->GetTic());
                     }

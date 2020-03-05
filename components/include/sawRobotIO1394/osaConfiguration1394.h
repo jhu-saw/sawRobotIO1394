@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -126,7 +126,8 @@ namespace sawRobotIO1394 {
         bool TriggerWhenPressed;
         bool TriggerWhenReleased;
         bool PressedValue;
-        double DebounceThreshold;
+        double DebounceThreshold; // for full transitions on/off
+        double DebounceThresholdClick; // for a quick transition, e.g. click, quicktap...
     };
 
     struct osaDigitalOutput1394Configuration {

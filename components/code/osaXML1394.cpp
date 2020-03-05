@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -583,6 +583,16 @@ namespace sawRobotIO1394 {
             return false;
         }
         digitalInput.DebounceThreshold = debounce;
+
+        double debounceClick = 0.2 * debounce;
+        sprintf(path, "DigitalIn[%i]/@DebounceClick", inputIndex);
+        xmlConfig.GetXMLValue(context, path, debounceClick, 0.0);
+        if ((debounceClick < 0.0) || (debounceClick > debounce)) {
+            debounceClick = 0.2 * debounce;
+            CMN_LOG_INIT_ERROR << "Configuration for " << path << " failed, you can't have a negative debounce click value or a values greated than normal debounce. Stopping config." << std::endl;
+            return false;
+        }
+        digitalInput.DebounceThresholdClick = debounceClick;
 
         return true;
     }
