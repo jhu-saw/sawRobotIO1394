@@ -229,7 +229,7 @@ void mtsRobotIO1394::Init(const int portNumber)
         configurationInterface->AddCommandRead<mtsComponent>(&mtsComponent::GetName, this,
                                                              "GetName");
         configurationInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
-                                                    "GetPeriodStatistics");
+                                                    "period_statistics");
         configurationInterface->AddCommandReadState(*mStateTableRead, mStateTableRead->PeriodStats,
                                                     "GetPeriodStatisticsRead");
         configurationInterface->AddCommandReadState(*mStateTableWrite, mStateTableWrite->PeriodStats,
@@ -350,7 +350,7 @@ bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
     }
     // we show statistics for the whole component using the main state table
     robotInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
-                                        "GetPeriodStatistics");
+                                        "period_statistics");
 
     // Create actuator interface
     std::string actuatorInterfaceName = robot->Name();

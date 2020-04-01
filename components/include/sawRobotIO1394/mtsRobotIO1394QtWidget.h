@@ -89,7 +89,7 @@ protected:
 
     struct RobotStruct {
         mtsFunctionRead GetSerialNumber;
-        mtsFunctionRead GetPeriodStatistics;
+        mtsFunctionRead period_statistics;
         mtsFunctionRead IsValid;
         mtsFunctionRead WatchdogPeriod;
         mtsFunctionVoid EnablePower;

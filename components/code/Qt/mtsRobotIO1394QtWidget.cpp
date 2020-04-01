@@ -361,7 +361,7 @@ void mtsRobotIO1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         bool flag;
         Robot.IsValid(flag);
         if (flag) {
-            Robot.GetPeriodStatistics(IntervalStatistics);
+            Robot.period_statistics(IntervalStatistics);
             Robot.GetPowerStatus(PowerStatus);
             Robot.GetSafetyRelay(SafetyRelay);
             if (NumberOfActuators != 0) {
@@ -445,7 +445,7 @@ void mtsRobotIO1394QtWidget::SetupCisstInterface(void)
     mtsInterfaceRequired * robotInterface = AddInterfaceRequired("Robot");
     if (robotInterface) {
         robotInterface->AddFunction("GetSerialNumber", Robot.GetSerialNumber);
-        robotInterface->AddFunction("GetPeriodStatistics", Robot.GetPeriodStatistics);
+        robotInterface->AddFunction("period_statistics", Robot.period_statistics);
         robotInterface->AddFunction("IsValid", Robot.IsValid);
         robotInterface->AddFunction("GetWatchdogPeriod", Robot.WatchdogPeriod);
         robotInterface->AddFunction("EnablePower", Robot.EnablePower);

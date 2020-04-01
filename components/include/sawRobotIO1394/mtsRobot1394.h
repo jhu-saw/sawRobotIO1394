@@ -74,7 +74,7 @@ namespace sawRobotIO1394 {
         void GetNumberOfActuators(int & num_actuators) const;
         void GetNumberOfJoints(int & num_joints) const;
         void GetSerialNumber(int & serialNumber) const;
-        void SetTorqueJoint(const prmForceTorqueJointSet & jointTorques);
+        void servo_jf(const prmForceTorqueJointSet & jointTorques);
         void ResetSingleEncoder(const int & index);
         void SetCoupling(const prmActuatorJointCoupling & coupling);
 

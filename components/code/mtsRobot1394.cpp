@@ -171,7 +171,7 @@ void mtsRobot1394::UsePotsForSafetyCheck(const bool & usePotsForSafetyCheck)
     EventTriggers.UsePotsForSafetyCheck(usePotsForSafetyCheck);
 }
 
-void mtsRobot1394::SetTorqueJoint(const prmForceTorqueJointSet & efforts) {
+void mtsRobot1394::servo_jf(const prmForceTorqueJointSet & efforts) {
     this->SetJointEffort(efforts.ForceTorque());
 }
 
@@ -450,8 +450,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     robotInterface->AddCommandReadState(*mStateTableRead, mBrakeTemperature,
                                         "GetBrakeAmpTemperature"); // vector[double]
 
-    robotInterface->AddCommandWrite(&mtsRobot1394::SetTorqueJoint, this,
-                                    "SetTorqueJoint", mTorqueJoint);
+    robotInterface->AddCommandWrite(&mtsRobot1394::servo_jf, this,
+                                    "servo_jf", mTorqueJoint);
     robotInterface->AddCommandRead(&mtsRobot1394::GetJointEffortCommandLimits, this,
                                    "GetTorqueJointMax", mJointEffortCommandLimits);
 
