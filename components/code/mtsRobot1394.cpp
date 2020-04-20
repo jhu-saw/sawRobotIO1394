@@ -1348,6 +1348,7 @@ void mtsRobot1394::CheckState(void)
     // Check for encoder overflow
     if (mEncoderOverflow.Any()) {
         this->DisablePower();
+        this->SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
         if (mEncoderOverflow.NotEqual(mPreviousEncoderOverflow)) {
             mPreviousEncoderOverflow.Assign(mEncoderOverflow);
             std::string errorMessage = this->Name() + ": detected encoder overflow: ";
