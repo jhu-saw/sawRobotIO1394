@@ -175,8 +175,12 @@ void mtsRobot1394::servo_jf(const prmForceTorqueJointSet & efforts) {
     this->SetJointEffort(efforts.ForceTorque());
 }
 
-void mtsRobot1394::ResetSingleEncoder(const int & index) {
-    this->SetSingleEncoderPosition(index, 0.0);
+void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
+    for (size_t index = 0; index < values.Mask().size(); ++index) {
+        if (values.Mask().at(index)) {
+            this->SetSingleEncoderPosition(index, values.Data().at(index));
+        }
+    }
 }
 
 void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
@@ -491,8 +495,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
                                         "GetPositionActuator"); // prmPositionJointGet
     robotInterface->AddCommandWrite(&mtsRobot1394::CalibrateEncoderOffsetsFromPots,
                                     this, "BiasEncoder");
-    robotInterface->AddCommandWrite(&mtsRobot1394::ResetSingleEncoder, this,
-                                    "ResetSingleEncoder"); // int
+    robotInterface->AddCommandWrite(&mtsRobot1394::SetSomeEncoderPosition, this,
+                                    "SetSomeEncoderPosition");
 
     // Events
     robotInterface->AddEventWrite(EventTriggers.PowerStatus, "PowerStatus", false);
@@ -509,8 +513,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
                                       "DisableBoardsPower");
     actuatorInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorPower, this,
                                                                  "SetAmpEnable", mActuatorPowerEnabled); // vector[bool]
-    actuatorInterface->AddCommandWrite(&mtsRobot1394::ResetSingleEncoder, this,
-                                       "ResetSingleEncoder"); // int
+    actuatorInterface->AddCommandWrite(&mtsRobot1394::SetSomeEncoderPosition, this,
+                                       "SetSomeEncoderPosition");
 
     actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorPowerEnabled,
                                            "GetAmpEnable"); // vector[bool]

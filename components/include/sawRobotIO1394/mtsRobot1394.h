@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsRobot1394_h
 #define _mtsRobot1394_h
 
+#include <cisstParameterTypes/prmMaskedVector.h>
 #include <cisstParameterTypes/prmJointType.h>
 #include <cisstParameterTypes/prmPositionJointGet.h>
 #include <cisstParameterTypes/prmVelocityJointGet.h>
@@ -75,7 +76,7 @@ namespace sawRobotIO1394 {
         void GetNumberOfJoints(int & num_joints) const;
         void GetSerialNumber(int & serialNumber) const;
         void servo_jf(const prmForceTorqueJointSet & jointTorques);
-        void ResetSingleEncoder(const int & index);
+        void SetSomeEncoderPosition(const prmMaskedDoubleVec & values);
         void SetCoupling(const prmActuatorJointCoupling & coupling);
 
         /*! \name Bias Calibration */
