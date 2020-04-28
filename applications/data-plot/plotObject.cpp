@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -75,7 +75,7 @@ plotObject::plotObject(mtsRobotIO1394 * port,
     mFrame->resize(1200, 600);
     mFrame->show();
 
-    mPreviousEncoderPosition.ForceAssign(mRobot->EncoderPosition());
+    mPreviousEncoderPosition.ForceAssign(mRobot->ActuatorJointState().Position());
     mPreviousPotPosition.ForceAssign(mRobot->PotPosition());
 
     startTimer(0); // in ms, 0 is as fast as possible
@@ -90,9 +90,9 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
 
     // encoder dt
     mEncoderDtSignal->AppendPoint(vct2(mElapsedTime,
-                                       mRobot->EncoderVelocity()[mActuatorIndex]));
+                                       mRobot->ActuatorJointState().Velocity()[mActuatorIndex]));
     // encoder velocity dx / dt
-    mEncoderDx.ForceAssign(mRobot->EncoderPosition());
+    mEncoderDx.ForceAssign(mRobot->ActuatorJointState().Position());
     mEncoderDx.Subtract(mPreviousEncoderPosition);
     mEncoderDx.ElementwiseDivide(mRobot->ActuatorTimeStamp());
     mEncoderDxSignal->AppendPoint((vct2(mElapsedTime,
@@ -123,6 +123,6 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     mPlot->update();
 
     // save previous state
-    mPreviousEncoderPosition.Assign(mRobot->EncoderPosition());
+    mPreviousEncoderPosition.Assign(mRobot->ActuatorJointState().Position());
     mPreviousPotPosition.Assign(mRobot->PotPosition());
 }

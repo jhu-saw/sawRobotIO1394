@@ -20,9 +20,8 @@ http://www.cisst.org/cisst/license.txt.
 #define _mtsRobot1394_h
 
 #include <cisstParameterTypes/prmMaskedVector.h>
-#include <cisstParameterTypes/prmJointType.h>
-#include <cisstParameterTypes/prmPositionJointGet.h>
-#include <cisstParameterTypes/prmVelocityJointGet.h>
+#include <cisstParameterTypes/prmConfigurationJoint.h>
+#include <cisstParameterTypes/prmStateJoint.h>
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
 
 #include <sawRobotIO1394/osaConfiguration1394.h>
@@ -156,17 +155,16 @@ namespace sawRobotIO1394 {
         const vctBoolVec & BrakePowerStatus(void) const;
         const vctDoubleVec & ActuatorCurrentFeedback(void) const;
         const vctDoubleVec & ActuatorCurrentCommand(void) const;
-        const vctDoubleVec & ActuatorEffortFeedback(void) const;
         const vctDoubleVec & ActuatorEffortCommand(void) const;
         const vctDoubleVec & BrakeCurrentFeedback(void) const;
         const vctDoubleVec & PotPosition(void) const;
         const vctDoubleVec & ActuatorTimeStamp(void) const;
         const vctDoubleVec & BrakeTimeStamp(void) const;
-        const vctDoubleVec & EncoderPosition(void) const;
-        const vctDoubleVec & EncoderVelocity(void) const;
         const vctDoubleVec & EncoderVelocityPredicted(void) const;
         const vctDoubleVec & EncoderAcceleration(void) const;
         const vctDoubleVec & EncoderVelocitySoftware(void) const;
+        const prmStateJoint & ActuatorJointState(void) const;
+        const prmStateJoint & JointState(void) const;
         /**}**/
 
         /** \name Parameter Accessors
@@ -177,7 +175,8 @@ namespace sawRobotIO1394 {
         size_t NumberOfActuators(void) const;
         size_t SerialNumber(void) const;
         size_t NumberOfBrakes(void) const;
-        void GetJointTypes(prmJointTypeVec & jointTypes) const;
+        void configuration_js(prmConfigurationJoint & jointConfig) const;
+        void configure_js(const prmConfigurationJoint & jointConfig);
         void GetJointEffortCommandLimits(vctDoubleVec & limits) const;
         void GetActuatorEffortCommandLimits(vctDoubleVec & limits) const;
         void GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const;
@@ -263,7 +262,7 @@ namespace sawRobotIO1394 {
             mPotsToEncodersTolerance;       // maximum error between encoders and pots
 
         //! Robot type
-        prmJointTypeVec mJointType;
+        prmConfigurationJoint mConfigurationJoint;
         osaPot1394Location mPotType;
         bool mUsePotsForSafetyCheck;
 
@@ -313,18 +312,13 @@ namespace sawRobotIO1394 {
             mBrakeTimestamp,
             mPotVoltage,
             mPotPosition,
-            mEncoderPosition,
 
             mEncoderVelocityCountsPerSecond,  // velocity based on FPGA measurement of time between encoder edges (period)
-            mEncoderVelocity,                 // velocity passed to higher level (SI units)
             mEncoderVelocityDelay,            // assumed delay in velocity measurement (period/2)
             mEncoderVelocityPredicted,        // velocity based on FPGA measurement, combined with prediction based on acceleration (SI units)
             mEncoderVelocitySoftware,         // velocity based on backward difference of position (SI units)
             mEncoderAccelerationCountsPerSecSec, // acceleration based on FPGA measurement (firmware rev 6)
             mEncoderAcceleration,             // acceleration in SI units (firmware rev 6)
-            mJointPosition,
-            mJointVelocity,
-            mJointTorque,
             mActuatorCurrentCommand,
             mBrakeCurrentCommand,
             mActuatorEffortCommand,
@@ -333,7 +327,6 @@ namespace sawRobotIO1394 {
             mPotToleranceDistance,
             mPotErrorDuration,
             mBrakeCurrentFeedback,
-            mActuatorEffortFeedback,
             mActuatorTemperature,
             mBrakeTemperature,
             mBrakeReleaseCurrent,
@@ -356,9 +349,9 @@ namespace sawRobotIO1394 {
         bool mUserExpectsPower;
 
         prmForceTorqueJointSet mTorqueJoint;
-        prmPositionJointGet mPositionJointGet;
-        prmPositionJointGet mPositionActuatorGet;
-        prmVelocityJointGet mVelocityJointGet;
+        prmStateJoint
+            mActuatorMeasuredJS,
+            mMeasuredJS;
 
         // Functions for events
         struct {
@@ -373,7 +366,7 @@ namespace sawRobotIO1394 {
         int mSamplesForCalibrateEncoderOffsetsFromPots;
         int mSamplesForCalibrateEncoderOffsetsFromPotsRequested;
         mtsStateTable::Accessor<vctDoubleVec> * mPotPositionAccessor;
-        mtsStateTable::Accessor<prmPositionJointGet> * mPositionActuatorGetAccessor;
+        mtsStateTable::Accessor<prmStateJoint> * mActuatorStateJointAccessor;
 
     public:
         mtsInterfaceProvided * mInterface;

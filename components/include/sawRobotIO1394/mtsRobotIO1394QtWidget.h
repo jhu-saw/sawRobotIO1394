@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen
   Created on: 2012-07-20
 
-  (C) Copyright 2012-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2012-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -23,7 +23,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstVector/vctQtWidgetDynamicVector.h>
 #include <cisstMultiTask/mtsQtWidgetIntervalStatistics.h>
 #include <cisstMultiTask/mtsComponent.h>
-#include <cisstParameterTypes/prmPositionJointGet.h>
+#include <cisstParameterTypes/prmStateJoint.h>
 
 #include <QWidget>
 #include <QCheckBox>
@@ -95,14 +95,13 @@ protected:
         mtsFunctionVoid EnablePower;
         mtsFunctionVoid DisablePower;
 
-        mtsFunctionRead GetPosition;
-        mtsFunctionRead GetVelocity;
+        mtsFunctionRead measured_js;
         mtsFunctionRead GetAnalogInputVolts;
         mtsFunctionRead GetAnalogInputPosSI;
         mtsFunctionRead GetActuatorRequestedCurrent;
         mtsFunctionRead GetActuatorFeedbackCurrent;
         mtsFunctionRead GetActuatorCurrentMax;
-        mtsFunctionRead GetJointType;
+        mtsFunctionRead configuration_js;
         mtsFunctionRead GetPowerStatus;
         mtsFunctionRead GetSafetyRelay;
         mtsFunctionRead GetActuatorAmpTemperature;
@@ -131,7 +130,7 @@ protected:
 
         mtsFunctionRead GetAmpEnable;
         mtsFunctionRead GetAmpStatus;
-        mtsFunctionRead GetPositionActuator;
+        mtsFunctionRead measured_js;
     } Actuators;
 
 
@@ -143,10 +142,7 @@ private:
     size_t NumberOfBrakes;
 
     vctDoubleVec UnitFactor;
-    vctDoubleVec JointPosition;
-    prmPositionJointGet ActuatorPositionGet;
-    vctDoubleVec ActuatorPosition;
-    vctDoubleVec ActuatorVelocity;
+    prmStateJoint StateJoint, ActuatorStateJoint;
     vctDoubleVec PotentiometersVolts;
     vctDoubleVec PotentiometersPosition;
     vctDoubleVec ActuatorFeedbackCurrent;

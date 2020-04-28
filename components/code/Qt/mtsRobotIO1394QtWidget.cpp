@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-16
 
-  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -32,7 +32,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <cisstOSAbstraction/osaGetTime.h>
 #include <cisstMultiTask/mtsInterfaceRequired.h>
-#include <cisstParameterTypes/prmJointType.h>
+#include <cisstParameterTypes/prmConfigurationJoint.h>
 
 CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobotIO1394QtWidget, mtsComponent, mtsComponentConstructorNameAndUInt)
 
@@ -67,10 +67,6 @@ void mtsRobotIO1394QtWidget::Init(void)
     LastEnableState.SetAll(false);
 
     UnitFactor.SetSize(NumberOfActuators);
-    JointPosition.SetSize(NumberOfActuators);
-    ActuatorPosition.SetSize(NumberOfActuators);
-    ActuatorPositionGet.Position().SetSize(NumberOfActuators);
-    ActuatorVelocity.SetSize(NumberOfActuators);
     PotentiometersVolts.SetSize(NumberOfActuators);
     PotentiometersPosition.SetSize(NumberOfActuators);
     ActuatorFeedbackCurrent.SetSize(NumberOfActuators);
@@ -107,16 +103,16 @@ void mtsRobotIO1394QtWidget::Startup(void)
         QVWActuatorCurrentSlider->SetRange(-actuatorCurrentMax, actuatorCurrentMax);
     }
 
-    prmJointTypeVec jointType;
-    result = Robot.GetJointType(jointType);
+    prmConfigurationJoint jointConfig;
+    result = Robot.configuration_js(jointConfig);
     if (!result) {
-        CMN_LOG_CLASS_INIT_ERROR << "Startup: Robot interface isn't connected properly, unable to get joint type.  Function call returned: "
+        CMN_LOG_CLASS_INIT_ERROR << "Startup: Robot interface isn't connected properly, unable to get joint configuration.  Function call returned: "
                                  << result << std::endl;
         UnitFactor.SetAll(0.0);
     } else {
         // set unitFactor
         for (size_t i = 0; i < this->NumberOfActuators; i++ ) {
-            switch (jointType[i]) {
+            switch (jointConfig.Type().at(i)) {
             case PRM_JOINT_REVOLUTE:
                 UnitFactor[i] = cmn180_PI;
                 break;
@@ -367,13 +363,11 @@ void mtsRobotIO1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
             if (NumberOfActuators != 0) {
                 Actuators.GetAmpEnable(ActuatorAmpEnable);
                 Actuators.GetAmpStatus(ActuatorAmpStatus);
-                Robot.GetPosition(JointPosition); // vct
-                JointPosition.ElementwiseMultiply(UnitFactor); // to degrees or mm
-                Actuators.GetPositionActuator(ActuatorPositionGet); // prm
-                ActuatorPosition.Assign(ActuatorPositionGet.Position()); // vct
-                ActuatorPosition.ElementwiseMultiply(UnitFactor); // to degrees or mm
-                Robot.GetVelocity(ActuatorVelocity);
-                ActuatorVelocity.ElementwiseMultiply(UnitFactor); // to degrees or mm
+                Robot.measured_js(StateJoint);
+                StateJoint.Position().ElementwiseMultiply(UnitFactor); // to degrees or mm
+                Actuators.measured_js(ActuatorStateJoint);
+                ActuatorStateJoint.Position().ElementwiseMultiply(UnitFactor); // to degrees or mm
+                ActuatorStateJoint.Velocity().ElementwiseMultiply(UnitFactor); // to degrees or mm
                 Robot.GetAnalogInputVolts(PotentiometersVolts);
                 Robot.GetAnalogInputPosSI(PotentiometersPosition);
                 PotentiometersPosition.ElementwiseMultiply(UnitFactor); // to degrees or mm
@@ -391,9 +385,9 @@ void mtsRobotIO1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
                 Robot.GetBrakeAmpTemperature(BrakeAmpTemperature);
             }
         } else {
-            JointPosition.SetAll(DummyValueWhenNotConnected);
-            ActuatorPosition.SetAll(DummyValueWhenNotConnected);
-            ActuatorVelocity.SetAll(DummyValueWhenNotConnected);
+            StateJoint.Position().SetAll(DummyValueWhenNotConnected);
+            ActuatorStateJoint.Position().SetAll(DummyValueWhenNotConnected);
+            ActuatorStateJoint.Velocity().SetAll(DummyValueWhenNotConnected);
             PotentiometersVolts.SetAll(DummyValueWhenNotConnected);
             PotentiometersPosition.SetAll(DummyValueWhenNotConnected);
             ActuatorFeedbackCurrent.SetAll(DummyValueWhenNotConnected);
@@ -412,9 +406,9 @@ void mtsRobotIO1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
 
         QMIntervalStatistics->SetValue(IntervalStatistics);
         if (NumberOfActuators != 0) {
-            QVRJointPosition->SetValue(JointPosition);
-            QVRActuatorPosition->SetValue(ActuatorPosition);
-            QVRActuatorVelocity->SetValue(ActuatorVelocity);
+            QVRJointPosition->SetValue(StateJoint.Position());
+            QVRActuatorPosition->SetValue(ActuatorStateJoint.Position());
+            QVRActuatorVelocity->SetValue(ActuatorStateJoint.Velocity());
             QVRPotVolts->SetValue(PotentiometersVolts);
             QVRPotPosition->SetValue(PotentiometersPosition);
             QVRActuatorCurrentFeedback->SetValue(ActuatorFeedbackCurrent);
@@ -451,15 +445,14 @@ void mtsRobotIO1394QtWidget::SetupCisstInterface(void)
         robotInterface->AddFunction("EnablePower", Robot.EnablePower);
         robotInterface->AddFunction("DisablePower", Robot.DisablePower);
 
-        robotInterface->AddFunction("GetPosition", Robot.GetPosition);
-        robotInterface->AddFunction("GetVelocity", Robot.GetVelocity);
+        robotInterface->AddFunction("measured_js", Robot.measured_js);
         robotInterface->AddFunction("GetAnalogInputVolts", Robot.GetAnalogInputVolts);
         robotInterface->AddFunction("GetAnalogInputPosSI", Robot.GetAnalogInputPosSI);
         robotInterface->AddFunction("GetActuatorRequestedCurrent", Robot.GetActuatorRequestedCurrent);
         robotInterface->AddFunction("GetActuatorFeedbackCurrent", Robot.GetActuatorFeedbackCurrent);
         robotInterface->AddFunction("GetActuatorCurrentMax", Robot.GetActuatorCurrentMax);
         robotInterface->AddFunction("GetActuatorAmpTemperature", Robot.GetActuatorAmpTemperature);
-        robotInterface->AddFunction("GetJointType", Robot.GetJointType);
+        robotInterface->AddFunction("configuration_js", Robot.configuration_js);
         robotInterface->AddFunction("GetPowerStatus", Robot.GetPowerStatus);
         robotInterface->AddFunction("GetSafetyRelay", Robot.GetSafetyRelay);
 
@@ -489,8 +482,7 @@ void mtsRobotIO1394QtWidget::SetupCisstInterface(void)
 
     mtsInterfaceRequired * actuatorInterface = AddInterfaceRequired("RobotActuators");
     if (actuatorInterface) {
-        actuatorInterface->AddFunction("GetPositionActuator", Actuators.GetPositionActuator);
-
+        actuatorInterface->AddFunction("measured_js", Actuators.measured_js);
         actuatorInterface->AddFunction("EnableBoardsPower", Actuators.EnableBoardsPower);
         actuatorInterface->AddFunction("DisableBoardsPower", Actuators.DisableBoardsPower);
         actuatorInterface->AddFunction("SetAmpEnable", Actuators.SetAmpEnable);

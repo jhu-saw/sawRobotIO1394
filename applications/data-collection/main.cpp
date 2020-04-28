@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -147,10 +147,10 @@ int main(int argc, char * argv[])
         for (actuatorIndex = startIndex; actuatorIndex < endIndex; ++actuatorIndex)
             {
                 allPositions[iter][actuatorIndex-startIndex] =
-                    robot->EncoderPosition()[actuatorIndex];
+                    robot->ActuatorJointState().Position()[actuatorIndex];
 
                 allVelocities[iter][actuatorIndex-startIndex] =
-                    robot->EncoderVelocity()[actuatorIndex];
+                    robot->ActuatorJointState().Velocity()[actuatorIndex];
 
                 allAccelerations[iter][actuatorIndex-startIndex] =
                     robot->EncoderAcceleration()[actuatorIndex];
