@@ -401,6 +401,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
 
     robotInterface->AddCommandReadState(*mStateTableRead, this->mMeasuredJS,
                                         "measured_js");
+    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorMeasuredJS,
+                                        "actuator_measured_js");
 
     robotInterface->AddCommandReadState(*mStateTableRead, mPotBits,
                                         "GetAnalogInputRaw");
