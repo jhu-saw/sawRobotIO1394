@@ -542,6 +542,9 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mEncoderChannelsA.SetSize(mNumberOfActuators);
     mPotBits.SetSize(mNumberOfActuators);
     mEncoderOverflow.SetSize(mNumberOfActuators);
+    if (mConfiguration.OnlyIO) {
+        mEncoderOverflow.SetAll(false);
+    }
     mPreviousEncoderOverflow.SetSize(mNumberOfActuators);
     mPreviousEncoderOverflow.SetAll(false);
     mEncoderPositionBits.SetSize(mNumberOfActuators);
@@ -906,7 +909,9 @@ void mtsRobot1394::PollState(void)
         mDigitalInputs[i] = board->GetDigitalInput();
 
         // vectors of bits
-        mEncoderOverflow[i] = board->GetEncoderOverflow(axis);
+        if (!mConfiguration.OnlyIO) {
+            mEncoderOverflow[i] = board->GetEncoderOverflow(axis);
+        }
         mEncoderChannelsA[i] = board->GetEncoderChannelA(axis);
 
         // convert from 24 bits signed stored in 32 unsigned to 32 signed
