@@ -109,11 +109,11 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(mBrakeTemperature, "BrakeTemperature");
 
     mtsStateTable::AccessorBase * accessorBase;
-    accessorBase = mStateTableRead->GetAccessor(mPotPosition);
+    accessorBase = mStateTableRead->GetAccessorByInstance(mPotPosition);
     CMN_ASSERT(accessorBase);
     mPotPositionAccessor = dynamic_cast<mtsStateTable::Accessor<vctDoubleVec>* >(accessorBase);
     CMN_ASSERT(mPotPositionAccessor);
-    accessorBase = mStateTableRead->GetAccessor(mActuatorMeasuredJS);
+    accessorBase = mStateTableRead->GetAccessorByInstance(mActuatorMeasuredJS);
     CMN_ASSERT(accessorBase);
     mActuatorStateJointAccessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>*>(accessorBase);
     CMN_ASSERT(mActuatorStateJointAccessor);
