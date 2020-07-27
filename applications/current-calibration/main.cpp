@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2013-12-20
 
-  (C) Copyright 2013-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -397,7 +397,9 @@ int main(int argc, char * argv[])
             }
             std::string newConfigFile = configFile + "-new";
             xmlConfig.SaveAs(newConfigFile);
-            std::cout << "Status: new config file is \"" << newConfigFile << "\"" << std::endl;
+            std::cout << "Status: new config file is \"" << newConfigFile << "\"" << std::endl
+                      << "You can copy the new file over the old one using:\n  cp "
+                      << newConfigFile << " " << configFile << std::endl;
         } else {
             std::cout << "Status: user didn't want to save new offsets." << std::endl;
         }
