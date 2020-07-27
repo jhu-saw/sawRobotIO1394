@@ -59,44 +59,36 @@ mtsRobotIO1394::mtsRobotIO1394(const mtsTaskPeriodicConstructorArg & arg):
 mtsRobotIO1394::~mtsRobotIO1394()
 {
     // delete robots before deleting boards
-    for (robot_iterator iter = mRobots.begin();
-         iter != mRobots.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
+    for (auto & robot : mRobots) {
+        if (robot != 0) {
+            delete robot;
         }
     }
     mRobots.clear();
     mRobotsByName.clear();
 
     // delete digital inputs before deleting boards
-    for (digital_input_iterator iter = mDigitalInputs.begin();
-         iter != mDigitalInputs.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
+    for (auto & input : mDigitalInputs) {
+        if (input != 0) {
+            delete input;
         }
     }
     mDigitalInputs.clear();
     mDigitalInputsByName.clear();
 
     // delete digital outputs before deleting boards
-    for (digital_output_iterator iter = mDigitalOutputs.begin();
-         iter != mDigitalOutputs.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
+    for (auto & output : mDigitalOutputs) {
+        if (output != 0) {
+            delete output;
         }
     }
     mDigitalOutputs.clear();
     mDigitalOutputsByName.clear();
 
     // delete Dallas chips before deleting boards
-    for (dallas_chip_iterator iter = mDallasChips.begin();
-         iter != mDallasChips.end();
-         ++iter) {
-        if (*iter != 0) {
-            delete *iter;
+    for (auto & dallas : mDallasChips) {
+        if (dallas != 0) {
+            delete dallas;
         }
     }
     mDallasChips.clear();
@@ -142,11 +134,8 @@ void mtsRobotIO1394::SetProtocol(const sawRobotIO1394::ProtocolType & protocol)
 void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
 {
     mWatchdogPeriod = periodInSeconds;
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
-        (*robot)->SetWatchdogPeriod(periodInSeconds);
+    for (auto & robot : mRobots) {
+        robot->SetWatchdogPeriod(periodInSeconds);
     }
 }
 
@@ -255,11 +244,9 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     osaXML1394ConfigurePort(filename, config);
 
     // Add all the robots
-    for (std::vector<osaRobot1394Configuration>::const_iterator it = config.Robots.begin();
-         it != config.Robots.end();
-         ++it) {
+    for (const auto & configRobot : config.Robots) {
         // Create a new robot
-        mtsRobot1394 * robot = new mtsRobot1394(*this, *it);
+        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot);
         // Check the configuration if needed
         if (!mSkipConfigurationCheck) {
             if (!robot->CheckConfiguration()) {
@@ -283,11 +270,9 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     }
 
     // Add all the digital inputs
-    for (std::vector<osaDigitalInput1394Configuration>::const_iterator it = config.DigitalInputs.begin();
-         it != config.DigitalInputs.end();
-         ++it) {
+    for (const auto & configInput : config.DigitalInputs) {
         // Create a new digital input
-        mtsDigitalInput1394 * digitalInput = new mtsDigitalInput1394(*this, *it);
+        mtsDigitalInput1394 * digitalInput = new mtsDigitalInput1394(*this, configInput);
         // Set up the cisstMultiTask interfaces
         if (!this->SetupDigitalInput(digitalInput)) {
             delete digitalInput;
@@ -297,11 +282,9 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     }
 
     // Add all the digital outputs
-    for (std::vector<osaDigitalOutput1394Configuration>::const_iterator it = config.DigitalOutputs.begin();
-         it != config.DigitalOutputs.end();
-         ++it) {
+    for (const auto & configOutput : config.DigitalOutputs) {
         // Create a new digital input
-        mtsDigitalOutput1394 * digitalOutput = new mtsDigitalOutput1394(*this, *it);
+        mtsDigitalOutput1394 * digitalOutput = new mtsDigitalOutput1394(*this, configOutput);
         // Set up the cisstMultiTask interfaces
         if (!this->SetupDigitalOutput(digitalOutput)) {
             delete digitalOutput;
@@ -311,17 +294,20 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     }
 
     // Add all the Dallas chips
-    for (std::vector<osaDallasChip1394Configuration>::const_iterator it = config.DallasChips.begin();
-         it != config.DallasChips.end();
-         ++it) {
+    for (const auto & configDallas : config.DallasChips) {
         // Create a new digital input
-        mtsDallasChip1394 * dallasChip = new mtsDallasChip1394(*this, *it);
+        mtsDallasChip1394 * dallasChip = new mtsDallasChip1394(*this, configDallas);
         // Set up the cisstMultiTask interfaces
         if (!this->SetupDallasChip(dallasChip)) {
             delete dallasChip;
         } else {
             AddDallasChip(dallasChip);
         }
+    }
+
+    // Check firmware versions used so far
+    if (!CheckFirmwareVersions()) {
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -411,11 +397,8 @@ void mtsRobotIO1394::Startup(void)
 void mtsRobotIO1394::PreRead(void)
 {
     mStateTableRead->Start();
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
-        (*robot)->StartReadStateTable();
+    for (auto & robot : mRobots) {
+        robot->StartReadStateTable();
     }
 }
 
@@ -425,36 +408,27 @@ void mtsRobotIO1394::Read(void)
     mPort->ReadAllBoards();
 
     // Poll the state for each robot
-    for (robot_iterator robot = mRobots.begin();
-         robot != mRobots.end();
-         ++robot) {
+    for (auto & robot : mRobots) {
         // Poll the board validity
-        (*robot)->PollValidity();
+        robot->PollValidity();
 
         // Poll this robot's state
-        (*robot)->PollState();
+        robot->PollState();
 
         // Convert bits to usable numbers
-        (*robot)->ConvertState();
+        robot->ConvertState();
     }
-
     // Poll the state for each digital input
-    for (digital_input_iterator iter = mDigitalInputs.begin();
-         iter != mDigitalInputs.end();
-         ++iter) {
-        (*iter)->PollState();
+    for (auto & input : mDigitalInputs) {
+        input->PollState();
     }
     // Poll the state for each digital output
-    for (digital_output_iterator iter = mDigitalOutputs.begin();
-         iter != mDigitalOutputs.end();
-         ++iter) {
-        (*iter)->PollState();
+    for (auto & output : mDigitalOutputs) {
+        output->PollState();
     }
     // Poll the state for each Dallas chip
-    for (dallas_chip_iterator iter = mDallasChips.begin();
-         iter != mDallasChips.end();
-         ++iter) {
-        (*iter)->PollState();
+    for (auto & dallas: mDallasChips) {
+        dallas->PollState();
     }
 }
 
@@ -462,38 +436,29 @@ void mtsRobotIO1394::PostRead(void)
 {
     mStateTableRead->Advance();
     // Trigger robot events
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
+    for (auto & robot : mRobots) {
         try {
-            (*robot)->CheckState();
+            robot->CheckState();
         } catch (std::exception & stdException) {
-            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << (*robot)->Name() << ": standard exception \"" << stdException.what() << "\"" << std::endl;
-            (*robot)->mInterface->SendError("IO exception: " + (*robot)->Name() + ", " + stdException.what());
+            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": standard exception \"" << stdException.what() << "\"" << std::endl;
+            robot->mInterface->SendError("IO exception: " + robot->Name() + ", " + stdException.what());
         } catch (...) {
-            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << (*robot)->Name() << ": unknown exception" << std::endl;
-            (*robot)->mInterface->SendError("IO unknown exception: " + (*robot)->Name());
+            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": unknown exception" << std::endl;
+            robot->mInterface->SendError("IO unknown exception: " + robot->Name());
         }
-        (*robot)->AdvanceReadStateTable();
+        robot->AdvanceReadStateTable();
     }
     // Trigger digital input events
-    const digital_input_iterator digital_inputs_end = mDigitalInputs.end();
-    for (digital_input_iterator digital_input = mDigitalInputs.begin();
-         digital_input != digital_inputs_end;
-         ++digital_input) {
-        (*digital_input)->CheckState();
+    for (auto & input : mDigitalInputs) {
+        input->CheckState();
     }
 }
 
 void mtsRobotIO1394::PreWrite(void)
 {
     mStateTableWrite->Start();
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
-        (*robot)->StartWriteStateTable();
+    for (auto & robot : mRobots) {
+        robot->StartWriteStateTable();
     }
 }
 
@@ -507,11 +472,8 @@ void mtsRobotIO1394::PostWrite(void)
 {
     mStateTableWrite->Advance();
     // Trigger robot events
-    const robot_iterator robotsEnd = mRobots.end();
-    for (robot_iterator robot = mRobots.begin();
-         robot != robotsEnd;
-         ++robot) {
-        (*robot)->AdvanceWriteStateTable();
+    for (auto & robot : mRobots) {
+        robot->AdvanceWriteStateTable();
     }
 }
 
@@ -537,11 +499,8 @@ void mtsRobotIO1394::Run(void)
     if (gotException) {
         CMN_LOG_CLASS_RUN_ERROR << "Run: port read, " << message << std::endl;
         // Trigger robot events
-        const robot_iterator robotsEnd = mRobots.end();
-        for (robot_iterator robot = mRobots.begin();
-             robot != robotsEnd;
-             ++robot) {
-            (*robot)->mInterface->SendError(message);
+        for (auto & robot : mRobots) {
+            robot->mInterface->SendError(message);
         }
     }
     PostRead(); // this performs all state conversions and checks
@@ -603,7 +562,6 @@ void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
 {
     size_t numRobots = mRobots.size();
     placeHolder.resize(numRobots);
-
     for (size_t i = 0; i < numRobots; i++) {
         placeHolder[i] = mRobots[i]->NumberOfActuators();
     }
@@ -613,7 +571,6 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
 {
     size_t numRobots = mRobots.size();
     placeHolder.resize(numRobots);
-
     for (size_t i = 0; i < numRobots; i++) {
         placeHolder[i] = mRobots[i]->NumberOfBrakes();
     }
@@ -769,33 +726,108 @@ void mtsRobotIO1394::AddDallasChip(mtsDallasChip1394 * dallasChip)
     mDallasChipsByName[config.Name] = dallasChip;
 }
 
+bool mtsRobotIO1394::CheckFirmwareVersions(void)
+{
+    unsigned int lowest = 99999;
+    unsigned int highest = 0;
+    for (const auto & robot : mRobots) {
+        unsigned int robotLow, robotHigh;
+        robot->GetFirmwareRange(robotLow, robotHigh);
+        if (robotLow < lowest) {
+            lowest = robotLow;
+        }
+        if (robotHigh > highest) {
+            highest = robotHigh;
+        }
+    }
+
+    const AmpIO_UInt32 currentFirmwareRevision = 7;
+    const AmpIO_UInt32 lowestFirmwareSupported = 6;
+
+    std::stringstream message;
+    bool fatal = false;
+    bool firmwareSuggested = false;
+    // supported
+    if ((lowest >= lowestFirmwareSupported)
+        && (lowest < currentFirmwareRevision)) {
+        message << "mtsRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Suggestion:" << std::endl
+                << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
+                << "   Lowest version found is " << lowest << "." << std::endl
+                << "----------------------------------------------------" << std::endl;
+        firmwareSuggested = true;
+    }
+    // too low
+    if (lowest < lowestFirmwareSupported) {
+        message << "mtsRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Error:" << std::endl
+                << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
+                << "   Lowest version found is " << lowest << "." << std::endl
+                << "   This software supports firmware revision(s) " << lowestFirmwareSupported << " to " << currentFirmwareRevision << std::endl
+                << "----------------------------------------------------" << std::endl;
+        fatal = true;
+    }
+    // too high
+    if (highest > currentFirmwareRevision) {
+        message << "mtsRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Error:" << std::endl
+                << "   Highest firmware version found is " << highest << "." << std::endl
+                << "   The highest firmware revision supported by this software is " << currentFirmwareRevision << "." << std::endl
+                << "   Please update this software or downgrade your firmware." << std::endl
+                << "----------------------------------------------------" << std::endl;
+        fatal = true;
+    }
+    // different
+    if (highest != lowest) {
+        message << "mtsRobot1394::SetBoards" << std::endl
+                << "----------------------------------------------------" << std::endl
+                << " Error:" << std::endl
+                << "   Found different firmware versions," << std::endl
+                << "   ranging from " << lowest << " to " << highest << "." << std::endl
+                << "   Please use the same firware on on boards." << std::endl
+                << "----------------------------------------------------" << std::endl;
+        fatal = true;
+    }
+    // message if needed
+    if (fatal || firmwareSuggested) {
+        message << " To upgrade (or downgrade) the FPGA firmware, please follow instructions from:" << std::endl
+                << "  https://github.com/jhu-cisst/mechatronics-firmware/wiki/FPGA-Program" << std::endl
+                << "----------------------------------------------------" << std::endl;
+        if (fatal) {
+            std::cerr << message.str();
+            CMN_LOG_CLASS_INIT_ERROR << message.str();
+            exit(EXIT_FAILURE);
+        } else {
+            CMN_LOG_CLASS_INIT_WARNING << message.str();
+        }
+    }
+    return !fatal;
+}
+
 void mtsRobotIO1394::GetRobotNames(std::vector<std::string> & names) const
 {
     names.clear();
-    for (robot_const_iterator iter = mRobots.begin();
-         iter != mRobots.end();
-         ++iter) {
-        names.push_back((*iter)->Name());
+    for (const auto & robot : mRobots) {
+        names.push_back(robot->Name());
     }
 }
 
 void mtsRobotIO1394::GetDigitalInputNames(std::vector<std::string> & names) const
 {
     names.clear();
-    for (digital_input_const_iterator iter = mDigitalInputs.begin();
-         iter != mDigitalInputs.end();
-         ++iter) {
-        names.push_back((*iter)->Name());
+    for (const auto & input : mDigitalInputs) {
+        names.push_back(input->Name());
     }
 }
 
 void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) const
 {
     names.clear();
-    for (digital_output_const_iterator iter = mDigitalOutputs.begin();
-         iter != mDigitalOutputs.end();
-         ++iter) {
-        names.push_back((*iter)->Name());
+    for (const auto & output : mDigitalOutputs) {
+        names.push_back(output->Name());
     }
 }
 
@@ -846,14 +878,11 @@ void mtsRobotIO1394::IntervalStatisticsCallback(void)
     if (sendingMessage) {
         std::cerr << StateTable.PeriodStats << std::endl;
         std::string messageString = " IO: " + message.str();
-        const robot_iterator robotsEnd = mRobots.end();
-        for (robot_iterator robot = mRobots.begin();
-             robot != robotsEnd;
-             ++robot) {
+        for (auto & robot : mRobots) {
             if (error) {
-                (*robot)->mInterface->SendError((*robot)->Name() + messageString);
+                robot->mInterface->SendError(robot->Name() + messageString);
             } else {
-                (*robot)->mInterface->SendWarning((*robot)->Name() + messageString);
+                robot->mInterface->SendWarning(robot->Name() + messageString);
             }
         }
     }

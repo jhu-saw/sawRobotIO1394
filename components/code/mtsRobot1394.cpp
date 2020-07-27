@@ -790,60 +790,13 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                                    << ", QLA serial: " << serialQLA
                                    << std::endl;
     }
-
-    const AmpIO_UInt32 currentFirmwareRevision = 7;
-    const AmpIO_UInt32 lowestFirmwareSupported = 6;
-
-    std::stringstream message;
-    bool fatal = false;
-    bool firmwareSuggested = false;
-    // supported
-    if ((mLowestFirmWareVersion >= lowestFirmwareSupported)
-        && (mLowestFirmWareVersion < currentFirmwareRevision)) {
-        message << "mtsRobot1394::SetBoards" << std::endl
-                << "----------------------------------------------------" << std::endl
-                << " Suggestion:" << std::endl
-                << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
-                << "   Lowest version found is " << mLowestFirmWareVersion << "." << std::endl
-                << "----------------------------------------------------" << std::endl;
-        firmwareSuggested = true;
-    }
-    // too low
-    if (mLowestFirmWareVersion < lowestFirmwareSupported) {
-        message << "mtsRobot1394::SetBoards" << std::endl
-                << "----------------------------------------------------" << std::endl
-                << " Error:" << std::endl
-                << "   Please upgrade all boards firmware to version " << currentFirmwareRevision << "." << std::endl
-                << "   Lowest version found is " << mLowestFirmWareVersion << "." << std::endl
-                << "   This software supports firmware revision(s) " << lowestFirmwareSupported << " to " << currentFirmwareRevision << std::endl
-                << "----------------------------------------------------" << std::endl;
-        fatal = true;
-    }
-    // too high
-    if (mHighestFirmWareVersion > currentFirmwareRevision) {
-        message << "SetBoards" << std::endl
-                << "----------------------------------------------------" << std::endl
-                << " Error:" << std::endl
-                << "   Highest firmware version found is " << mHighestFirmWareVersion << "." << std::endl
-                << "   The highest firmware revision supported by this software is " << currentFirmwareRevision << "." << std::endl
-                << "   Please update this software or downgrade your firmware." << std::endl
-                << "----------------------------------------------------" << std::endl;
-        fatal = true;
-    }
-    if (fatal || firmwareSuggested) {
-        message << " To upgrade (or downgrade) the FPGA firmware, please follow instructions from:" << std::endl
-                << "  https://github.com/jhu-cisst/mechatronics-firmware/wiki/FPGA-Program" << std::endl
-                << "----------------------------------------------------" << std::endl;
-        if (fatal) {
-            std::cerr << message.str();
-            CMN_LOG_CLASS_INIT_ERROR << message.str();
-            exit(EXIT_FAILURE);
-        } else {
-            CMN_LOG_CLASS_INIT_WARNING << message.str();
-        }
-    }
 }
 
+void mtsRobot1394::GetFirmwareRange(unsigned int & lowest, unsigned int & highest) const
+{
+    lowest = mLowestFirmWareVersion;
+    highest = mHighestFirmWareVersion;
+}
 
 void mtsRobot1394::PollValidity(void)
 {

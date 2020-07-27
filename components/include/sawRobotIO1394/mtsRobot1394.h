@@ -88,6 +88,8 @@ namespace sawRobotIO1394 {
          *\{**/
         void SetBoards(const std::vector<osaActuatorMapping> & actuatorBoards,
                        const std::vector<osaBrakeMapping> & brakeBoards);
+
+        void GetFirmwareRange(unsigned int & lowest, unsigned int & highest) const;
         /**}**/
 
         /** \name State Update Functions

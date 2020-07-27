@@ -46,28 +46,16 @@ protected:
     typedef std::map<int, AmpIO*>::iterator board_iterator;
     typedef std::map<int, AmpIO*>::const_iterator board_const_iterator;
 
-    typedef std::vector<sawRobotIO1394::mtsRobot1394*> RobotsType;
-    typedef RobotsType::iterator robot_iterator;
-    typedef RobotsType::const_iterator robot_const_iterator;
-    RobotsType mRobots;
+    std::vector<sawRobotIO1394::mtsRobot1394*> mRobots;
     std::map<std::string, sawRobotIO1394::mtsRobot1394*> mRobotsByName;
 
-    typedef std::vector<sawRobotIO1394::mtsDigitalInput1394*> DigitalInputsType;
-    typedef DigitalInputsType::iterator digital_input_iterator;
-    typedef DigitalInputsType::const_iterator digital_input_const_iterator;
-    DigitalInputsType mDigitalInputs;
+    std::vector<sawRobotIO1394::mtsDigitalInput1394*> mDigitalInputs;
     std::map<std::string, sawRobotIO1394::mtsDigitalInput1394*> mDigitalInputsByName;
 
-    typedef std::vector<sawRobotIO1394::mtsDigitalOutput1394*> DigitalOutputsType;
-    typedef DigitalOutputsType::iterator digital_output_iterator;
-    typedef DigitalOutputsType::const_iterator digital_output_const_iterator;
-    DigitalOutputsType mDigitalOutputs;
+    std::vector<sawRobotIO1394::mtsDigitalOutput1394*> mDigitalOutputs;
     std::map<std::string, sawRobotIO1394::mtsDigitalOutput1394*> mDigitalOutputsByName;
 
-    typedef std::vector<sawRobotIO1394::mtsDallasChip1394*> DallasChipsType;
-    typedef DallasChipsType::iterator dallas_chip_iterator;
-    typedef DallasChipsType::const_iterator dallas_chip_const_iterator;
-    DallasChipsType mDallasChips;
+    std::vector<sawRobotIO1394::mtsDallasChip1394*> mDallasChips;
     std::map<std::string, sawRobotIO1394::mtsDallasChip1394*> mDallasChipsByName;
 
     // state tables for statistics
@@ -96,6 +84,8 @@ public:
     void AddDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     void AddDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalInput);
     void AddDallasChip(sawRobotIO1394::mtsDallasChip1394 * dallasChip);
+
+    bool CheckFirmwareVersions(void);
 
     void Startup(void);
     void Run(void);
