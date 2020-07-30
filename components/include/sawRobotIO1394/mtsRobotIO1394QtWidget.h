@@ -93,7 +93,7 @@ protected:
         mtsFunctionRead IsValid;
         mtsFunctionRead WatchdogPeriod;
         mtsFunctionVoid EnablePower;
-        mtsFunctionVoid DisablePower;
+        mtsFunctionWrite DisablePower;
 
         mtsFunctionRead measured_js;
         mtsFunctionRead GetAnalogInputVolts;
@@ -124,7 +124,7 @@ protected:
 
     struct ActuatorStruct {
         mtsFunctionVoid EnableBoardsPower;
-        mtsFunctionVoid DisableBoardsPower;
+        mtsFunctionWrite DisableBoardsPower;
 
         mtsFunctionWrite SetAmpEnable;
 

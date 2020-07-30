@@ -111,8 +111,8 @@ namespace sawRobotIO1394 {
         //! Power / Safety Control
         void EnablePower(void);
         void EnableBoardsPower(void);
-        void DisablePower(void);
-        void DisableBoardPower(void);
+        void DisablePower(const bool & openSafetyRelays = true);
+        void DisableBoardPower(const bool & openSafetyRelays = true);
         void WriteSafetyRelay(const bool & enabled);
         void SetWatchdogPeriod(const double & periodInSeconds);
 
@@ -222,8 +222,6 @@ namespace sawRobotIO1394 {
         std::vector<osaActuatorMapping> mActuatorInfo;
         std::vector<osaBrakeMapping> mBrakeInfo;
         std::map<int, AmpIO*> mUniqueBoards;
-        typedef std::map<int, AmpIO*>::iterator unique_board_iterator;
-        typedef std::map<int, AmpIO*>::const_iterator unique_board_const_iterator;
 
         //! Robot Configuration
         osaRobot1394Configuration mConfiguration;

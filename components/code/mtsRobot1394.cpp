@@ -265,37 +265,33 @@ void mtsRobot1394::EnablePower(void)
 
 void mtsRobot1394::EnableBoardsPower(void)
 {
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        board->second->WriteSafetyRelay(true);
-        board->second->WritePowerEnable(true);
+    for (auto & board : mUniqueBoards) {
+        board.second->WriteSafetyRelay(true);
+        board.second->WritePowerEnable(true);
     }
 }
 
-void mtsRobot1394::DisablePower(void)
+void mtsRobot1394::DisablePower(const bool & openSafetyRelays)
 {
     mUserExpectsPower = false;
     // write to boards directly
     // disable all axes
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        board->second->WriteAmpEnable(0x0f, 0x00);
+    for (auto & board : mUniqueBoards) {
+        board.second->WriteAmpEnable(0x0f, 0x00);
     }
 
     // disable all boards
-    DisableBoardPower();
+    DisableBoardPower(openSafetyRelays);
     mPreviousPowerStatus = false;
 }
 
-void mtsRobot1394::DisableBoardPower(void)
+void mtsRobot1394::DisableBoardPower(const bool & openSafetyRelays)
 {
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        board->second->WritePowerEnable(false);
-        board->second->WriteSafetyRelay(false);
+    for (auto & board : mUniqueBoards) {
+        board.second->WritePowerEnable(false);
+        if (openSafetyRelays) {
+            board.second->WriteSafetyRelay(false);
+        }
     }
 }
 
@@ -316,10 +312,8 @@ void mtsRobot1394::SetWatchdogPeriod(const double & periodInSeconds)
     // update local copy of watchdog period based on final period count
     mWatchdogPeriod = (periodCount / static_cast<double>(WATCHDOG_MS_TO_COUNT)) * 0.001;
 
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        board->second->WriteWatchdogPeriod(periodCount);
+    for (auto & board : mUniqueBoards) {
+        board.second->WriteWatchdogPeriod(periodCount);
     }
 
     EventTriggers.WatchdogPeriod(mWatchdogPeriod);
@@ -369,8 +363,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     // Enable // Disable
     robotInterface->AddCommandVoid(&mtsRobot1394::EnablePower, this,
                                    "EnablePower");
-    robotInterface->AddCommandVoid(&mtsRobot1394::DisablePower, this,
-                                   "DisablePower");
+    robotInterface->AddCommandWrite(&mtsRobot1394::DisablePower, this,
+                                    "DisablePower"); // bool, true to open safety relays
 
     robotInterface->AddCommandWrite(&mtsRobot1394::SetWatchdogPeriod, this,
                                     "SetWatchdogPeriod");
@@ -489,8 +483,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     // fine tune power, board vs. axis
     actuatorInterface->AddCommandVoid(&mtsRobot1394::EnableBoardsPower, this,
                                       "EnableBoardsPower");
-    actuatorInterface->AddCommandVoid(&mtsRobot1394::DisableBoardPower, this,
-                                      "DisableBoardsPower");
+    actuatorInterface->AddCommandWrite(&mtsRobot1394::DisableBoardPower, this,
+                                       "DisableBoardsPower"); // bool, true to open safety relays
     actuatorInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorPower, this,
                                                                  "SetAmpEnable", mActuatorPowerEnabled); // vector[bool]
     actuatorInterface->AddCommandWrite(&mtsRobot1394::SetSomeEncoderPosition, this,
@@ -757,7 +751,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     mLowestFirmWareVersion = 999999;
     mHighestFirmWareVersion = 0;
     size_t boardCounter = 0;
-    for (unique_board_iterator board = mUniqueBoards.begin();
+    for (auto board = mUniqueBoards.begin();
          board != mUniqueBoards.end();
          ++board, ++boardCounter) {
         AmpIO_UInt32 fversion = board->second->GetFirmwareVersion();
@@ -815,13 +809,11 @@ void mtsRobot1394::PollValidity(void)
     mSafetyRelay = true;
     mWatchdogStatus = false;
 
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        mValid &= board->second->ValidRead();
-        mPowerStatus &= board->second->GetPowerStatus();
-        mSafetyRelay &= board->second->GetSafetyRelayStatus();
-        mWatchdogStatus |= board->second->GetWatchdogTimeoutStatus();
+    for (auto & board : mUniqueBoards) {
+        mValid &= board.second->ValidRead();
+        mPowerStatus &= board.second->GetPowerStatus();
+        mSafetyRelay &= board.second->GetSafetyRelayStatus();
+        mWatchdogStatus |= board.second->GetWatchdogTimeoutStatus();
     }
 
     if (!mValid) {
@@ -829,11 +821,9 @@ void mtsRobot1394::PollValidity(void)
             mInvalidReadCounter++;
             std::stringstream message;
             message << this->Name() << ": port read error on board(s) ";
-            for (unique_board_iterator board = mUniqueBoards.begin();
-                 board != mUniqueBoards.end();
-                 ++board) {
-                if (!board->second->ValidRead()) {
-                    message << static_cast<int>(board->second->GetBoardId()) << " ";
+            for (auto & board : mUniqueBoards) {
+                if (!board.second->ValidRead()) {
+                    message << static_cast<int>(board.second->GetBoardId()) << " ";
                 }
             }
             cmnThrow(osaRuntimeError1394(message.str()));
@@ -1086,10 +1076,8 @@ void mtsRobot1394::CheckState(void)
     }
 
     // check safety amp disable
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        AmpIO_UInt32 safetyAmpDisable = board->second->GetSafetyAmpDisable();
+    for (auto & board : mUniqueBoards) {
+        AmpIO_UInt32 safetyAmpDisable = board.second->GetSafetyAmpDisable();
         if (safetyAmpDisable) {
             cmnThrow(osaRuntimeError1394(this->Name() + ": hardware current safety amp disable tripped." + mActuatorTimestamp.ToString()));
         }
@@ -1387,11 +1375,8 @@ void mtsRobot1394::CheckState(void)
 
 void mtsRobot1394::WriteSafetyRelay(const bool & enabled)
 {
-    for (unique_board_iterator board = mUniqueBoards.begin();
-         board != mUniqueBoards.end();
-         ++board) {
-        AmpIO * boardPointer = board->second;
-        boardPointer->WriteSafetyRelay(enabled);
+    for (auto & board : mUniqueBoards) {
+        board.second->WriteSafetyRelay(enabled);
     }
 }
 

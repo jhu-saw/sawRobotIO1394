@@ -144,8 +144,7 @@ void mtsRobotIO1394QtWidget::Startup(void)
 void mtsRobotIO1394QtWidget::Cleanup(void)
 {
     this->hide();
-    Robot.DisablePower();
-    Actuators.DisableBoardsPower();
+    Robot.DisablePower(true);
 }
 
 void mtsRobotIO1394QtWidget::closeEvent(QCloseEvent * event)
@@ -167,7 +166,7 @@ void mtsRobotIO1394QtWidget::SlotEnableAmps(bool toggle)
     if (toggle) {
         Actuators.EnableBoardsPower();
     } else {
-        Actuators.DisableBoardsPower();
+        Actuators.DisableBoardsPower(true);
     }
     // update GUI, make sure no signal is generated
     if (!toggle) {
@@ -187,7 +186,7 @@ void mtsRobotIO1394QtWidget::SlotEnableAll(bool toggle)
     if (toggle) {
         Robot.EnablePower();
     } else {
-        Robot.DisablePower();
+        Robot.DisablePower(true);
     }
     // update GUI, make sure no signal is generated
     QCBEnableAmps->blockSignals(true);
