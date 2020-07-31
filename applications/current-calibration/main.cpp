@@ -14,7 +14,6 @@ no warranty.  The complete license can be found in license.txt and
 http://www.cisst.org/cisst/license.txt.
 
 --- end cisst license ---
-
 */
 
 // system
@@ -398,7 +397,7 @@ int main(int argc, char * argv[])
             std::string newConfigFile = configFile + "-new";
             xmlConfig.SaveAs(newConfigFile);
             std::cout << "Status: new config file is \"" << newConfigFile << "\"" << std::endl
-                      << "You can copy the new file over the old one using:\n  cp "
+                      << "You can copy the new file over the old one using:\n  cp -i "
                       << newConfigFile << " " << configFile << std::endl;
         } else {
             std::cout << "Status: user didn't want to save new offsets." << std::endl;
