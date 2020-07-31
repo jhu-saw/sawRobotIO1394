@@ -393,7 +393,7 @@ namespace sawRobotIO1394 {
                                          << pot.Latency << ") and/or distance ("
                                          << pot.Distance << ") set to zero, safety check is DISABLED for Axis "
                                          << axis << " for robot "
-                                         << robotIndex << "(" << robot.Name << ")" << std::endl;
+                                         << robotIndex << " (" << robot.Name << ")" << std::endl;
                 }
             }
         }

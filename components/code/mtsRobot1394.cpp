@@ -1229,7 +1229,7 @@ void mtsRobot1394::CheckState(void)
                             // check how long have we been off
                             if (*potDuration > *potLatency) {
                                 // now we have a problem,
-                                this->DisablePower();
+                                this->DisablePower(false); // don't open safety relays
                                 // maybe it's not new, used for reporting
                                 if (*potValid) {
                                     // this is new
@@ -1251,18 +1251,20 @@ void mtsRobot1394::CheckState(void)
                 // if status has changed
                 if (statusChanged) {
                     if (error) {
-                        std::string errorMessage = "IO: " + this->Name() + ": inconsistency between encoders and potentiometers\nencoders:\n";
-                        errorMessage.append(encoderRef.ToString());
-                        errorMessage.append("\npotentiomers:\n");
-                        errorMessage.append(mPotPosition.ToString());
-                        errorMessage.append("\ntolerance distance:\n");
-                        errorMessage.append(mPotToleranceDistance.ToString());
-                        errorMessage.append("\nvalid pots:\n");
-                        errorMessage.append(mPotValid.ToString());
-                        errorMessage.append("\ntolerance latency:\n");
-                        errorMessage.append(mPotToleranceLatency.ToString());
-                        errorMessage.append("\nerror duration:\n");
-                        errorMessage.append(mPotErrorDuration.ToString());
+                        std::string errorMessage = "IO: " + this->Name() + ": inconsistency between encoders and potentiometers";
+                        std::string warningMessage = errorMessage + "\nencoders:\n";
+                        warningMessage.append(encoderRef.ToString());
+                        warningMessage.append("\npotentiomers:\n");
+                        warningMessage.append(mPotPosition.ToString());
+                        warningMessage.append("\ntolerance distance:\n");
+                        warningMessage.append(mPotToleranceDistance.ToString());
+                        warningMessage.append("\nvalid pots:\n");
+                        warningMessage.append(mPotValid.ToString());
+                        warningMessage.append("\ntolerance latency:\n");
+                        warningMessage.append(mPotToleranceLatency.ToString());
+                        warningMessage.append("\nerror duration:\n");
+                        warningMessage.append(mPotErrorDuration.ToString());
+                        mInterface->SendWarning(warningMessage);
                         cmnThrow(osaRuntimeError1394(errorMessage));
                     } else {
                         CMN_LOG_CLASS_RUN_VERBOSE << "IO: " << this->Name()
