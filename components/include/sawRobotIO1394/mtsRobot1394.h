@@ -280,6 +280,7 @@ namespace sawRobotIO1394 {
         unsigned int mHighestFirmWareVersion;
 
         bool mSafetyRelay;
+        bool mSafetyAmpDisabled = false; // disabled at firmware level
 
         vctBoolVec
             mActuatorPowerStatus,

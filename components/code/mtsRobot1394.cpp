@@ -265,6 +265,7 @@ void mtsRobot1394::EnablePower(void)
 
 void mtsRobot1394::EnableBoardsPower(void)
 {
+    mSafetyAmpDisabled = false;
     for (auto & board : mUniqueBoards) {
         board.second->WriteSafetyRelay(true);
         board.second->WritePowerEnable(true);
@@ -1076,11 +1077,21 @@ void mtsRobot1394::CheckState(void)
     }
 
     // check safety amp disable
+    bool newSafetyAmpDisabled = false;
     for (auto & board : mUniqueBoards) {
         AmpIO_UInt32 safetyAmpDisable = board.second->GetSafetyAmpDisable();
         if (safetyAmpDisable) {
-            cmnThrow(osaRuntimeError1394(this->Name() + ": hardware current safety amp disable tripped." + mActuatorTimestamp.ToString()));
+            newSafetyAmpDisabled = true;
         }
+    }
+    if (newSafetyAmpDisabled && !mSafetyAmpDisabled) {
+        // update status - this needs to be here, throw will interrupt execution...
+        mSafetyAmpDisabled = newSafetyAmpDisabled;
+        // throw only if this is new
+        cmnThrow(osaRuntimeError1394(this->Name() + ": hardware current safety amp disable tripped." + mActuatorTimestamp.ToString()));
+    } else {
+        // update status
+        mSafetyAmpDisabled = newSafetyAmpDisabled;
     }
 
     // check temperature when powered
@@ -1384,6 +1395,7 @@ void mtsRobot1394::WriteSafetyRelay(const bool & enabled)
 
 void mtsRobot1394::SetActuatorPower(const bool & enabled)
 {
+    mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enabled);
     }
@@ -1391,6 +1403,7 @@ void mtsRobot1394::SetActuatorPower(const bool & enabled)
 
 void mtsRobot1394::SetActuatorPower(const vctBoolVec & enabled)
 {
+    mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enabled[i]);
     }
@@ -1398,6 +1411,7 @@ void mtsRobot1394::SetActuatorPower(const vctBoolVec & enabled)
 
 void mtsRobot1394::SetBrakePower(const bool & enabled)
 {
+    mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfBrakes; i++) {
         mBrakeInfo[i].Board->SetAmpEnable(mBrakeInfo[i].Axis, enabled);
     }
@@ -1405,6 +1419,7 @@ void mtsRobot1394::SetBrakePower(const bool & enabled)
 
 void mtsRobot1394::SetBrakePower(const vctBoolVec & enabled)
 {
+    mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfBrakes; i++) {
         mBrakeInfo[i].Board->SetAmpEnable(mBrakeInfo[i].Axis, enabled[i]);
     }
