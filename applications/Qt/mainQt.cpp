@@ -2,10 +2,10 @@
 /* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
 /*
 
-  Author(s):  Zihan Chen
+  Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-07
 
-  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -43,12 +43,12 @@ int main(int argc, char ** argv)
     // parse options
     cmnCommandLineOptions options;
     int port = 0;
-    std::string configFile;
+    std::list<std::string> configFiles;
     std::string robotName = "Robot";
     double periodInSeconds = 1.0 * cmn_ms;
-    options.AddOptionOneValue("c", "config",
-                              "configuration file",
-                              cmnCommandLineOptions::REQUIRED_OPTION, &configFile);
+    options.AddOptionMultipleValues("c", "config",
+                                    "configuration file",
+                                    cmnCommandLineOptions::REQUIRED_OPTION, &configFiles);
     options.AddOptionOneValue("p", "port",
                               "firewire port number(s)",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &port);
@@ -66,11 +66,6 @@ int main(int argc, char ** argv)
         return -1;
     }
 
-    if (!cmnPath::Exists(configFile)) {
-        std::cerr << "Can't find file \"" << configFile << "\"" << std::endl;
-        return -1;
-    }
-
     std::string arguments;
     options.PrintParsedArguments(arguments);
     std::cout << "Options provided:" << std::endl << arguments;
@@ -84,7 +79,13 @@ int main(int argc, char ** argv)
     componentManager->AddComponent(robotIO);
     componentManager->AddComponent(robotWidgetFactory);
 
-    robotIO->Configure(configFile);
+    for (const auto & configFile : configFiles) {
+        if (!cmnPath::Exists(configFile)) {
+            std::cerr << "Can't find file \"" << configFile << "\"" << std::endl;
+            return -1;
+        }
+        robotIO->Configure(configFile);
+    }
 
     componentManager->Connect("robotWidgetFactory", "RobotConfiguration", "robotIO", "Configuration");
     robotWidgetFactory->Configure();
