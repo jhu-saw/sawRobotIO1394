@@ -348,6 +348,7 @@ namespace sawRobotIO1394 {
         mtsStateTable * mStateTableRead;
         mtsStateTable * mStateTableWrite;
         bool mUserExpectsPower;
+        double mPoweringStartTime;
 
         prmForceTorqueJointSet mTorqueJoint;
         prmStateJoint

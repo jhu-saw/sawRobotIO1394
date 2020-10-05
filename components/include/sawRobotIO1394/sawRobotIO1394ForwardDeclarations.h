@@ -34,6 +34,8 @@ namespace sawRobotIO1394 {
     //! Enum redefined from AmpIO/BasePort
     typedef enum {PROTOCOL_SEQ_RW, PROTOCOL_SEQ_R_BC_W, PROTOCOL_BC_QRW} ProtocolType;
 
+    const double MaximumTimeToPower = 100.0 * cmn_ms;
+
     const double TimingMaxRatio = 2.0;
     const double TimeBetweenTimingWarnings = 60.0 * cmn_s;
     

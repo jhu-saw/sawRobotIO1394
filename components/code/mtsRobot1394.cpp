@@ -257,6 +257,7 @@ void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
 void mtsRobot1394::EnablePower(void)
 {
     mUserExpectsPower = true;
+    mPoweringStartTime = mStateTableRead->Tic;
     mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
     EnableBoardsPower();
     SetActuatorPower(true);
@@ -1307,9 +1308,12 @@ void mtsRobot1394::CheckState(void)
 
     if (mPreviousPowerStatus != mPowerStatus) {
         EventTriggers.PowerStatus(mPowerStatus);
+        // this might be an issues
         if (!mPowerStatus && mUserExpectsPower) {
-            mInterface->SendError("IO: " + this->Name() + " lost power");
-            mPreviousPowerStatus = false;
+            // give some time to power, if greater then it's an issue
+            if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
+                mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
+            }
         }
     }
 
