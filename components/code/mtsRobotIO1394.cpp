@@ -787,7 +787,7 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
                 << " Error:" << std::endl
                 << "   Found different firmware versions," << std::endl
                 << "   ranging from " << lowest << " to " << highest << "." << std::endl
-                << "   Please use the same firware on on boards." << std::endl
+                << "   Please use the same firmware on all boards." << std::endl
                 << "----------------------------------------------------" << std::endl;
         fatal = true;
     }
