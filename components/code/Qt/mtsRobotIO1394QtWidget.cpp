@@ -509,11 +509,10 @@ void mtsRobotIO1394QtWidget::setupUi(void)
     powerLayout->addWidget(QCBEnableAll);
     QCBEnableAmps = new QCheckBox("Enable boards");
     powerLayout->addWidget(QCBEnableAmps);
-    powerLayout->addSpacing(5);
-    QLAmpStatus = new QLabel("Actuators ON");
+    QLAmpStatus = new QLabel("Actuators on");
     QLAmpStatus->setAlignment(Qt::AlignCenter);
     powerLayout->addWidget(QLAmpStatus);
-    QLPowerStatus = new QLabel("Boards ON");
+    QLPowerStatus = new QLabel("Boards on");
     QLPowerStatus->setAlignment(Qt::AlignCenter);
     powerLayout->addWidget(QLPowerStatus);
     powerLayout->addStretch();
@@ -540,10 +539,10 @@ void mtsRobotIO1394QtWidget::setupUi(void)
         watchdogSetLayout->addWidget(QSBWatchdogPeriod);
     }
     watchdogLayout->addLayout(watchdogSetLayout);
-    QLSafetyRelay = new QLabel("Safety relay ON");
+    QLSafetyRelay = new QLabel("Safety relays closed");
     QLSafetyRelay->setAlignment(Qt::AlignCenter);
     watchdogLayout->addWidget(QLSafetyRelay);
-    QLWatchdog = new QLabel("Timeout TRUE");
+    QLWatchdog = new QLabel("Timed out");
     QLWatchdog->setAlignment(Qt::AlignCenter);
     QLWatchdog->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     watchdogLayout->addWidget(QLWatchdog);
@@ -572,7 +571,7 @@ void mtsRobotIO1394QtWidget::setupUi(void)
     encoderFrame->setLayout(encoderLayout);
     encoderFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
-    // Current comands
+    // Current commands
     QVBoxLayout * currentLayout = new QVBoxLayout;
     currentLayout->setContentsMargins(2, 2, 2, 2);
     QFrame * currentFrame = new QFrame;
@@ -583,7 +582,7 @@ void mtsRobotIO1394QtWidget::setupUi(void)
     QCBEnableDirectControl = new QCheckBox("Direct control");
     currentLayout->addWidget(QCBEnableDirectControl);
     currentLayout->addStretch();
-    QLabel * serialTitle = new QLabel("Serial Number");
+    QLabel * serialTitle = new QLabel("Serial number");
     serialTitle->setFont(font);
     serialTitle->setAlignment(Qt::AlignCenter);
     currentLayout->addWidget(serialTitle);
@@ -787,10 +786,10 @@ void mtsRobotIO1394QtWidget::UpdateRobotInfo(void)
         QVWActuatorCurrentEnableEach->SetValue(ActuatorAmpStatus);
     }
     if (ampStatusGood) {
-        QLAmpStatus->setText("Actuators ON");
+        QLAmpStatus->setText("Actuators on");
         QLAmpStatus->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
-        QLAmpStatus->setText("Actuators OFF");
+        QLAmpStatus->setText("Actuators off");
         QLAmpStatus->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 
@@ -801,10 +800,10 @@ void mtsRobotIO1394QtWidget::UpdateRobotInfo(void)
 
     // power status
     if (PowerStatus) {
-        QLPowerStatus->setText("Boards ON");
+        QLPowerStatus->setText("Boards on");
         QLPowerStatus->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
-        QLPowerStatus->setText("Boards OFF");
+        QLPowerStatus->setText("Boards off");
         QLPowerStatus->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 
@@ -825,10 +824,10 @@ void mtsRobotIO1394QtWidget::UpdateRobotInfo(void)
 
     // safety Relay
     if (SafetyRelay) {
-        QLSafetyRelay->setText("Safety Relay ON");
+        QLSafetyRelay->setText("Safety relays closed ");
         QLSafetyRelay->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
-        QLSafetyRelay->setText("Safety Relay OFF");
+        QLSafetyRelay->setText("Safety relays open");
         QLSafetyRelay->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 }
@@ -853,11 +852,11 @@ void mtsRobotIO1394QtWidget::WatchdogStatusEventHandler(const bool & status)
 void mtsRobotIO1394QtWidget::SlotWatchdogStatusEvent(bool status)
 {
     if (status) {
-        QLWatchdog->setText("Timeout TRUE");
+        QLWatchdog->setText("Timed out");
         QLWatchdog->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
         QLWatchdogLastTimeout->setText(QString("Last timeout: " + QTime::currentTime().toString("hh:mm:ss")));
     } else {
-        QLWatchdog->setText("Timeout FALSE");
+        QLWatchdog->setText("Not timed out");
         QLWatchdog->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     }
 }
