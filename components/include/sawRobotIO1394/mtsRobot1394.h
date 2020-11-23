@@ -367,6 +367,7 @@ namespace sawRobotIO1394 {
 
         int mSamplesForCalibrateEncoderOffsetsFromPots;
         int mSamplesForCalibrateEncoderOffsetsFromPotsRequested;
+        bool mCalibrateEncodersPerformed;
         mtsStateTable::Accessor<vctDoubleVec> * mPotPositionAccessor;
         mtsStateTable::Accessor<prmStateJoint> * mActuatorStateJointAccessor;
 

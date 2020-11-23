@@ -52,7 +52,8 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mCurrentSafetyViolationsMaximum(100),
     mStateTableRead(0),
     mStateTableWrite(0),
-    mSamplesForCalibrateEncoderOffsetsFromPots(0)
+    mSamplesForCalibrateEncoderOffsetsFromPots(0),
+    mCalibrateEncodersPerformed(false)
 {
     this->Configure(config);
 }
@@ -247,8 +248,11 @@ void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
         PollValidity();
         PollState();
         ConvertState();
-        CheckState();
     }
+    // check state comes after state table advance, it tends to throw
+    // events and exceptions so we need to make some data is available
+    // for consumers
+    CheckState();
     AdvanceReadStateTable();
     // finally let users the coupling has changed
     EventTriggers.Coupling(coupling);
@@ -1297,9 +1301,14 @@ void mtsRobot1394::CheckState(void)
         this->SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
         if (mEncoderOverflow.NotEqual(mPreviousEncoderOverflow)) {
             mPreviousEncoderOverflow.Assign(mEncoderOverflow);
-            std::string errorMessage = this->Name() + ": detected encoder overflow: ";
+            std::string errorMessage = this->Name() + ": encoder overflow detected: ";
             errorMessage.append(mEncoderOverflow.ToString());
-            cmnThrow(osaRuntimeError1394(errorMessage));
+            // if we have already performed encoder calibration, this is really bad
+            if (mCalibrateEncodersPerformed) {
+                cmnThrow(osaRuntimeError1394(errorMessage));
+            } else {
+                mInterface->SendError("IO: " + this->Name() + " encoder overflow detected");
+            }
         }
     }
 
@@ -1568,13 +1577,10 @@ void mtsRobot1394::BrakeEngage(void)
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
 {
     vctDoubleVec actuatorPosition(mNumberOfActuators);
-
     switch(mPotType) {
-
     case POTENTIOMETER_UNDEFINED:
         cmnThrow("mtsRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
         break;
-
     case POTENTIOMETER_ON_JOINTS:
         if (mConfiguration.HasActuatorToJointCoupling) {
             actuatorPosition.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
@@ -1584,11 +1590,11 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
         }
         SetEncoderPosition(actuatorPosition);
         break;
-
     case POTENTIOMETER_ON_ACTUATORS:
         SetEncoderPosition(mPotPosition);
         break;
     };
+    mCalibrateEncodersPerformed = true;
 }
 
 bool mtsRobot1394::Valid(void) const {
