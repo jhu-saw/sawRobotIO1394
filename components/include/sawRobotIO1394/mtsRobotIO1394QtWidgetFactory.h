@@ -5,7 +5,7 @@
   Author(s):  Kwang Young Lee
   Created on: 2013-04-11
 
-  (C) Copyright 2013 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -26,7 +26,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <QtCore>
 #include <QtGui>
 
-#include <sawRobotIO1394/mtsRobotIO1394QtWidget.h>
+#include <sawRobotIO1394/mtsRobot1394QtWidget.h>
 #include <sawRobotIO1394/sawRobotIO1394ExportQt.h>
 
 class CISST_EXPORT mtsRobotIO1394QtWidgetFactory: public mtsComponent
@@ -40,7 +40,7 @@ public:
     void Configure(const std::string & filename = "");
     void Startup(void);
 
-    typedef std::list<mtsRobotIO1394QtWidget *> WidgetListType;
+    typedef std::list<mtsRobot1394QtWidget *> WidgetListType;
     const WidgetListType & Widgets(void) const;
 
     inline prmEventButtonQtWidgetComponent * ButtonsWidget(void) {

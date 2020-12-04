@@ -81,8 +81,6 @@ namespace sawRobotIO1394 {
         /*! \name Bias Calibration */
         void CalibrateEncoderOffsetsFromPots(const int & numberOfSamples);
 
-        //! Watchdog counts per ms (note counter width, e.g. 16 bits)
-        static const size_t WATCHDOG_MS_TO_COUNT = 192;
 
         /** \name Lifecycle
          *\{**/
@@ -109,17 +107,16 @@ namespace sawRobotIO1394 {
          *\{**/
         //
         //! Power / Safety Control
-        void EnablePower(void);
-        void EnableBoardsPower(void);
-        void DisablePower(const bool & openSafetyRelays = true);
-        void DisableBoardPower(const bool & openSafetyRelays = true);
-        void WriteSafetyRelay(const bool & enabled);
+        void PowerOnSequence(void);
+        void PowerOffSequence(const bool & openSafetyRelays = true);
+        void WritePowerEnable(const bool & power);
+        void WriteSafetyRelay(const bool & close);
         void SetWatchdogPeriod(const double & periodInSeconds);
 
-        void SetActuatorPower(const bool & enabled);
-        void SetActuatorPower(const vctBoolVec & enabled);
-        void SetBrakePower(const bool & enabled);
-        void SetBrakePower(const vctBoolVec & enabled);
+        void SetActuatorAmpEnable(const bool & enable);
+        void SetActuatorAmpEnable(const vctBoolVec & enable);
+        void SetBrakeAmpEnable(const bool & enable);
+        void SetBrakeAmpEnable(const vctBoolVec & enable);
 
         //! Encoder Control
         void SetEncoderPosition(const vctDoubleVec & pos);
@@ -149,12 +146,39 @@ namespace sawRobotIO1394 {
          * they do not interact with the lower-level hardware. To update these data
          * from the lower-level system, you must call \ref poll_state.
          *\{**/
-        bool Valid(void) const;
-        bool PowerStatus(void) const;
-        bool SafetyRelay(void) const;
-        bool WatchdogStatus(void) const;
-        const vctBoolVec & ActuatorPowerStatus(void) const;
-        const vctBoolVec & BrakePowerStatus(void) const;
+        inline bool Valid(void) const {
+            return mValid;
+        }
+
+        //! All power is good, i.e. safety relays, power and amps status
+        inline bool FullyPowered(void) const {
+            return mFullyPowered;
+        }
+        //! Desired state from FPGA for power (board level)
+        inline bool PowerEnable(void) const {
+            return mPowerEnable;
+        }
+        //! Power status, as detected by MV good (board level)
+        inline bool PowerStatus(void) const {
+            return mPowerStatus;
+        }
+        //! Safety relay desired state
+        inline bool SafetyRelay(void) const {
+            return mSafetyRelay;
+        }
+        //! Safety relay status
+        inline bool SafetyRelayStatus(void) const {
+            return mSafetyRelayStatus;
+        }
+        //! Watchdog timeout status, true for triggered
+        bool WatchdogTimeoutStatus(void) const;
+
+        const vctBoolVec & ActuatorAmpStatus(void) const;
+        inline const vctBoolVec & ActuatorAmpEnable(void) const {
+            return mActuatorAmpEnable;
+        }
+        
+        const vctBoolVec & BrakeAmpStatus(void) const;
         const vctDoubleVec & ActuatorCurrentFeedback(void) const;
         const vctDoubleVec & ActuatorCurrentCommand(void) const;
         const vctDoubleVec & ActuatorEffortCommand(void) const;
@@ -269,24 +293,26 @@ namespace sawRobotIO1394 {
         //! State Members
         bool
             mValid,
+            mFullyPowered,
+            mPreviousFullyPowered,
+            mPowerEnable,
             mPowerStatus,
-            mPreviousPowerStatus,
-            mWatchdogStatus,
-            mPreviousWatchdogStatus;
+            mWatchdogTimeoutStatus,
+            mPreviousWatchdogTimeoutStatus;
 
         double mWatchdogPeriod;
 
         unsigned int mLowestFirmWareVersion;
         unsigned int mHighestFirmWareVersion;
 
-        bool mSafetyRelay;
+        bool mSafetyRelay, mSafetyRelayStatus;
         bool mSafetyAmpDisabled = false; // disabled at firmware level
 
         vctBoolVec
-            mActuatorPowerStatus,
-            mBrakePowerStatus,
-            mActuatorPowerEnabled,
-            mBrakePowerEnabled,
+            mActuatorAmpStatus,
+            mBrakeAmpStatus,
+            mActuatorAmpEnable,
+            mBrakeAmpEnable,
             mPotValid,
             mPreviousEncoderOverflow,
             mEncoderOverflow,
@@ -357,8 +383,10 @@ namespace sawRobotIO1394 {
 
         // Functions for events
         struct {
-            mtsFunctionWrite PowerStatus;
-            mtsFunctionWrite WatchdogStatus;
+            mtsFunctionWrite SafetyRelay;
+            mtsFunctionWrite SafetyRelayStatus;
+            mtsFunctionWrite FullyPowered;
+            mtsFunctionWrite WatchdogTimeoutStatus;
             mtsFunctionWrite WatchdogPeriod;
             mtsFunctionWrite Coupling;
             mtsFunctionWrite BiasEncoder;

@@ -42,12 +42,15 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mUniqueBoards(),
     // State Initialization
     mValid(false),
+    mFullyPowered(false),
+    mPreviousFullyPowered(false),
+    mPowerEnable(false),
     mPowerStatus(false),
-    mPreviousPowerStatus(false),
-    mWatchdogStatus(true),
-    mPreviousWatchdogStatus(true),
-    mWatchdogPeriod(15.0),
+    mWatchdogTimeoutStatus(true),
+    mPreviousWatchdogTimeoutStatus(true),
+    mWatchdogPeriod(sawRobotIO1394::WatchdogTimeout),
     mSafetyRelay(false),
+    mSafetyRelayStatus(false),
     mCurrentSafetyViolationsCounter(0),
     mCurrentSafetyViolationsMaximum(100),
     mStateTableRead(0),
@@ -81,13 +84,16 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
 
     mStateTableRead->AddData(mEncoderChannelsA, "EncoderChannelA");
     mStateTableRead->AddData(mValid, "Valid");
+    mStateTableRead->AddData(mFullyPowered, "FullyPowered");
+    mStateTableRead->AddData(mPowerEnable, "PowerEnable");
     mStateTableRead->AddData(mPowerStatus, "PowerStatus");
     mStateTableRead->AddData(mSafetyRelay, "SafetyRelay");
-    mStateTableRead->AddData(mWatchdogStatus, "WatchdogStatus");
+    mStateTableRead->AddData(mSafetyRelayStatus, "SafetyRelayStatus");
+    mStateTableRead->AddData(mWatchdogTimeoutStatus, "WatchdogTimeoutStatus");
     mStateTableRead->AddData(mWatchdogPeriod, "WatchdogPeriod");
     mStateTableRead->AddData(mActuatorTemperature, "ActuatorTemperature");
-    mStateTableRead->AddData(mActuatorPowerStatus, "ActuatorPowerStatus");
-    mStateTableRead->AddData(mActuatorPowerEnabled, "ActuatorPowerEnabled");
+    mStateTableRead->AddData(mActuatorAmpStatus, "ActuatorAmpStatus");
+    mStateTableRead->AddData(mActuatorAmpEnable, "ActuatorAmpEnable");
     mStateTableRead->AddData(mEncoderPositionBits, "PositionEncoderRaw");
     mStateTableRead->AddData(mEncoderAcceleration, "Accel");
     mStateTableRead->AddData(mPotBits, "AnalogInRaw");
@@ -102,8 +108,8 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableWrite->AddData(mActuatorCurrentBitsCommand, "ActuatorControlCurrentRaw");
     mStateTableWrite->AddData(mActuatorCurrentCommand, "ActuatorControlCurrent");
 
-    mStateTableRead->AddData(mBrakePowerStatus, "BrakePowerStatus");
-    mStateTableRead->AddData(mBrakePowerEnabled, "BrakePowerEnabled");
+    mStateTableRead->AddData(mBrakeAmpStatus, "BrakeAmpStatus");
+    mStateTableRead->AddData(mBrakeAmpEnable, "BrakeAmpEnable");
     mStateTableWrite->AddData(mBrakeCurrentBitsCommand, "BrakeControlCurrentRaw");
     mStateTableWrite->AddData(mBrakeCurrentCommand, "BrakeControlCurrent");
     mStateTableRead->AddData(mBrakeCurrentFeedback, "BrakeFeedbackCurrent");
@@ -258,73 +264,6 @@ void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
     EventTriggers.Coupling(coupling);
 }
 
-void mtsRobot1394::EnablePower(void)
-{
-    mUserExpectsPower = true;
-    mPoweringStartTime = mStateTableRead->Tic;
-    mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
-    EnableBoardsPower();
-    SetActuatorPower(true);
-    SetBrakePower(true);
-}
-
-void mtsRobot1394::EnableBoardsPower(void)
-{
-    mSafetyAmpDisabled = false;
-    for (auto & board : mUniqueBoards) {
-        board.second->WriteSafetyRelay(true);
-        board.second->WritePowerEnable(true);
-    }
-}
-
-void mtsRobot1394::DisablePower(const bool & openSafetyRelays)
-{
-    mUserExpectsPower = false;
-    // write to boards directly
-    // disable all axes
-    for (auto & board : mUniqueBoards) {
-        board.second->WriteAmpEnable(0x0f, 0x00);
-    }
-
-    // disable all boards
-    DisableBoardPower(openSafetyRelays);
-    mPreviousPowerStatus = false;
-}
-
-void mtsRobot1394::DisableBoardPower(const bool & openSafetyRelays)
-{
-    for (auto & board : mUniqueBoards) {
-        board.second->WritePowerEnable(false);
-        if (openSafetyRelays) {
-            board.second->WriteSafetyRelay(false);
-        }
-    }
-}
-
-void mtsRobot1394::SetWatchdogPeriod(const double & periodInSeconds)
-{
-    uint32_t periodCount;
-    if (periodInSeconds == 0.0) {
-        // Disable watchdog
-        periodCount = 0;
-    } else {
-        // Use at least one tick just to make sure we don't accidentaly disable
-        // the truth is that the count will be so low that watchdog will
-        // continuously trigger.
-        periodCount = (periodInSeconds * 1000.0) * WATCHDOG_MS_TO_COUNT;
-        periodCount = std::max(periodCount, static_cast<uint32_t>(1));
-    }
-
-    // update local copy of watchdog period based on final period count
-    mWatchdogPeriod = (periodCount / static_cast<double>(WATCHDOG_MS_TO_COUNT)) * 0.001;
-
-    for (auto & board : mUniqueBoards) {
-        board.second->WriteWatchdogPeriod(periodCount);
-    }
-
-    EventTriggers.WatchdogPeriod(mWatchdogPeriod);
-}
-
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
 {
     // if the number of samples is negative, user wants to first check
@@ -366,26 +305,39 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     robotInterface->AddCommandWrite(&mtsRobot1394::SetCoupling, this,
                                     "SetCoupling");
 
+    // safety relays
+    robotInterface->AddCommandReadState(*mStateTableRead, mSafetyRelay,
+                                        "GetSafetyRelay"); // bool
+    robotInterface->AddCommandReadState(*mStateTableRead, mSafetyRelayStatus,
+                                        "GetSafetyRelayStatus"); // bool
+    robotInterface->AddCommandWrite(&mtsRobot1394::WriteSafetyRelay, this,
+                                    "WriteSafetyRelay"); // bool
+
     // Enable // Disable
-    robotInterface->AddCommandVoid(&mtsRobot1394::EnablePower, this,
-                                   "EnablePower");
-    robotInterface->AddCommandWrite(&mtsRobot1394::DisablePower, this,
-                                    "DisablePower"); // bool, true to open safety relays
+    robotInterface->AddCommandReadState(*mStateTableRead, mFullyPowered,
+                                        "GetFullyPowered"); // bool
+    robotInterface->AddCommandVoid(&mtsRobot1394::PowerOnSequence, this,
+                                   "PowerOnSequence");
+    robotInterface->AddCommandWrite(&mtsRobot1394::PowerOffSequence, this,
+                                    "PowerOffSequence"); // bool, true to open safety relays
+
+    robotInterface->AddCommandReadState(*mStateTableRead, mPowerEnable,
+                                        "GetPowerEnable"); // bool
+    robotInterface->AddCommandReadState(*mStateTableRead, mPowerStatus,
+                                        "GetPowerStatus"); // bool
+    robotInterface->AddCommandWrite(&mtsRobot1394::WritePowerEnable, this,
+                                    "WritePowerEnable"); // bool
 
     robotInterface->AddCommandWrite(&mtsRobot1394::SetWatchdogPeriod, this,
                                     "SetWatchdogPeriod");
 
-    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorPowerEnabled,
+    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorAmpEnable,
                                         "GetActuatorAmpEnable"); // vector[bool]
-    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorPowerStatus,
+    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorAmpStatus,
                                         "GetActuatorAmpStatus"); // vector[bool]
 
-    robotInterface->AddCommandReadState(*mStateTableRead, mPowerStatus,
-                                        "GetPowerStatus"); // bool
-    robotInterface->AddCommandReadState(*mStateTableRead, mSafetyRelay,
-                                        "GetSafetyRelay"); // unsigned short
-    robotInterface->AddCommandReadState(*mStateTableRead, mWatchdogStatus,
-                                        "GetWatchdogStatus"); // bool
+    robotInterface->AddCommandReadState(*mStateTableRead, mWatchdogTimeoutStatus,
+                                        "GetWatchdogTimeoutStatus"); // bool
     robotInterface->AddCommandReadState(*mStateTableRead, mWatchdogPeriod,
                                         "GetWatchdogPeriod"); // double
     robotInterface->AddCommandReadState(*mStateTableRead, mActuatorTemperature,
@@ -421,11 +373,11 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     robotInterface->AddCommandWrite(&mtsRobot1394::UsePotsForSafetyCheck, this,
                                     "UsePotsForSafetyCheck", mUsePotsForSafetyCheck);
 
-    robotInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetBrakePower, this,
-                                                              "SetBrakeAmpEnable", mBrakePowerEnabled); // vector[bool]
-    robotInterface->AddCommandReadState(*mStateTableRead, mBrakePowerEnabled,
+    robotInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetBrakeAmpEnable, this,
+                                                              "SetBrakeAmpEnable", mBrakeAmpEnable); // vector[bool]
+    robotInterface->AddCommandReadState(*mStateTableRead, mBrakeAmpEnable,
                                         "GetBrakeAmpEnable"); // vector[bool]
-    robotInterface->AddCommandReadState(*mStateTableRead, mBrakePowerStatus,
+    robotInterface->AddCommandReadState(*mStateTableRead, mBrakeAmpStatus,
                                         "GetBrakeAmpStatus"); // vector[bool]
     robotInterface->AddCommandReadState(*mStateTableRead, mBrakeCurrentFeedback,
                                         "GetBrakeFeedbackCurrent");
@@ -479,26 +431,26 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
                                     "SetSomeEncoderPosition");
 
     // Events
-    robotInterface->AddEventWrite(EventTriggers.PowerStatus, "PowerStatus", false);
-    robotInterface->AddEventWrite(EventTriggers.WatchdogStatus, "WatchdogStatus", false);
-    robotInterface->AddEventWrite(EventTriggers.WatchdogPeriod, "WatchdogPeriod", 15.0 * cmn_ms);
+    robotInterface->AddEventWrite(EventTriggers.FullyPowered, "FullyPowered", false);
+    robotInterface->AddEventWrite(EventTriggers.WatchdogTimeoutStatus, "WatchdogTimeoutStatus", false);
+    robotInterface->AddEventWrite(EventTriggers.WatchdogPeriod, "WatchdogPeriod", sawRobotIO1394::WatchdogTimeout);
     robotInterface->AddEventWrite(EventTriggers.Coupling, "Coupling", prmActuatorJointCoupling());
     robotInterface->AddEventWrite(EventTriggers.BiasEncoder, "BiasEncoder", 0);
     robotInterface->AddEventWrite(EventTriggers.UsePotsForSafetyCheck, "UsePotsForSafetyCheck", false);
 
     // fine tune power, board vs. axis
-    actuatorInterface->AddCommandVoid(&mtsRobot1394::EnableBoardsPower, this,
-                                      "EnableBoardsPower");
-    actuatorInterface->AddCommandWrite(&mtsRobot1394::DisableBoardPower, this,
-                                       "DisableBoardsPower"); // bool, true to open safety relays
-    actuatorInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorPower, this,
-                                                                 "SetAmpEnable", mActuatorPowerEnabled); // vector[bool]
+    actuatorInterface->AddCommandWrite(&mtsRobot1394::WriteSafetyRelay, this,
+                                      "WriteSafetyRelay");
+    actuatorInterface->AddCommandWrite(&mtsRobot1394::WritePowerEnable, this,
+                                       "WritePowerEnable");
+    actuatorInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorAmpEnable, this,
+                                                                 "SetAmpEnable", mActuatorAmpEnable); // vector[bool]
     actuatorInterface->AddCommandWrite(&mtsRobot1394::SetSomeEncoderPosition, this,
                                        "SetSomeEncoderPosition");
 
-    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorPowerEnabled,
+    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorAmpEnable,
                                            "GetAmpEnable"); // vector[bool]
-    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorPowerStatus,
+    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorAmpStatus,
                                            "GetAmpStatus"); // vector[bool]
     actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorMeasuredJS,
                                            "measured_js");
@@ -536,8 +488,8 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mActuatorInfo.resize(mNumberOfActuators);
 
     // Initialize state vectors to the appropriate sizes
-    mActuatorPowerStatus.SetSize(mNumberOfActuators);
-    mActuatorPowerEnabled.SetSize(mNumberOfActuators);
+    mActuatorAmpStatus.SetSize(mNumberOfActuators);
+    mActuatorAmpEnable.SetSize(mNumberOfActuators);
     mDigitalInputs.SetSize(mNumberOfActuators);
     mEncoderChannelsA.SetSize(mNumberOfActuators);
     mPotBits.SetSize(mNumberOfActuators);
@@ -674,8 +626,8 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mBrakeBitsToCurrentOffsets.SetSize(mNumberOfBrakes);
     mBrakeCurrentCommandLimits.SetSize(mNumberOfBrakes);
     mBrakeCurrentFeedbackLimits.SetSize(mNumberOfBrakes);
-    mBrakePowerStatus.SetSize(mNumberOfBrakes);
-    mBrakePowerEnabled.SetSize(mNumberOfBrakes);
+    mBrakeAmpStatus.SetSize(mNumberOfBrakes);
+    mBrakeAmpEnable.SetSize(mNumberOfBrakes);
     mBrakeCurrentBitsCommand.SetSize(mNumberOfBrakes);
     mBrakeCurrentBitsFeedback.SetSize(mNumberOfBrakes);
     mBrakeTimestamp.SetSize(mNumberOfBrakes);
@@ -741,6 +693,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         // Store this board
         mActuatorInfo.at(i).Board = actuatorBoards.at(i).Board;
+        mActuatorInfo.at(i).BoardID = actuatorBoards.at(i).BoardID;
         mActuatorInfo.at(i).Axis = actuatorBoards.at(i).Axis;
         // Construct a list of unique boards
         mUniqueBoards[actuatorBoards.at(i).Board->GetBoardId()] = actuatorBoards.at(i).Board;
@@ -749,6 +702,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     for (size_t i = 0; i < mNumberOfBrakes; i++) {
         // Store this board
         mBrakeInfo.at(i).Board = brakeBoards.at(i).Board;
+        mBrakeInfo.at(i).BoardID = brakeBoards.at(i).BoardID;
         mBrakeInfo.at(i).Axis = brakeBoards.at(i).Axis;
         // Construct a list of unique boards
         mUniqueBoards[brakeBoards.at(i).Board->GetBoardId()] = brakeBoards.at(i).Board;
@@ -806,21 +760,26 @@ void mtsRobot1394::PollValidity(void)
     }
 
     // Store previous state
-    mPreviousPowerStatus = mPowerStatus;
-    mPreviousWatchdogStatus = mWatchdogStatus;
+    mPreviousFullyPowered = mFullyPowered;
+    mPreviousWatchdogTimeoutStatus = mWatchdogTimeoutStatus;
 
     // Initialize flags
     mValid = true;
     mPowerStatus = true;
     mSafetyRelay = true;
-    mWatchdogStatus = false;
+    mSafetyRelayStatus = true;
+    mWatchdogTimeoutStatus = false;
 
+    // Get status from boards
     for (auto & board : mUniqueBoards) {
         mValid &= board.second->ValidRead();
         mPowerStatus &= board.second->GetPowerStatus();
-        mSafetyRelay &= board.second->GetSafetyRelayStatus();
-        mWatchdogStatus |= board.second->GetWatchdogTimeoutStatus();
+        mSafetyRelay &= board.second->GetSafetyRelay();
+        mSafetyRelayStatus &= board.second->GetSafetyRelayStatus();
+        mWatchdogTimeoutStatus |= board.second->GetWatchdogTimeoutStatus();
     }
+
+    mFullyPowered = mPowerStatus && mSafetyRelay && mSafetyRelayStatus && !mWatchdogTimeoutStatus;
 
     if (!mValid) {
         if (mInvalidReadCounter == 0) {
@@ -873,8 +832,8 @@ void mtsRobot1394::PollState(void)
         mPotBits[i] = board->GetAnalogInput(axis);
 
         mActuatorCurrentBitsFeedback[i] = board->GetMotorCurrent(axis);
-        mActuatorPowerEnabled[i] = board->GetAmpEnable(axis);
-        mActuatorPowerStatus[i] = board->GetAmpStatus(axis);
+        mActuatorAmpEnable[i] = board->GetAmpEnable(axis);
+        mActuatorAmpStatus[i] = board->GetAmpStatus(axis);
 
         // first temperature corresponds to first 2 actuators, second to last 2
         // board reports temperature in celsius * 2
@@ -889,8 +848,8 @@ void mtsRobot1394::PollState(void)
 
         mBrakeTimestamp[i] = board->GetTimestamp() * 1.0 / 49125000.0;
         mBrakeCurrentBitsFeedback[i] = board->GetMotorCurrent(axis);
-        mBrakePowerEnabled[i] = board->GetAmpEnable(axis);
-        mBrakePowerStatus[i] = board->GetAmpStatus(axis);
+        mBrakeAmpEnable[i] = board->GetAmpEnable(axis);
+        mBrakeAmpStatus[i] = board->GetAmpStatus(axis);
 
         // first temperature corresponds to first 2 brakes, second to last 2
         // board reports temperature in celsius * 2
@@ -1077,7 +1036,7 @@ void mtsRobot1394::CheckState(void)
     }
 
     if (mCurrentSafetyViolationsCounter > mCurrentSafetyViolationsMaximum) {
-        this->DisablePower();
+        this->PowerOffSequence(false /* do no open safety relays */);
         cmnThrow(osaRuntimeError1394(this->Name() + ": too many consecutive current safety violations.  Power has been disabled."));
     }
 
@@ -1156,7 +1115,7 @@ void mtsRobot1394::CheckState(void)
         }
 
         if (temperatureError) {
-            this->DisablePower();
+            this->PowerOffSequence(false /* do not open safety relays */);
             std::stringstream message;
             message << "IO: " << this->Name() << " controller measured temperature is " << temperatureTrigger
                     << "ºC, error threshold is set to " << sawRobotIO1394::TemperatureErrorThreshold << "ºC";
@@ -1245,7 +1204,7 @@ void mtsRobot1394::CheckState(void)
                             // check how long have we been off
                             if (*potDuration > *potLatency) {
                                 // now we have a problem,
-                                this->DisablePower(false); // don't open safety relays
+                                this->PowerOffSequence(false); // don't open safety relays
                                 // maybe it's not new, used for reporting
                                 if (*potValid) {
                                     // this is new
@@ -1297,7 +1256,7 @@ void mtsRobot1394::CheckState(void)
 
     // Check for encoder overflow
     if (mEncoderOverflow.Any()) {
-        this->DisablePower();
+        this->PowerOffSequence(false /* do not open safety relays */);
         this->SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
         if (mEncoderOverflow.NotEqual(mPreviousEncoderOverflow)) {
             mPreviousEncoderOverflow.Assign(mEncoderOverflow);
@@ -1315,20 +1274,20 @@ void mtsRobot1394::CheckState(void)
     mActuatorMeasuredJS.SetValid(true);
     mMeasuredJS.SetValid(true);
 
-    if (mPreviousPowerStatus != mPowerStatus) {
-        EventTriggers.PowerStatus(mPowerStatus);
-        // this might be an issues
-        if (!mPowerStatus && mUserExpectsPower) {
-            // give some time to power, if greater then it's an issue
-            if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
-                mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
-            }
-        }
-    }
+    // if (mPreviousPowerStatus != mPowerStatus) {
+    //     EventTriggers.PowerStatus(mPowerStatus);
+    //     // this might be an issues
+    //     if (!mPowerStatus && mUserExpectsPower) {
+    //         // give some time to power, if greater then it's an issue
+    //         if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
+    //             mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
+    //         }
+    //     }
+    // }
 
-    if (mPreviousWatchdogStatus != mWatchdogStatus) {
-        EventTriggers.WatchdogStatus(mWatchdogStatus);
-        if (mWatchdogStatus) {
+    if (mPreviousWatchdogTimeoutStatus != mWatchdogTimeoutStatus) {
+        EventTriggers.WatchdogTimeoutStatus(mWatchdogTimeoutStatus);
+        if (mWatchdogTimeoutStatus) {
             mInterface->SendError("IO: " + this->Name() + " watchdog triggered");
         } else {
             mInterface->SendStatus("IO: " + this->Name() + " watchdog ok");
@@ -1399,42 +1358,94 @@ void mtsRobot1394::CheckState(void)
     }
 }
 
-void mtsRobot1394::WriteSafetyRelay(const bool & enabled)
+void mtsRobot1394::PowerOnSequence(void)
+{
+    std::cerr << "mtsRobot1394::EnablePower" << std::endl;
+    mUserExpectsPower = true;
+    mPoweringStartTime = mStateTableRead->Tic;
+    mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
+    WriteSafetyRelay(true);
+    WritePowerEnable(true);
+    SetActuatorAmpEnable(true);
+    SetBrakeAmpEnable(true);
+}
+
+void mtsRobot1394::PowerOffSequence(const bool & openSafetyRelays)
+{
+    mUserExpectsPower = false;
+    // write to boards directly
+    // disable all axes
+    for (auto & board : mUniqueBoards) {
+        board.second->WriteAmpEnable(0x0f, 0x00);
+    }
+
+    // disable all boards
+    WritePowerEnable(false);
+    if (openSafetyRelays) {
+        WriteSafetyRelay(false);
+    }
+}
+
+void mtsRobot1394::SetWatchdogPeriod(const double & periodInSeconds)
+{
+    mWatchdogPeriod = periodInSeconds;
+    for (auto & board : mUniqueBoards) {
+        board.second->WriteWatchdogPeriodInSeconds(periodInSeconds);
+    }
+    EventTriggers.WatchdogPeriod(mWatchdogPeriod);
+}
+
+void mtsRobot1394::WriteSafetyRelay(const bool & close)
 {
     for (auto & board : mUniqueBoards) {
-        board.second->WriteSafetyRelay(enabled);
+        board.second->WriteSafetyRelay(close);
     }
 }
 
-void mtsRobot1394::SetActuatorPower(const bool & enabled)
+void mtsRobot1394::WritePowerEnable(const bool & power)
 {
+    std::cerr << "mtsRobot1394::WritePowerEnable" << std::endl;
+    if (power) {
+        mSafetyAmpDisabled = false;
+    }
+    for (auto & board : mUniqueBoards) {
+        board.second->WritePowerEnable(power);
+    }
+}
+
+void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
+{
+    std::cerr << "mtsRobot1394::SetActuatorAmpEnable: " << enable << std::endl;
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
-        mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enabled);
+        std::cerr << mActuatorInfo[i].BoardID << "::" << mActuatorInfo[i].Axis << " -> " << enable << std::endl;
+        mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enable);
     }
 }
 
-void mtsRobot1394::SetActuatorPower(const vctBoolVec & enabled)
+void mtsRobot1394::SetActuatorAmpEnable(const vctBoolVec & enable)
 {
+    std::cerr << "mtsRobot1394::SetActuatorAmpEnable: " << enable << std::endl;
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
-        mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enabled[i]);
+        std::cerr << mActuatorInfo[i].BoardID << "::" << mActuatorInfo[i].Axis << " " << enable[i] << std::endl;
+        mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enable[i]);
     }
 }
 
-void mtsRobot1394::SetBrakePower(const bool & enabled)
+void mtsRobot1394::SetBrakeAmpEnable(const bool & enable)
 {
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfBrakes; i++) {
-        mBrakeInfo[i].Board->SetAmpEnable(mBrakeInfo[i].Axis, enabled);
+        mBrakeInfo[i].Board->SetAmpEnable(mBrakeInfo[i].Axis, enable);
     }
 }
 
-void mtsRobot1394::SetBrakePower(const vctBoolVec & enabled)
+void mtsRobot1394::SetBrakeAmpEnable(const vctBoolVec & enable)
 {
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfBrakes; i++) {
-        mBrakeInfo[i].Board->SetAmpEnable(mBrakeInfo[i].Axis, enabled[i]);
+        mBrakeInfo[i].Board->SetAmpEnable(mBrakeInfo[i].Axis, enable[i]);
     }
 }
 
@@ -1597,28 +1608,12 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
     mCalibrateEncodersPerformed = true;
 }
 
-bool mtsRobot1394::Valid(void) const {
-    return mValid;
+const vctBoolVec & mtsRobot1394::ActuatorAmpStatus(void) const {
+    return mActuatorAmpStatus;
 }
 
-bool mtsRobot1394::PowerStatus(void) const {
-    return mPowerStatus;
-}
-
-bool mtsRobot1394::SafetyRelay(void) const {
-    return mSafetyRelay;
-}
-
-bool mtsRobot1394::WatchdogStatus(void) const {
-    return mWatchdogStatus;
-}
-
-const vctBoolVec & mtsRobot1394::ActuatorPowerStatus(void) const {
-    return mActuatorPowerStatus;
-}
-
-const vctBoolVec & mtsRobot1394::BrakePowerStatus(void) const {
-    return mBrakePowerStatus;
+const vctBoolVec & mtsRobot1394::BrakeAmpStatus(void) const {
+    return mBrakeAmpStatus;
 }
 
 const vctDoubleVec & mtsRobot1394::ActuatorCurrentFeedback(void) const {

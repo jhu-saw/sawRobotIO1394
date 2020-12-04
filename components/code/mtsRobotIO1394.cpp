@@ -142,7 +142,7 @@ void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
 void mtsRobotIO1394::Init(const int portNumber)
 {
     // default watchdog period
-    mWatchdogPeriod = 15.0 * cmn_ms;
+    mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout;
     mSkipConfigurationCheck = false;
 
     // add state tables for stats
@@ -351,9 +351,6 @@ bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
     // Setup the MTS interfaces
     robot->SetupInterfaces(robotInterface, actuatorInterface);
 
-    // Use preferred watchdog timeout
-    robot->SetWatchdogPeriod(mWatchdogPeriod);
-
     return true;
 }
 
@@ -392,6 +389,8 @@ bool mtsRobotIO1394::SetupDallasChip(mtsDallasChip1394 * dallasChip)
 
 void mtsRobotIO1394::Startup(void)
 {
+    // Use preferred watchdog timeout
+    SetWatchdogPeriod(mWatchdogPeriod);
 }
 
 void mtsRobotIO1394::PreRead(void)
@@ -521,7 +520,7 @@ void mtsRobotIO1394::Cleanup(void)
 {
     for (size_t i = 0; i < mRobots.size(); i++) {
         if (mRobots[i]->Valid()) {
-            mRobots[i]->DisablePower();
+            mRobots[i]->PowerOffSequence(true /* open safety relays */);
         }
     }
     // Write to all boards
@@ -607,6 +606,7 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
 
         // Add the board to the list of boards relevant to this robot
         actuatorBoards[i].Board = mBoards[boardId];
+        actuatorBoards[i].BoardID = boardId;
         actuatorBoards[i].Axis = config.Actuators[i].AxisID;
 
         // Board for the brake if any
@@ -623,6 +623,7 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
 
             // Add the board to the list of boards relevant to this robot
             brakeBoards[currentBrake].Board = mBoards[boardId];
+            brakeBoards[currentBrake].BoardID = boardId;
             brakeBoards[currentBrake].Axis = brake->AxisID;
             currentBrake++;
         }

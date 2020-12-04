@@ -5,7 +5,7 @@
   Author(s):  Kwang Young Lee
   Created on: 2013-04-11
 
-  (C) Copyright 2013-2017 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -107,8 +107,8 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
         newInterfaceActuatorName = tmpRobotName.append(actuatorInterfaceSuffix);
         tmpRobotName = RobotNames[i];
 
-        mtsRobotIO1394QtWidget * robotWidget =
-                new mtsRobotIO1394QtWidget(newComponentName, NumberOfActuatorsPerRobot[i], NumberOfBrakesPerRobot[i]);
+        mtsRobot1394QtWidget * robotWidget =
+                new mtsRobot1394QtWidget(newComponentName, NumberOfActuatorsPerRobot[i], NumberOfBrakesPerRobot[i]);
         mWidgets.push_back(robotWidget);
         robotWidget->Configure();
         componentManager->AddComponent(robotWidget);

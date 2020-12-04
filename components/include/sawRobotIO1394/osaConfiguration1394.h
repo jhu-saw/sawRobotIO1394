@@ -155,12 +155,14 @@ namespace sawRobotIO1394 {
     // Maps an actuator to the hardware (board and axis)
     struct osaActuatorMapping {
         AmpIO * Board;
+        int BoardID;
         int Axis;
     };
 
     // maps a brake to the hardware
     struct osaBrakeMapping {
         AmpIO * Board;
+        int BoardID;
         int Axis;
     };
 

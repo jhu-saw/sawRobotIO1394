@@ -39,7 +39,7 @@ protected:
 
     BasePort * mPort;
 
-    double mWatchdogPeriod; // prefered watchdog period for all boards
+    double mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
     bool mSkipConfigurationCheck;
 
     std::map<int, AmpIO*> mBoards;

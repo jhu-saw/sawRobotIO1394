@@ -16,8 +16,8 @@ http://www.cisst.org/cisst/license.txt.
 --- end cisst license ---
 */
 
-#ifndef _mtsRobotIO1394QtWidget_h
-#define _mtsRobotIO1394QtWidget_h
+#ifndef _mtsRobot1394QtWidget_h
+#define _mtsRobot1394QtWidget_h
 
 #include <cisstOSAbstraction/osaTimeServer.h>
 #include <cisstVector/vctQtWidgetDynamicVector.h>
@@ -35,18 +35,18 @@ http://www.cisst.org/cisst/license.txt.
   \todo maybe rename this class to mtsRobotIO1394{Robot,DigitalInputs,Log}QtWidget and create using mtsRobotIO1394FactoryQtWidget
   \todo cisst Qt convention is now to start with the Qt prefix, i.e. mtsQtWidgetRobotIO1394 ...
   */
-class CISST_EXPORT mtsRobotIO1394QtWidget: public QWidget, public mtsComponent
+class CISST_EXPORT mtsRobot1394QtWidget: public QWidget, public mtsComponent
 {
     Q_OBJECT;
     CMN_DECLARE_SERVICES(CMN_DYNAMIC_CREATION_ONEARG, CMN_LOG_ALLOW_DEFAULT);
 
 public:
-    mtsRobotIO1394QtWidget(const std::string & componentName,
-                           unsigned int numberOfActuators,
-                           unsigned int numberOfBrakes,
-                           double periodInSeconds = 50.0 * cmn_ms);
-    mtsRobotIO1394QtWidget(const mtsComponentConstructorNameAndUInt &arg);
-    inline ~mtsRobotIO1394QtWidget(void) {}
+    mtsRobot1394QtWidget(const std::string & componentName,
+                         unsigned int numberOfActuators,
+                         unsigned int numberOfBrakes,
+                         double periodInSeconds = 50.0 * cmn_ms);
+    mtsRobot1394QtWidget(const mtsComponentConstructorNameAndUInt &arg);
+    inline ~mtsRobot1394QtWidget(void) {}
 
     void Configure(const std::string & filename = "");
     void Startup(void);
@@ -57,7 +57,8 @@ protected:
     virtual void closeEvent(QCloseEvent *event);
 
 private slots:
-    void SlotEnableAmps(bool toggle);
+    void SlotSafetyRelay(bool toggle);
+    void SlotEnableBoards(bool toggle);
     void SlotEnableAll(bool toggle);
     void SlotEnableDirectControl(bool toggle);
     void SlotActuatorAmpEnable(void);
@@ -86,14 +87,23 @@ protected:
     bool DirectControl;
     int TimerPeriodInMilliseconds;
     double WatchdogPeriodInSeconds;
+    size_t WatchdogCounter;
 
     struct RobotStruct {
         mtsFunctionRead GetSerialNumber;
         mtsFunctionRead period_statistics;
         mtsFunctionRead IsValid;
+
+        mtsFunctionWrite WriteSafetyRelay;
+        mtsFunctionRead GetSafetyRelay;
+        mtsFunctionRead GetSafetyRelayStatus;
+
+        mtsFunctionWrite SetWatchdogPeriod;
         mtsFunctionRead WatchdogPeriod;
-        mtsFunctionVoid EnablePower;
-        mtsFunctionWrite DisablePower;
+
+        mtsFunctionVoid PowerOnSequence;
+        mtsFunctionWrite PowerOffSequence;
+        mtsFunctionRead GetFullyPowered;
 
         mtsFunctionRead measured_js;
         mtsFunctionRead GetAnalogInputVolts;
@@ -102,8 +112,7 @@ protected:
         mtsFunctionRead GetActuatorFeedbackCurrent;
         mtsFunctionRead GetActuatorCurrentMax;
         mtsFunctionRead configuration_js;
-        mtsFunctionRead GetPowerStatus;
-        mtsFunctionRead GetSafetyRelay;
+
         mtsFunctionRead GetActuatorAmpTemperature;
 
         mtsFunctionWrite SetBrakeAmpEnable;
@@ -116,18 +125,14 @@ protected:
         mtsFunctionVoid BrakeRelease;
         mtsFunctionWrite SetActuatorCurrent;
         mtsFunctionWrite SetEncoderPosition;
-        mtsFunctionWrite SetWatchdogPeriod;
 
         mtsFunctionWrite BiasEncoder;
         mtsFunctionWrite UsePotsForSafetyCheck;
     } Robot;
 
     struct ActuatorStruct {
-        mtsFunctionVoid EnableBoardsPower;
-        mtsFunctionWrite DisableBoardsPower;
-
+        mtsFunctionWrite WritePowerEnable;
         mtsFunctionWrite SetAmpEnable;
-
         mtsFunctionRead GetAmpEnable;
         mtsFunctionRead GetAmpStatus;
         mtsFunctionRead measured_js;
@@ -156,8 +161,8 @@ private:
     vctBoolVec BrakeAmpEnable;
     vctBoolVec BrakeAmpStatus;
 
-    bool PowerStatus;
-    bool SafetyRelay;
+    bool FullyPowered;
+    bool SafetyRelay, SafetyRelayStatus;
 
     // Interface
     double DummyValueWhenNotConnected;
@@ -165,7 +170,8 @@ private:
     double StartTime;
 
     // GUI: Commands
-    QCheckBox * QCBEnableAmps;
+    QCheckBox * QCBSafetyRelay;
+    QCheckBox * QCBEnableBoards;
     QCheckBox * QCBEnableAll;
     QPushButton * QPBResetCurrentAll;
 
@@ -200,13 +206,13 @@ private:
     vctQtWidgetDynamicVectorDoubleRead * QVRBrakeAmpTemperature;
 
     QLabel * QLAmpStatus;
-    QLabel * QLPowerStatus;
-    QLabel * QLSafetyRelay;
+    QLabel * QLFullyPowered;
+    QLabel * QLSafetyRelayStatus;
     QLabel * QLWatchdog;
     QLabel * QLWatchdogLastTimeout;
 
-    void PowerStatusEventHandler(const bool & status);
-    void WatchdogStatusEventHandler(const bool & status);
+    void FullyPoweredEventHandler(const bool & status);
+    void WatchdogTimeoutStatusEventHandler(const bool & status);
     void UsePotsForSafetyCheckEventHandler(const bool & status);
 
     // signal and slot used by mts event handlers, this this component
@@ -214,15 +220,15 @@ private:
     // thread that sends the event.  We then use Qt emit/slot to maintain
     // thread safety
 signals:
-    void SignalPowerStatus(bool status);
-    void SignalWatchdogStatus(bool status);
+    void SignalFullyPowered(bool status);
+    void SignalWatchdogTimeoutStatus(bool status);
     void SignalUsePotsForSafetyCheck(bool status);
 protected slots:
-    void SlotPowerStatusEvent(bool status);
-    void SlotWatchdogStatusEvent(bool status);
+    void SlotFullyPoweredEvent(bool status);
+    void SlotWatchdogTimeoutStatusEvent(bool status);
     void SlotUsePotsForSafetyCheckEvent(bool status);
 };
 
-CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobotIO1394QtWidget);
+CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobot1394QtWidget);
 
-#endif // _mtsRobotIO1394QtWidget_h
+#endif // _mtsRobot1394QtWidget_h

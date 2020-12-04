@@ -55,51 +55,57 @@ bool enablePower(PowerType type) {
     }
 
     switch (type) {
-    case ALL        :
+    case ALL:
         std::cout << "Enabling power to all..." << std::endl;
-        robot->EnablePower();
+        robot->PowerOnSequence();
         break;
-    case BOARD      :
+    case BOARD:
         std::cout << "Enabling power to the QLA board..." << std::endl;
-        robot->EnableBoardsPower();
+        robot->WriteSafetyRelay(true);
+        robot->WritePowerEnable(true);
         break;
-    case ACTUATOR   :
-        std::cout << "Enabling power to the actuators..." << std::endl;
-        robot->SetActuatorPower(true);
+    case ACTUATOR:
+        std::cout << "Enabling amplifiers for the actuators..." << std::endl;
+        robot->SetActuatorAmpEnable(true);
         break;
-    case BRAKE      :
-        std::cout << "Enabling power to the brakes..." << std::endl;
-        robot->SetBrakePower(true);
+    case BRAKE:
+        std::cout << "Enabling amplifiers for the brakes..." << std::endl;
+        robot->SetBrakeAmpEnable(true);
         break;
+    }
+
+    port->Write();
+
+    if (brakes) {
+        robot->SetBrakeCurrent(zeros);
+    } else {
+        robot->SetActuatorCurrent(zeros);
     }
 
     port->Write();
 
     // wait a bit to make sure current stabilizes, 500 * 10 ms = 5 seconds
     for (size_t i = 0; i < 500; ++i) {
-        if (brakes) {
-            robot->SetBrakeCurrent(zeros);
-        } else {
-            robot->SetActuatorCurrent(zeros);
-        }
         osaSleep(10.0 * cmn_ms);
+        port->Read();
         port->Write();
     }
 
     // check that power is on
-    port->Read();
     if (!robot->PowerStatus()) {
         std::cerr << "Error: unable to power on controllers, make sure E-Stop is ok." << std::endl;
         return false;
     }
-    if (brakes && (type==ALL || type==BRAKE)) {
-        if (!robot->BrakePowerStatus().All()) {
-            std::cerr << "Error: failed to turn on brake power: " << robot->BrakePowerStatus() << std::endl;
+    if (brakes && (type == ALL || type == BRAKE)) {
+        if (!robot->BrakeAmpStatus().All()) {
+            std::cerr << "Error: failed to turn on brake amplifiers: " << robot->BrakeAmpStatus() << std::endl;
             return false;
         }
-    } else if (!brakes && (type==ALL || type==ACTUATOR)){
-        if (!robot->ActuatorPowerStatus().All()) {
-            std::cerr << "Error: failed to turn on actuator power: " << robot->ActuatorPowerStatus() << std::endl;
+    } else if (!brakes && (type == ALL || type == ACTUATOR)) {
+        if (!robot->ActuatorAmpStatus().All()) {
+            std::cerr << "Error: failed to turn on actuator amplifiers" << std::endl
+                      << " - status: " << robot->ActuatorAmpStatus() << std::endl
+                      << " - desired: " << robot->ActuatorAmpEnable() << std::endl;
             return false;
         }
     }
@@ -274,6 +280,7 @@ int main(int argc, char * argv[])
 
     robot->SetWatchdogPeriod(300.0 * cmn_ms);
     if (!enablePower(BOARD)) {
+        robot->PowerOffSequence();
         delete port;
         return -1;
     }
@@ -291,11 +298,13 @@ int main(int argc, char * argv[])
 
     if (brakes) {
         if (!enablePower(BRAKE)) {
+            robot->PowerOffSequence();
             delete port;
             return -1;
         }
     } else {
         if (!enablePower(ACTUATOR)) {
+            robot->PowerOffSequence();
             delete port;
             return -1;
         }
@@ -313,7 +322,7 @@ int main(int argc, char * argv[])
               << std::endl << std::endl;
 
     // disable power
-    robot->DisablePower();
+    robot->PowerOffSequence();
 
     // correct cmd (commanded) using corrected fb (feedback)
     vctDoubleVec averageValidSamples(numberOfAxis);
