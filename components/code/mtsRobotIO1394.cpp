@@ -453,6 +453,11 @@ void mtsRobotIO1394::PostRead(void)
     }
 }
 
+bool mtsRobotIO1394::IsOK(void) const
+{
+    return mPort->IsOK();
+}
+
 void mtsRobotIO1394::PreWrite(void)
 {
     mStateTableWrite->Start();

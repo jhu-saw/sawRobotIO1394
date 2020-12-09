@@ -81,7 +81,6 @@ bool enablePower(PowerType type) {
     } else {
         robot->SetActuatorCurrent(zeros);
     }
-
     port->Write();
 
     // wait a bit to make sure current stabilizes, 500 * 10 ms = 5 seconds
@@ -98,13 +97,15 @@ bool enablePower(PowerType type) {
     }
     if (brakes && (type == ALL || type == BRAKE)) {
         if (!robot->BrakeAmpStatus().All()) {
-            std::cerr << "Error: failed to turn on brake amplifiers: " << robot->BrakeAmpStatus() << std::endl;
+            std::cerr << "Error: failed to turn on brake amplifiers:" << std::endl
+                      << " - status:  " << robot->BrakeAmpStatus() << std::endl
+                      << " - desired: " << robot->BrakeAmpEnable() << std::endl;
             return false;
         }
     } else if (!brakes && (type == ALL || type == ACTUATOR)) {
         if (!robot->ActuatorAmpStatus().All()) {
             std::cerr << "Error: failed to turn on actuator amplifiers" << std::endl
-                      << " - status: " << robot->ActuatorAmpStatus() << std::endl
+                      << " - status: "  << robot->ActuatorAmpStatus() << std::endl
                       << " - desired: " << robot->ActuatorAmpEnable() << std::endl;
             return false;
         }

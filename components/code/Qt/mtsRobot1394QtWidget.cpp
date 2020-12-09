@@ -166,22 +166,11 @@ void mtsRobot1394QtWidget::SlotSafetyRelay(bool toggle)
     Robot.WriteSafetyRelay(toggle);
 }
 
-void mtsRobot1394QtWidget::SlotEnableBoards(bool toggle)
+void mtsRobot1394QtWidget::SlotPowerEnable(bool toggle)
 {
     // send to controller first
-    if (toggle) {
-        Actuators.WritePowerEnable(true);
-    } else {
-        Actuators.WritePowerEnable(false);
-    }
-    // update GUI, make sure no signal is generated
-    if (!toggle) {
-        QCBEnableAll->blockSignals(true);
-        {
-            QCBEnableAll->setChecked(false);
-        }
-        QCBEnableAll->blockSignals(false);
-    }
+    Actuators.WritePowerEnable(toggle);
+
     // set all current to 0
     SlotResetCurrentAll();
 }
@@ -194,10 +183,6 @@ void mtsRobot1394QtWidget::SlotEnableAll(bool toggle)
     } else {
         Robot.PowerOffSequence(true);
     }
-    // update GUI, make sure no signal is generated
-    QCBEnableBoards->blockSignals(true); {
-        QCBEnableBoards->setChecked(toggle);
-    } QCBEnableBoards->blockSignals(false);
 
     if (NumberOfActuators != 0) {
         vctBoolVec allEnable(NumberOfActuators, toggle);
@@ -227,7 +212,7 @@ void mtsRobot1394QtWidget::SlotEnableDirectControl(bool toggle)
     // update widgets
     QCBSafetyRelay->setEnabled(toggle);
     QCBEnableAll->setEnabled(toggle);
-    QCBEnableBoards->setEnabled(toggle);
+    QCBPowerEnable->setEnabled(toggle);
     QSBWatchdogPeriod->setEnabled(toggle);
     QPBResetEncAll->setEnabled(toggle);
     QPBBiasEncAll->setEnabled(toggle);
@@ -368,6 +353,7 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         Robot.period_statistics(IntervalStatistics);
         Robot.GetSafetyRelay(SafetyRelay);
         Robot.GetFullyPowered(FullyPowered);
+        Robot.GetPowerEnable(PowerEnable);
         Robot.GetSafetyRelayStatus(SafetyRelayStatus);
         if (NumberOfActuators != 0) {
             Actuators.GetAmpEnable(ActuatorAmpEnable);
@@ -459,6 +445,7 @@ void mtsRobot1394QtWidget::SetupCisstInterface(void)
 
         robotInterface->AddFunction("PowerOnSequence", Robot.PowerOnSequence);
         robotInterface->AddFunction("PowerOffSequence", Robot.PowerOffSequence);
+        robotInterface->AddFunction("GetPowerEnable", Robot.GetPowerEnable);
         robotInterface->AddFunction("GetFullyPowered", Robot.GetFullyPowered);
 
         robotInterface->AddFunction("measured_js", Robot.measured_js);
@@ -510,6 +497,28 @@ void mtsRobot1394QtWidget::setupUi(void)
     QFont font;
     font.setBold(true);
 
+    // Power commands
+    QVBoxLayout * powerLayout = new QVBoxLayout;
+    powerLayout->setContentsMargins(2, 2, 2, 2);
+    QFrame * powerFrame = new QFrame;
+    QLabel * powerTitle = new QLabel("Power");
+    powerTitle->setFont(font);
+    powerTitle->setAlignment(Qt::AlignCenter);
+    powerLayout->addWidget(powerTitle);
+    QCBEnableAll = new QCheckBox("Enable all");
+    powerLayout->addWidget(QCBEnableAll);
+    QCBPowerEnable = new QCheckBox("Enable power");
+    powerLayout->addWidget(QCBPowerEnable);
+    QLAmpStatus = new QLabel("Actuators on");
+    QLAmpStatus->setAlignment(Qt::AlignCenter);
+    powerLayout->addWidget(QLAmpStatus);
+    QLFullyPowered = new QLabel("Power on");
+    QLFullyPowered->setAlignment(Qt::AlignCenter);
+    powerLayout->addWidget(QLFullyPowered);
+    powerLayout->addStretch();
+    powerFrame->setLayout(powerLayout);
+    powerFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+
     // Safety relays
     QVBoxLayout * relayLayout = new QVBoxLayout;
     relayLayout->setContentsMargins(2, 2, 2, 2);
@@ -526,28 +535,6 @@ void mtsRobot1394QtWidget::setupUi(void)
     relayLayout->addStretch();
     relayFrame->setLayout(relayLayout);
     relayFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-
-    // Power commands
-    QVBoxLayout * powerLayout = new QVBoxLayout;
-    powerLayout->setContentsMargins(2, 2, 2, 2);
-    QFrame * powerFrame = new QFrame;
-    QLabel * powerTitle = new QLabel("Power");
-    powerTitle->setFont(font);
-    powerTitle->setAlignment(Qt::AlignCenter);
-    powerLayout->addWidget(powerTitle);
-    QCBEnableAll = new QCheckBox("Enable all");
-    powerLayout->addWidget(QCBEnableAll);
-    QCBEnableBoards = new QCheckBox("Enable boards");
-    powerLayout->addWidget(QCBEnableBoards);
-    QLAmpStatus = new QLabel("Actuators on");
-    QLAmpStatus->setAlignment(Qt::AlignCenter);
-    powerLayout->addWidget(QLAmpStatus);
-    QLFullyPowered = new QLabel("Boards on");
-    QLFullyPowered->setAlignment(Qt::AlignCenter);
-    powerLayout->addWidget(QLFullyPowered);
-    powerLayout->addStretch();
-    powerFrame->setLayout(powerLayout);
-    powerFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
     // watchdog commands
     QVBoxLayout * watchdogLayout = new QVBoxLayout;
@@ -637,8 +624,8 @@ void mtsRobot1394QtWidget::setupUi(void)
     // Commands layout
     QHBoxLayout * commandLayout = new QHBoxLayout;
     commandLayout->setContentsMargins(2, 2, 2, 2);
-    commandLayout->addWidget(relayFrame, 1);
     commandLayout->addWidget(powerFrame, 1);
+    commandLayout->addWidget(relayFrame, 1);
     commandLayout->addWidget(watchdogFrame, 1);
     commandLayout->addWidget(encoderFrame, 1);
     commandLayout->addWidget(currentFrame, 1);
@@ -760,8 +747,8 @@ void mtsRobot1394QtWidget::setupUi(void)
     // connect signals & slots
     connect(QCBSafetyRelay, SIGNAL(toggled(bool)),
             this, SLOT(SlotSafetyRelay(bool)));
-    connect(QCBEnableBoards, SIGNAL(toggled(bool)),
-            this, SLOT(SlotEnableBoards(bool)));
+    connect(QCBPowerEnable, SIGNAL(toggled(bool)),
+            this, SLOT(SlotPowerEnable(bool)));
     connect(QCBEnableAll, SIGNAL(toggled(bool)),
             this, SLOT(SlotEnableAll(bool)));
     connect(QCBEnableDirectControl, SIGNAL(toggled(bool)),
@@ -802,7 +789,7 @@ void mtsRobot1394QtWidget::setupUi(void)
 
     // set initial value
     QCBSafetyRelay->setChecked(false);
-    QCBEnableBoards->setChecked(false);
+    QCBPowerEnable->setChecked(false);
     QCBEnableAll->setChecked(false);
     QCBEnableDirectControl->setChecked(DirectControl);
     SlotEnableDirectControl(DirectControl);
@@ -836,17 +823,18 @@ void mtsRobot1394QtWidget::UpdateRobotInfo(void)
 
     // power status
     if (FullyPowered) {
-        QLFullyPowered->setText("Boards on");
+        QLFullyPowered->setText("Power on");
         QLFullyPowered->setStyleSheet("QLabel { background-color: rgb(50, 255, 50) }");
     } else {
-        QLFullyPowered->setText("Boards off");
+        QLFullyPowered->setText("Power off");
         QLFullyPowered->setStyleSheet("QLabel { background-color: rgb(255, 100, 100) }");
     }
 
     // update check box to enable/disable based on current state
-    QCBEnableBoards->blockSignals(true); {
-        QCBEnableBoards->setChecked(ampStatusGood);
-    } QCBEnableBoards->blockSignals(false);
+    QCBPowerEnable->blockSignals(true); {
+        QCBPowerEnable->setChecked(PowerEnable);
+    } QCBPowerEnable->blockSignals(false);
+
     QCBEnableAll->blockSignals(true); {
         bool status = ampStatusGood;
         if (NumberOfActuators != 0) {

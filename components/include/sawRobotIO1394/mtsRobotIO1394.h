@@ -94,6 +94,7 @@ public:
     void GetNumberOfDigitalOutputs(int & placeHolder) const;
 
     // public so these can be used outside cisstMultiTask
+    bool IsOK(void) const;
     void Read(void);
     void Write(void);
     void GetNumberOfRobots(int & placeHolder) const;

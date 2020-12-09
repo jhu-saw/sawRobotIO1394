@@ -173,12 +173,22 @@ namespace sawRobotIO1394 {
         //! Watchdog timeout status, true for triggered
         bool WatchdogTimeoutStatus(void) const;
 
-        const vctBoolVec & ActuatorAmpStatus(void) const;
+        inline const vctBoolVec & ActuatorAmpStatus(void) const {
+            return mActuatorAmpStatus;
+        }
+
         inline const vctBoolVec & ActuatorAmpEnable(void) const {
             return mActuatorAmpEnable;
         }
-        
-        const vctBoolVec & BrakeAmpStatus(void) const;
+
+        inline const vctBoolVec & BrakeAmpStatus(void) const {
+            return mBrakeAmpStatus;
+        }
+
+        inline const vctBoolVec & BrakeAmpEnable(void) const {
+            return mBrakeAmpEnable;
+        }
+
         const vctDoubleVec & ActuatorCurrentFeedback(void) const;
         const vctDoubleVec & ActuatorCurrentCommand(void) const;
         const vctDoubleVec & ActuatorEffortCommand(void) const;

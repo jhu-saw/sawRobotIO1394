@@ -765,6 +765,7 @@ void mtsRobot1394::PollValidity(void)
 
     // Initialize flags
     mValid = true;
+    mPowerEnable = true;
     mPowerStatus = true;
     mSafetyRelay = true;
     mSafetyRelayStatus = true;
@@ -773,6 +774,7 @@ void mtsRobot1394::PollValidity(void)
     // Get status from boards
     for (auto & board : mUniqueBoards) {
         mValid &= board.second->ValidRead();
+        mPowerEnable &= board.second->GetPowerEnable();
         mPowerStatus &= board.second->GetPowerStatus();
         mSafetyRelay &= board.second->GetSafetyRelay();
         mSafetyRelayStatus &= board.second->GetSafetyRelayStatus();
@@ -1360,7 +1362,6 @@ void mtsRobot1394::CheckState(void)
 
 void mtsRobot1394::PowerOnSequence(void)
 {
-    std::cerr << "mtsRobot1394::EnablePower" << std::endl;
     mUserExpectsPower = true;
     mPoweringStartTime = mStateTableRead->Tic;
     mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
@@ -1404,7 +1405,6 @@ void mtsRobot1394::WriteSafetyRelay(const bool & close)
 
 void mtsRobot1394::WritePowerEnable(const bool & power)
 {
-    std::cerr << "mtsRobot1394::WritePowerEnable" << std::endl;
     if (power) {
         mSafetyAmpDisabled = false;
     }
@@ -1415,20 +1415,16 @@ void mtsRobot1394::WritePowerEnable(const bool & power)
 
 void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 {
-    std::cerr << "mtsRobot1394::SetActuatorAmpEnable: " << enable << std::endl;
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
-        std::cerr << mActuatorInfo[i].BoardID << "::" << mActuatorInfo[i].Axis << " -> " << enable << std::endl;
         mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enable);
     }
 }
 
 void mtsRobot1394::SetActuatorAmpEnable(const vctBoolVec & enable)
 {
-    std::cerr << "mtsRobot1394::SetActuatorAmpEnable: " << enable << std::endl;
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
-        std::cerr << mActuatorInfo[i].BoardID << "::" << mActuatorInfo[i].Axis << " " << enable[i] << std::endl;
         mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enable[i]);
     }
 }
@@ -1606,14 +1602,6 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
         break;
     };
     mCalibrateEncodersPerformed = true;
-}
-
-const vctBoolVec & mtsRobot1394::ActuatorAmpStatus(void) const {
-    return mActuatorAmpStatus;
-}
-
-const vctBoolVec & mtsRobot1394::BrakeAmpStatus(void) const {
-    return mBrakeAmpStatus;
 }
 
 const vctDoubleVec & mtsRobot1394::ActuatorCurrentFeedback(void) const {

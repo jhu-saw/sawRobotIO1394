@@ -58,7 +58,7 @@ protected:
 
 private slots:
     void SlotSafetyRelay(bool toggle);
-    void SlotEnableBoards(bool toggle);
+    void SlotPowerEnable(bool toggle);
     void SlotEnableAll(bool toggle);
     void SlotEnableDirectControl(bool toggle);
     void SlotActuatorAmpEnable(void);
@@ -103,6 +103,7 @@ protected:
 
         mtsFunctionVoid PowerOnSequence;
         mtsFunctionWrite PowerOffSequence;
+        mtsFunctionRead GetPowerEnable;
         mtsFunctionRead GetFullyPowered;
 
         mtsFunctionRead measured_js;
@@ -162,6 +163,7 @@ private:
     vctBoolVec BrakeAmpStatus;
 
     bool FullyPowered;
+    bool PowerEnable;
     bool SafetyRelay, SafetyRelayStatus;
 
     // Interface
@@ -171,7 +173,7 @@ private:
 
     // GUI: Commands
     QCheckBox * QCBSafetyRelay;
-    QCheckBox * QCBEnableBoards;
+    QCheckBox * QCBPowerEnable;
     QCheckBox * QCBEnableAll;
     QPushButton * QPBResetCurrentAll;
 
