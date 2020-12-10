@@ -116,18 +116,23 @@ mtsRobotIO1394::~mtsRobotIO1394()
 
 void mtsRobotIO1394::SetProtocol(const sawRobotIO1394::ProtocolType & protocol)
 {
+    bool ok = false;
     switch (protocol) {
     case PROTOCOL_SEQ_RW:
-        mPort->SetProtocol(BasePort::PROTOCOL_SEQ_RW);
+        ok = mPort->SetProtocol(BasePort::PROTOCOL_SEQ_RW);
         break;
     case PROTOCOL_SEQ_R_BC_W:
-        mPort->SetProtocol(BasePort::PROTOCOL_SEQ_R_BC_W);
+        ok = mPort->SetProtocol(BasePort::PROTOCOL_SEQ_R_BC_W);
         break;
     case PROTOCOL_BC_QRW:
-        mPort->SetProtocol(BasePort::PROTOCOL_BC_QRW);
+        ok = mPort->SetProtocol(BasePort::PROTOCOL_BC_QRW);
         break;
     default:
         break;
+    }
+    if (!ok) {
+        CMN_LOG_CLASS_INIT_ERROR << "mtsRobot1394::SetProtocol failed" << std::endl;
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -793,9 +798,8 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
                 << " Error:" << std::endl
                 << "   Found different firmware versions," << std::endl
                 << "   ranging from " << lowest << " to " << highest << "." << std::endl
-                << "   Please use the same firmware on all boards." << std::endl
+                << "   Please try to use the same firmware on all boards." << std::endl
                 << "----------------------------------------------------" << std::endl;
-        fatal = true;
     }
     // message if needed
     if (fatal || firmwareSuggested) {
