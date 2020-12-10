@@ -194,14 +194,14 @@ int main(int argc, char * argv[])
     cmnLogger::AddChannel(std::cerr, CMN_LOG_ALLOW_ERRORS_AND_WARNINGS);
 
     cmnCommandLineOptions options;
-    int portNumber = 0;
+    std::string portName = mtsRobotIO1394::DefaultPort();
     std::string configFile;
     options.AddOptionOneValue("c", "config",
                               "configuration file",
                               cmnCommandLineOptions::REQUIRED_OPTION, &configFile);
     options.AddOptionOneValue("p", "port",
                               "firewire port number(s)",
-                              cmnCommandLineOptions::OPTIONAL_OPTION, &portNumber);
+                              cmnCommandLineOptions::OPTIONAL_OPTION, &portName);
     options.AddOptionNoValue("b", "brakes",
                              "calibrate current feedback on brakes instead of actuators",
                              cmnCommandLineOptions::OPTIONAL_OPTION);
@@ -218,7 +218,7 @@ int main(int argc, char * argv[])
         return -1;
     }
     std::cout << "Configuration file: " << configFile << std::endl
-              << "Port: " << portNumber << std::endl;
+              << "Port: " << portName << std::endl;
 
     std::cout << "Make sure:" << std::endl
               << " - your computer is connected to the firewire controller." << std::endl
@@ -231,7 +231,7 @@ int main(int argc, char * argv[])
     cmnGetChar();
 
     std::cout << "Loading config file ..." << std::endl;
-    port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
+    port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portName);
     port->SkipConfigurationCheck(true);
     port->Configure(configFile);
 

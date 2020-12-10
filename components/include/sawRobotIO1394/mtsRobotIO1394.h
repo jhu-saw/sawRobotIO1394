@@ -35,7 +35,7 @@ public:
 
 protected:
 
-    std::ostream * MessageStream;             // Stream provided to the low level boards for messages, redirected to cmnLogger
+    std::ostream * MessageStream; // Stream provided to the low level boards for messages, redirected to cmnLogger
 
     BasePort * mPort;
 
@@ -65,14 +65,14 @@ protected:
     ///////////// Public Class Methods ///////////////////////////
 public:
     // Constructor & Destructor
-    mtsRobotIO1394(const std::string & name, const double periodInSeconds, const int portNumber);
+    mtsRobotIO1394(const std::string & name, const double periodInSeconds, const std::string & port);
     mtsRobotIO1394(const mtsTaskPeriodicConstructorArg & arg); // TODO: add port_num
     virtual ~mtsRobotIO1394();
 
     void SetProtocol(const sawRobotIO1394::ProtocolType & protocol);
     void SetWatchdogPeriod(const double & periodInSeconds);
 
-    void Init(const int portNumber);
+    void Init(const std::string & port);
 
     void SkipConfigurationCheck(const bool skip); // must be called before configure
     void Configure(const std::string & filename);
@@ -100,6 +100,8 @@ public:
     void GetNumberOfRobots(int & placeHolder) const;
     sawRobotIO1394::mtsRobot1394 * Robot(const size_t index);
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
+
+    static std::string DefaultPort(void);
 
 protected:
     void GetNumberOfBoards(int & placeHolder) const;

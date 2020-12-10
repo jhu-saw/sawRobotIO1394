@@ -46,16 +46,16 @@ CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobotIO1394, mtsTaskPeriodic, mtsTaskPe
 
 using namespace sawRobotIO1394;
 
-mtsRobotIO1394::mtsRobotIO1394(const std::string & name, const double periodInSeconds, const int portNumber):
+mtsRobotIO1394::mtsRobotIO1394(const std::string & name, const double periodInSeconds, const std::string & port):
     mtsTaskPeriodic(name, periodInSeconds)
 {
-    Init(portNumber);
+    Init(port);
 }
 
 mtsRobotIO1394::mtsRobotIO1394(const mtsTaskPeriodicConstructorArg & arg):
     mtsTaskPeriodic(arg)
 {
-    Init(0);
+    Init(mtsRobotIO1394::DefaultPort());
 }
 
 mtsRobotIO1394::~mtsRobotIO1394()
@@ -146,8 +146,19 @@ void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
     }
 }
 
-void mtsRobotIO1394::Init(const int portNumber)
+void mtsRobotIO1394::Init(const std::string & port)
 {
+    // write warning to cerr if not compiled in Release mode
+    if (std::string(CISST_BUILD_TYPE) != "Release") {
+        std::cerr << "---------------------------------------------------- " << std::endl
+                  << " Warning:                                            " << std::endl
+                  << "   It seems that \"cisst\" has not been compiled in  " << std::endl
+                  << "   Release mode.  Make sure your CMake configuration " << std::endl
+                  << "   or catkin profile is configured to compile in     " << std::endl
+                      << "   Release mode for better performance and stability " << std::endl
+                  << "---------------------------------------------------- " << std::endl;
+    }
+
     // default watchdog period
     mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout;
     mSkipConfigurationCheck = false;
@@ -158,33 +169,47 @@ void mtsRobotIO1394::Init(const int portNumber)
     mStateTableWrite = new mtsStateTable(100, this->GetName() + "Write");
     mStateTableWrite->SetAutomaticAdvance(false);
 
+    // extract port type, number, IP
+    BasePort::PortType portType; // firewire or udp
+    int portNumber = 0; // default firewire port
+    std::string address(ETH_UDP_DEFAULT_IP); // default IP
+    BasePort::ParseOptions(port.c_str(), portType, portNumber, address);
+
     // construct port
     MessageStream = new std::ostream(this->GetLogMultiplexer());
     try {
+        switch (portType) {
+        case BasePort::PORT_FIREWIRE:
 #if Amp1394_HAS_RAW1394
-        // Construct handle to firewire port
-        mPort = new FirewirePort(portNumber, *MessageStream);
+            // Construct handle to firewire port
+            mPort = new FirewirePort(portNumber, *MessageStream);
 
-        // Check number of port users
-        if (mPort->NumberOfUsers() > 1) {
-            std::ostringstream oss;
-            oss << "osaIO1394Port: Found more than one user on firewire port: " << portNumber;
-            cmnThrow(osaRuntimeError1394(oss.str()));
-        }
+            // Check number of port users
+            if (mPort->NumberOfUsers() > 1) {
+                std::ostringstream oss;
+                oss << "osaIO1394Port: Found more than one user on firewire port: " << portNumber;
+                cmnThrow(osaRuntimeError1394(oss.str()));
+            }
 #else
-        // Open Ethernet UDP port
-        mPort = new EthUdpPort(portNumber, ETH_UDP_DEFAULT_IP, *MessageStream);
+            CMN_LOG_CLASS_INIT_ERROR << "Init: can't use port: " << port
+                                     << ", FireWire support is not available (set Amp1394_HAS_RAW1394 in CMake for AmpIO)."
+                                     << std::endl;
+            exit(EXIT_FAILURE);
 #endif
-
-        // write warning to cerr if not compiled in Release mode
-        if (std::string(CISST_BUILD_TYPE) != "Release") {
-            std::cerr << "---------------------------------------------------- " << std::endl
-                      << " Warning:                                            " << std::endl
-                      << "   It seems that \"cisst\" has not been compiled in  " << std::endl
-                      << "   Release mode.  Make sure your CMake configuration " << std::endl
-                      << "   or catkin profile is configured to compile in     " << std::endl
-                      << "   Release mode for better performance and stability " << std::endl
-                      << "---------------------------------------------------- " << std::endl;
+            break;
+        case BasePort::PORT_ETH_UDP:
+            // Open Ethernet UDP port
+            mPort = new EthUdpPort(portNumber, address, *MessageStream);
+            break;
+        default:
+            CMN_LOG_CLASS_INIT_ERROR << "Init: unknown port type: " << port
+                                     << ", port can be: " << std::endl
+                                     << "  - a single number (implicitly a FireWire port)" << std::endl
+                                     << "  - fw[X] for a FireWire port" << std::endl
+                                     << "  - udp[xx.xx.xx.xx] for raw UDP (IP is optional)"
+                                     << std::endl;
+            exit(EXIT_FAILURE);
+            break;
         }
     } catch (std::runtime_error &err) {
         CMN_LOG_CLASS_INIT_ERROR << err.what();
@@ -563,6 +588,11 @@ void mtsRobotIO1394::GetNumberOfRobots(int & placeHolder) const
 mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
 {
     return mRobots.at(index);
+}
+
+std::string mtsRobotIO1394::DefaultPort(void)
+{
+    return BasePort::DefaultPort();
 }
 
 const mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index) const

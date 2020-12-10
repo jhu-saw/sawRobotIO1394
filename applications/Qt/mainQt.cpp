@@ -42,7 +42,7 @@ int main(int argc, char ** argv)
 
     // parse options
     cmnCommandLineOptions options;
-    int port = 0;
+    std::string port = mtsRobotIO1394::DefaultPort();
     std::list<std::string> configFiles;
     std::string robotName = "Robot";
     double periodInSeconds = 1.0 * cmn_ms;

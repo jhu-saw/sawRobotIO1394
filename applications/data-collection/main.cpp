@@ -34,7 +34,7 @@ using namespace sawRobotIO1394;
 int main(int argc, char * argv[])
 {
     cmnCommandLineOptions options;
-    int portNumber = 0;
+    std::string portName = mtsRobotIO1394::DefaultPort();
     int actuatorIndex = 0;
     int startIndex = 0;
     int endIndex = startIndex + 4;
@@ -49,7 +49,7 @@ int main(int argc, char * argv[])
                               cmnCommandLineOptions::OPTIONAL_OPTION, &actuatorIndex);
     options.AddOptionOneValue("p", "port",
                               "firewire port number(s)",
-                              cmnCommandLineOptions::OPTIONAL_OPTION, &portNumber);
+                              cmnCommandLineOptions::OPTIONAL_OPTION, &portName);
     options.AddOptionOneValue("n", "number-iterations",
                               "number of iterations",
                               cmnCommandLineOptions::REQUIRED_OPTION, &numberOfIterations);
@@ -71,7 +71,7 @@ int main(int argc, char * argv[])
         return -1;
     }
     std::cout << "Configuration file: " << configFile << std::endl
-              << "Port: " << portNumber << std::endl;
+              << "Port: " << portName << std::endl;
 
     // add arrays here for all data collected....   don't forget to delete these at the end
     std::cout << "Allocation memory for " << numberOfIterations << " samples." << std::endl;
@@ -83,7 +83,7 @@ int main(int argc, char * argv[])
     vct4 * allVelocitiesSoftware = new vct4[numberOfIterations];
 
     std::cout << "Loading config file ..." << std::endl;
-    mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
+    mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portName);
     port->Configure(configFile);
 
     std::cout << "Creating robot ..." << std::endl;

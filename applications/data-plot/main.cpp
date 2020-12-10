@@ -38,7 +38,7 @@ using namespace sawRobotIO1394;
 int main(int argc, char * argv[])
 {
     cmnCommandLineOptions options;
-    int portNumber = 0;
+    std::string portName = mtsRobotIO1394::DefaultPort();
     int actuatorIndex = 0;
     std::string configFile;
     options.AddOptionOneValue("c", "config",
@@ -49,7 +49,7 @@ int main(int argc, char * argv[])
                               cmnCommandLineOptions::OPTIONAL_OPTION, &actuatorIndex);
     options.AddOptionOneValue("p", "port",
                               "firewire port number(s)",
-                              cmnCommandLineOptions::OPTIONAL_OPTION, &portNumber);
+                              cmnCommandLineOptions::OPTIONAL_OPTION, &portName);
     std::string errorMessage;
     if (!options.Parse(argc, argv, errorMessage)) {
         std::cerr << "Error: " << errorMessage << std::endl;
@@ -62,10 +62,10 @@ int main(int argc, char * argv[])
         return -1;
     }
     std::cout << "Configuration file: " << configFile << std::endl
-              << "Port: " << portNumber << std::endl;
+              << "Port: " << portName << std::endl;
 
     std::cout << "Loading config file ..." << std::endl;
-    mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portNumber);
+    mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portName);
     port->Configure(configFile);
 
     std::cout << "Creating robot ..." << std::endl;
