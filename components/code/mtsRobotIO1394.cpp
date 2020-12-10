@@ -35,9 +35,11 @@
 #if Amp1394_HAS_RAW1394
 #include "FirewirePort.h"
 #endif
-#if Amp1394_HAS_PCAP
-#include "Eth1394Port.h"
-#endif
+#include "EthUdpPort.h"
+// Could support raw Ethernet port if desired
+//#if Amp1394_HAS_PCAP
+//#include "EthRawPort.h"
+//#endif
 #include "AmpIO.h"
 
 CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobotIO1394, mtsTaskPeriodic, mtsTaskPeriodicConstructorArg)
@@ -159,12 +161,9 @@ void mtsRobotIO1394::Init(const int portNumber)
     // construct port
     MessageStream = new std::ostream(this->GetLogMultiplexer());
     try {
-        // Construct handle to firewire port
 #if Amp1394_HAS_RAW1394
+        // Construct handle to firewire port
         mPort = new FirewirePort(portNumber, *MessageStream);
-#else
-        mPort = new Eth1394Port(portNumber, *MessageStream);
-#endif
 
         // Check number of port users
         if (mPort->NumberOfUsers() > 1) {
@@ -172,6 +171,10 @@ void mtsRobotIO1394::Init(const int portNumber)
             oss << "osaIO1394Port: Found more than one user on firewire port: " << portNumber;
             cmnThrow(osaRuntimeError1394(oss.str()));
         }
+#else
+        // Open Ethernet UDP port
+        mPort = new EthUdpPort(portNumber, ETH_UDP_DEFAULT_IP, *MessageStream);
+#endif
 
         // write warning to cerr if not compiled in Release mode
         if (std::string(CISST_BUILD_TYPE) != "Release") {
