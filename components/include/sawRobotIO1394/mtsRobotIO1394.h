@@ -35,7 +35,7 @@ public:
 
 protected:
 
-    std::ostream * MessageStream; // Stream provided to the low level boards for messages, redirected to cmnLogger
+    std::ostream * mMessageStream; // Stream provided to the low level boards for messages, redirected to cmnLogger
 
     BasePort * mPort;
 

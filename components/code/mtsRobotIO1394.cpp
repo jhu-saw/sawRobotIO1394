@@ -32,14 +32,7 @@
 #include <sawRobotIO1394/osaXML1394.h>
 
 #include <Amp1394/AmpIORevision.h>
-#if Amp1394_HAS_RAW1394
-#include "FirewirePort.h"
-#endif
-#include "EthUdpPort.h"
-// Could support raw Ethernet port if desired
-//#if Amp1394_HAS_PCAP
-//#include "EthRawPort.h"
-//#endif
+#include "PortFactory.h"
 #include "AmpIO.h"
 
 CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobotIO1394, mtsTaskPeriodic, mtsTaskPeriodicConstructorArg)
@@ -113,7 +106,7 @@ mtsRobotIO1394::~mtsRobotIO1394()
     }
 
     // delete message stream
-    delete MessageStream;
+    delete mMessageStream;
 }
 
 void mtsRobotIO1394::SetProtocol(const sawRobotIO1394::ProtocolType & protocol)
@@ -169,50 +162,21 @@ void mtsRobotIO1394::Init(const std::string & port)
     mStateTableWrite = new mtsStateTable(100, this->GetName() + "Write");
     mStateTableWrite->SetAutomaticAdvance(false);
 
-    // extract port type, number, IP
-    BasePort::PortType portType; // firewire or udp
-    int portNumber = 0; // default firewire port
-    std::string address(ETH_UDP_DEFAULT_IP); // default IP
-    BasePort::ParseOptions(port.c_str(), portType, portNumber, address);
-
-    // construct port
-    MessageStream = new std::ostream(this->GetLogMultiplexer());
-    try {
-        switch (portType) {
-        case BasePort::PORT_FIREWIRE:
-#if Amp1394_HAS_RAW1394
-            // Construct handle to firewire port
-            mPort = new FirewirePort(portNumber, *MessageStream);
-
-            // Check number of port users
-            if (mPort->NumberOfUsers() > 1) {
-                std::ostringstream oss;
-                oss << "osaIO1394Port: Found more than one user on firewire port: " << portNumber;
-                cmnThrow(osaRuntimeError1394(oss.str()));
-            }
-#else
-            CMN_LOG_CLASS_INIT_ERROR << "Init: can't use port: " << port
-                                     << ", FireWire support is not available (set Amp1394_HAS_RAW1394 in CMake for AmpIO)."
-                                     << std::endl;
-            exit(EXIT_FAILURE);
-#endif
-            break;
-        case BasePort::PORT_ETH_UDP:
-            // Open Ethernet UDP port
-            mPort = new EthUdpPort(portNumber, address, *MessageStream);
-            break;
-        default:
-            CMN_LOG_CLASS_INIT_ERROR << "Init: unknown port type: " << port
-                                     << ", port can be: " << std::endl
-                                     << "  - a single number (implicitly a FireWire port)" << std::endl
-                                     << "  - fw[X] for a FireWire port" << std::endl
-                                     << "  - udp[xx.xx.xx.xx] for raw UDP (IP is optional)"
-                                     << std::endl;
-            exit(EXIT_FAILURE);
-            break;
-        }
-    } catch (std::runtime_error &err) {
-        CMN_LOG_CLASS_INIT_ERROR << err.what();
+    // create port
+    mMessageStream = new std::ostream(this->GetLogMultiplexer());
+    mPort = PortFactory(port.c_str(), *mMessageStream);
+    if (!mPort) {
+        CMN_LOG_CLASS_INIT_ERROR << "Init: unknown port type: " << port
+                                 << ", port can be: " << std::endl
+                                 << "  - a single number (implicitly a FireWire port)" << std::endl
+                                 << "  - fw[:X] for a FireWire port" << std::endl
+                                 << "  - udp[:xx.xx.xx.xx] for raw UDP (IP is optional)"
+                                 << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    // test port
+    if (!mPort->IsOK()) {
+        CMN_LOG_CLASS_INIT_ERROR << "Init: failed to initialize " << mPort->GetPortTypeString() << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -919,7 +883,6 @@ void mtsRobotIO1394::IntervalStatisticsCallback(void)
 
     // send message as needed
     if (sendingMessage) {
-        std::cerr << StateTable.PeriodStats << std::endl;
         std::string messageString = " IO: " + message.str();
         for (auto & robot : mRobots) {
             if (error) {
