@@ -69,13 +69,19 @@ if (cisst_FOUND_AS_REQUIRED)
   configure_file ("${sawRobotIO1394_SOURCE_DIR}/code/sawRobotIO1394Revision.h.in"
                   "${sawRobotIO1394_BINARY_DIR}/include/sawRobotIO1394/sawRobotIO1394Revision.h")
 
-  include_directories (${sawRobotIO1394_INCLUDE_DIR})
+  # create data type using the data generator
+  cisst_data_generator (sawRobotIO1394
+                        "${sawRobotIO1394_BINARY_DIR}/include" # where to save the file
+                        "sawRobotIO1394/"    # sub directory for include
+                        code/osaConfiguration1394.cdg)
+
+			include_directories (${sawRobotIO1394_INCLUDE_DIR})
   set (sawRobotIO1394_HEADER_DIR "${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394")
   link_directories (${Amp1394_LIBRARY_DIR})
 
   # create the library
   add_library (sawRobotIO1394
-               ${sawRobotIO1394_HEADER_DIR}/osaConfiguration1394.h
+               ${sawRobotIO1394_HEADER_DIR}/osaConfiguration1394-old.h
                ${sawRobotIO1394_HEADER_DIR}/osaXML1394.h
                code/osaXML1394.cpp
                ${sawRobotIO1394_HEADER_DIR}/sawRobotIO1394Export.h
@@ -88,7 +94,9 @@ if (cisst_FOUND_AS_REQUIRED)
                code/mtsDigitalInput1394.cpp
                code/mtsDigitalOutput1394.cpp
                code/mtsDallasChip1394.cpp
-               code/mtsRobotIO1394.cpp)
+               code/mtsRobotIO1394.cpp
+	       ${sawRobotIO1394_CISST_DG_SRCS}
+               ${sawRobotIO1394_CISST_DG_HDRS})
 
   set_property (TARGET sawRobotIO1394 PROPERTY FOLDER "sawRobotIO1394")
   target_link_libraries (sawRobotIO1394 Amp1394)

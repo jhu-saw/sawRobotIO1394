@@ -319,13 +319,13 @@ namespace sawRobotIO1394 {
 
         // look for potentiometers position, if any
         std::string potentiometerPosition;
-        robot.PotLocation = POTENTIOMETER_UNDEFINED;
+        robot.PotLocation = osaPot1394Location::POTENTIOMETER_UNDEFINED;
         sprintf(path,"Robot[%d]/Potentiometers/@Position", robotIndex);
         if (xmlConfig.GetXMLValue(context, path, potentiometerPosition)) {
             if (potentiometerPosition == "Actuators") {
-                robot.PotLocation = POTENTIOMETER_ON_ACTUATORS;
+                robot.PotLocation = osaPot1394Location::POTENTIOMETER_ON_ACTUATORS;
             } else if (potentiometerPosition == "Joints") {
-                robot.PotLocation = POTENTIOMETER_ON_JOINTS;
+                robot.PotLocation = osaPot1394Location::POTENTIOMETER_ON_JOINTS;
             } else {
                 CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers Position=\"\"> value, must be either \"Joints\" or \"Actuators\" for robot number "
                                    << robotIndex << std::endl;
@@ -335,10 +335,10 @@ namespace sawRobotIO1394 {
         }
 
         // load pot tolerances
-        if ((robot.PotLocation == POTENTIOMETER_ON_ACTUATORS)
-            || robot.PotLocation == POTENTIOMETER_ON_JOINTS) {
+        if ((robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS)
+            || robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
             int numberOfPots = 0;
-            if (robot.PotLocation == POTENTIOMETER_ON_ACTUATORS) {
+            if (robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
                 numberOfPots = robot.NumberOfActuators;
             } else {
                 numberOfPots = robot.NumberOfJoints;

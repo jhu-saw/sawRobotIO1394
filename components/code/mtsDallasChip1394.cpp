@@ -74,7 +74,7 @@ void mtsDallasChip1394::Configure(const osaDallasChip1394Configuration & config)
 void mtsDallasChip1394::SetBoard(AmpIO * board)
 {
     if (board == 0) {
-        cmnThrow(osaRuntimeError1394(this->Name() + ": invalid board pointer."));
+        cmnThrow(this->Name() + ": invalid board pointer.");
     }
     mBoard = board;
 }
