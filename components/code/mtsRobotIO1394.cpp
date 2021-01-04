@@ -17,6 +17,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 
 #include <cisstBuildType.h>
 #include <cisstCommon/cmnLogger.h>
@@ -233,6 +234,11 @@ void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
     mSkipConfigurationCheck = skip;
 }
 
+void mtsRobotIO1394::SaveConfigurationJSON(const std::string & filename)
+{
+    mSaveConfigurationJSON = filename;
+}
+
 void mtsRobotIO1394::Configure(const std::string & filename)
 {
     CMN_LOG_CLASS_INIT_VERBOSE << "Configure: configuring from " << filename << std::endl;
@@ -300,6 +306,17 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         } else {
             AddDallasChip(dallasChip);
         }
+    }
+
+    // Save as JSON if needed (used to port older XML file to JSON)
+    if (!mSaveConfigurationJSON.empty()) {
+        std::ofstream jsonFile;
+        jsonFile.open(mSaveConfigurationJSON);
+        Json::Value jsonConfig;
+        config.SerializeTextJSON(jsonConfig);
+        Json::StyledWriter writer;
+        jsonFile << writer.write(jsonConfig) << std::endl;
+        jsonFile.close();
     }
 
     // Check firmware versions used so far

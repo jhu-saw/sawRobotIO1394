@@ -26,3 +26,6 @@ add_subdirectory (data-plot)
 
 # utility to collect data
 add_subdirectory (data-collection)
+
+# utility to convert XML config files to JSON
+add_subdirectory (xml-to-json)

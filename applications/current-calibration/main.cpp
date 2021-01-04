@@ -200,7 +200,7 @@ int main(int argc, char * argv[])
                               "configuration file",
                               cmnCommandLineOptions::REQUIRED_OPTION, &configFile);
     options.AddOptionOneValue("p", "port",
-                              "firewire port number(s)",
+                              "port name",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &portName);
     options.AddOptionNoValue("b", "brakes",
                              "calibrate current feedback on brakes instead of actuators",

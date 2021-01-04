@@ -587,23 +587,23 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
         mConfigurationJoint.Type().at(i) = actuator.JointType;
 
-        mEffortToCurrentScales.at(i)         = drive.EffortToCurrentScale;
-        mActuatorCurrentToBitsScales.at(i)   = drive.CurrentToBitsScale;
-        mActuatorCurrentToBitsOffsets.at(i)  = drive.CurrentToBitsOffset;
-        mActuatorBitsToCurrentScales.at(i)   = drive.BitsToCurrentScale;
-        mActuatorBitsToCurrentOffsets.at(i)  = drive.BitsToCurrentOffset;
-        mActuatorEffortCommandLimits.at(i)   = drive.EffortCommandLimit;
-        mActuatorCurrentCommandLimits.at(i)  = drive.CurrentCommandLimit;
+        mEffortToCurrentScales.at(i)        = drive.EffortToCurrent.Scale;
+        mActuatorCurrentToBitsScales.at(i)  = drive.CurrentToBits.Scale;
+        mActuatorCurrentToBitsOffsets.at(i) = drive.CurrentToBits.Offset;
+        mActuatorBitsToCurrentScales.at(i)  = drive.BitsToCurrent.Scale;
+        mActuatorBitsToCurrentOffsets.at(i) = drive.BitsToCurrent.Offset;
+        mActuatorEffortCommandLimits.at(i)  = drive.EffortCommandLimit;
+        mActuatorCurrentCommandLimits.at(i) = drive.CurrentCommandLimit;
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
         mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
 
-        mBitsToPositionScales.at(i)   = encoder.BitsToPositionScale;
+        mBitsToPositionScales.at(i)     = encoder.BitsToPosition.Scale * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
 
-        mBitsToVoltageScales.at(i)      = pot.BitsToVoltageScale;
-        mBitsToVoltageOffsets.at(i)     = pot.BitsToVoltageOffset;
-        mVoltageToPositionScales.at(i)  = pot.VoltageToPositionScale;
-        mVoltageToPositionOffsets.at(i) = pot.VoltageToPositionOffset;
+        mBitsToVoltageScales.at(i)      = pot.BitsToVoltage.Scale;
+        mBitsToVoltageOffsets.at(i)     = pot.BitsToVoltage.Offset;
+        mVoltageToPositionScales.at(i)  = pot.VoltageToPosition.Scale  * osaUnitToSIFactor(pot.VoltageToPosition.Unit);
+        mVoltageToPositionOffsets.at(i) = pot.VoltageToPosition.Offset * osaUnitToSIFactor(pot.VoltageToPosition.Unit);
 
         // Initialize state vectors
         mActuatorMeasuredJS.Position().at(i) = 0.0;
@@ -648,10 +648,10 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         if (actuator.Brake) {
             const osaAnalogBrake1394Configuration * brake = actuator.Brake;
             const osaDrive1394Configuration & drive = brake->Drive;
-            mBrakeCurrentToBitsScales[currentBrake]   = drive.CurrentToBitsScale;
-            mBrakeCurrentToBitsOffsets[currentBrake]  = drive.CurrentToBitsOffset;
-            mBrakeBitsToCurrentScales[currentBrake]   = drive.BitsToCurrentScale;
-            mBrakeBitsToCurrentOffsets[currentBrake]  = drive.BitsToCurrentOffset;
+            mBrakeCurrentToBitsScales[currentBrake]   = drive.CurrentToBits.Scale;
+            mBrakeCurrentToBitsOffsets[currentBrake]  = drive.CurrentToBits.Offset;
+            mBrakeBitsToCurrentScales[currentBrake]   = drive.BitsToCurrent.Scale;
+            mBrakeBitsToCurrentOffsets[currentBrake]  = drive.BitsToCurrent.Offset;
             mBrakeCurrentCommandLimits[currentBrake]  = drive.CurrentCommandLimit;
             // 120% of command current is in the acceptable range
             // Add 50 mA for a2d noise around 0

@@ -2,6 +2,8 @@
 // ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab:
 
 inline-header {
+#include <set>
+#include <cisstCommon/cmnUnits.h>
 #include <cisstVector/vctDynamicMatrixTypes.h>
 #include <cisstParameterTypes/prmJointType.h>
 #include <cisstParameterTypes/prmActuatorJointCoupling.h>
@@ -12,9 +14,43 @@ class AmpIO;
 namespace sawRobotIO1394 {
     const size_t MAX_BOARDS = 16;
     const size_t MAX_AXES = 4;
-}
 
-}
+    inline bool osaUnitIsDistance(const std::string & unit) {
+        // make sure this is properly sorted
+        static const std::set<std::string> keywords {"cm", "deg", "m", "mm", "rad"};
+        return keywords.find(unit) != keywords.end()
+    }
+    
+    inline double osaUnitToSIFactor(const std::string & unit) {
+        // distances
+        if (unit == "mm") {
+            return cmn_mm;
+        }
+        if (unit == "cm") {
+            return cmn_cm;
+        }
+        if (unit == "m") {
+            return cmn_m;
+        }
+        // angles
+        if (unit == "deg") {
+            return cmnPI_180;
+        }
+        if (unit == "rad") {
+            return 1.0;
+        }
+        // Amps
+        if (unit == "A") {
+            return 1.0;
+        }
+        if (unit == "mA") {
+            return 1000.0;
+        }
+        return 0.0;
+    }
+} // namespace sawRobotIO1394
+
+} // inline-header
 
 class {
     name osaPot1394Location;
@@ -33,32 +69,45 @@ class {
 }
 
 class {
+    name osaLinearFunction;
+    namespace sawRobotIO1394;
+    attribute CISST_EXPORT;
+    member {
+        name Scale;
+        type double;
+        default 1.0;
+        visibility public;
+    }
+    member {
+        name Offset;
+        type double;
+        default 0.0;
+        visibility public;
+    }
+    member {
+        name Unit;
+        type std::string;
+        visibility public;
+    }
+}
+
+class {
     name osaDrive1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name EffortToCurrentScale;
-        type double;
+        name EffortToCurrent;
+        type osaLinearFunction;
         visibility public;
     }
     member {
-        name CurrentToBitsScale;
-        type double;
+        name CurrentToBits;
+        type osaLinearFunction;
         visibility public;
     }
     member {
-        name CurrentToBitsOffset;
-        type double;
-        visibility public;
-    }
-    member {
-        name BitsToCurrentScale;
-        type double;
-        visibility public;
-    }
-    member {
-        name BitsToCurrentOffset;
-        type double;
+        name BitsToCurrent;
+        type osaLinearFunction;
         visibility public;
     }
     member {
@@ -78,8 +127,8 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name BitsToPositionScale;
-        type double;
+        name BitsToPosition;
+        type osaLinearFunction;
         visibility public;
     }
 }
@@ -89,23 +138,13 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name BitsToVoltageScale;
-        type double;
+        name BitsToVoltage;
+        type osaLinearFunction;
         visibility public;
     }
     member {
-        name BitsToVoltageOffset;
-        type double;
-        visibility public;
-    }
-    member {
-        name VoltageToPositionScale;
-        type double;
-        visibility public;
-    }
-    member {
-        name VoltageToPositionOffset;
-        type double;
+        name VoltageToPosition;
+        type osaLinearFunction;
         visibility public;
     }
 }
