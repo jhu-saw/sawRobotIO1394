@@ -16,35 +16,37 @@ namespace sawRobotIO1394 {
     const size_t MAX_AXES = 4;
 
     inline bool osaUnitIsDistance(const std::string & unit) {
-        // make sure this is properly sorted
+        // make sure this is properly sorted?
         static const std::set<std::string> keywords {"cm", "deg", "m", "mm", "rad"};
-        return keywords.find(unit) != keywords.end()
+        return keywords.find(unit) != keywords.end();
     }
-    
+
+    inline bool osaUnitIsDistanceRevolute(const std::string & unit) {
+        // make sure this is properly sorted?
+        static const std::set<std::string> keywords {"deg", "rad"};
+        return keywords.find(unit) != keywords.end();
+    }
+
+    inline bool osaUnitIsDistancePrismatic(const std::string & unit) {
+        // make sure this is properly sorted?
+        static const std::set<std::string> keywords {"cm", "m", "mm"};
+        return keywords.find(unit) != keywords.end();
+    }
+
     inline double osaUnitToSIFactor(const std::string & unit) {
-        // distances
-        if (unit == "mm") {
-            return cmn_mm;
-        }
-        if (unit == "cm") {
-            return cmn_cm;
-        }
-        if (unit == "m") {
-            return cmn_m;
-        }
-        // angles
-        if (unit == "deg") {
-            return cmnPI_180;
-        }
-        if (unit == "rad") {
-            return 1.0;
-        }
-        // Amps
-        if (unit == "A") {
-            return 1.0;
-        }
-        if (unit == "mA") {
-            return 1000.0;
+        // make sure this is properly sorted?
+        static const std::map<std::string, double> factors {
+            { "A",   1.0},
+            { "cm",  cmn_cm},
+            { "deg", cmnPI_180},
+            { "m",   cmn_m},
+            { "mA",  1.000},
+            { "mm",  cmn_mm},
+            { "rad", 1.0}
+        };
+        const auto factor = factors.find(unit);
+        if (factor != factors.end()) {
+            return factor->second;
         }
         return 0.0;
     }

@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -281,10 +281,18 @@ namespace sawRobotIO1394 {
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Unit", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-            if (!osaUnitIsDistance(unit)) {
-                CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                   << "\", must be rad, deg, mm or m but found \"" << unit << "\"" << std::endl;
-                good = false;
+            if (actuator.JointType == PRM_JOINT_REVOLUTE) {
+                if (!osaUnitIsDistanceRevolute(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
+            } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
+                if (!osaUnitIsDistancePrismatic(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
             }
             actuator.Encoder.BitsToPosition.Unit = unit;
 
@@ -302,13 +310,21 @@ namespace sawRobotIO1394 {
 
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-            if (!osaUnitIsDistance(unit)) {
-                CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                   << "\", must be rad, deg, mm or m but found \"" << unit << "\"" << std::endl;
-                good = false;
+            if (actuator.JointType == PRM_JOINT_REVOLUTE) {
+                if (!osaUnitIsDistanceRevolute(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
+            } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
+                if (!osaUnitIsDistancePrismatic(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
             }
             actuator.Pot.VoltageToPosition.Unit = unit;
-            
+
             // Add the actuator
             robot.Actuators.push_back(actuator);
         }
