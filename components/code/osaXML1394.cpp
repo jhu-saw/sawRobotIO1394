@@ -38,7 +38,7 @@ namespace sawRobotIO1394 {
             exit(EXIT_FAILURE);
             return;
         } else {
-            const int minimumVersion = 5; // backward compatibility
+            const int minimumVersion = 4; // backward compatibility
             if (version < minimumVersion) {
                 CMN_LOG_INIT_ERROR << "Configure: Config/Version must be at least " << minimumVersion
                                    << ", version found is " << version << std::endl
@@ -47,7 +47,7 @@ namespace sawRobotIO1394 {
                 exit(EXIT_FAILURE);
                 return;
             }
-            const int currentVersion = 5;
+            const int currentVersion = 4;
             if (version > currentVersion) {
                 CMN_LOG_INIT_ERROR << "Configure: current Config/Version is " << currentVersion
                                    << ", version found is " << version << ", you might want to upgrade your code" << std::endl
