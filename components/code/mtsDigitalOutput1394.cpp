@@ -91,7 +91,7 @@ void mtsDigitalOutput1394::Configure(const osaDigitalOutput1394Configuration & c
 void mtsDigitalOutput1394::SetBoard(AmpIO * board)
 {
     if (board == 0) {
-        cmnThrow(osaRuntimeError1394(this->Name() + ": invalid board pointer."));
+        cmnThrow(this->Name() + ": invalid board pointer.");
     }
     mBoard = board;
     mBoard->WriteDoutControl(mBitID,

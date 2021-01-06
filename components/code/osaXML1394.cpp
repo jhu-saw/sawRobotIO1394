@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -38,7 +38,7 @@ namespace sawRobotIO1394 {
             exit(EXIT_FAILURE);
             return;
         } else {
-            const int minimumVersion = 4; // backward compatibility
+            const int minimumVersion = 5; // backward compatibility
             if (version < minimumVersion) {
                 CMN_LOG_INIT_ERROR << "Configure: Config/Version must be at least " << minimumVersion
                                    << ", version found is " << version << std::endl
@@ -47,7 +47,7 @@ namespace sawRobotIO1394 {
                 exit(EXIT_FAILURE);
                 return;
             }
-            const int currentVersion = 4;
+            const int currentVersion = 5;
             if (version > currentVersion) {
                 CMN_LOG_INIT_ERROR << "Configure: current Config/Version is " << currentVersion
                                    << ", version found is " << version << ", you might want to upgrade your code" << std::endl
@@ -137,6 +137,7 @@ namespace sawRobotIO1394 {
                                   osaRobot1394Configuration & robot)
     {
         bool good = true;
+        std::string unit;
         char path[256];
         const char * context = "Config";
 
@@ -200,30 +201,27 @@ namespace sawRobotIO1394 {
                                      << " for actuator " << i << " set to Revolute by default" << std::endl;
                 actuatorType = "Revolute";
             }
-            double unitPosConversion;
+
             if (actuatorType == "Revolute") {
-                // deg to radian
-                unitPosConversion = cmnPI_180;
                 actuator.JointType = PRM_JOINT_REVOLUTE;
             } else if (actuatorType == "Prismatic") {
-                unitPosConversion = cmn_mm;
                 actuator.JointType = PRM_JOINT_PRISMATIC;
             }
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/AmpsToBits/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.CurrentToBitsScale);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.CurrentToBits.Scale);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/AmpsToBits/@Offset", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.CurrentToBitsOffset);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.CurrentToBits.Offset);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/BitsToFeedbackAmps/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.BitsToCurrentScale);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.BitsToCurrent.Scale);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/BitsToFeedbackAmps/@Offset", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.BitsToCurrentOffset);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.BitsToCurrent.Offset);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/NmToAmps/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.EffortToCurrentScale, !robot.OnlyIO);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.EffortToCurrent.Scale, !robot.OnlyIO);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/MaxCurrent/@Value", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.CurrentCommandLimit);
@@ -244,16 +242,16 @@ namespace sawRobotIO1394 {
                 good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->AxisID);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/AmpsToBits/@Scale", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.CurrentToBitsScale);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.CurrentToBits.Scale);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/AmpsToBits/@Offset", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.CurrentToBitsOffset);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.CurrentToBits.Offset);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/BitsToFeedbackAmps/@Scale", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.BitsToCurrentScale);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.BitsToCurrent.Scale);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/BitsToFeedbackAmps/@Offset", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.BitsToCurrentOffset);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.BitsToCurrent.Offset);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/MaxCurrent/@Value", robotIndex, actuatorIndex);
                 good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.CurrentCommandLimit);
@@ -276,25 +274,56 @@ namespace sawRobotIO1394 {
             }
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.BitsToPositionScale, !robot.OnlyIO);
-            actuator.Encoder.BitsToPositionScale *= unitPosConversion; // -------------------------------------------- adeguet1, make sure these are degrees
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.BitsToPosition.Scale, !robot.OnlyIO);
             if (robot.OnlyIO) {
-                actuator.Encoder.BitsToPositionScale = 0.0;
+                actuator.Encoder.BitsToPosition.Scale = 0.0;
             }
 
+            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Unit", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
+            if (actuator.JointType == PRM_JOINT_REVOLUTE) {
+                if (!osaUnitIsDistanceRevolute(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
+            } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
+                if (!osaUnitIsDistancePrismatic(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
+            }
+            actuator.Encoder.BitsToPosition.Unit = unit;
+
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltageScale);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Scale);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Offset", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltageOffset);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Offset);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.VoltageToPositionScale, !robot.OnlyIO);
-            actuator.Pot.VoltageToPositionScale *= unitPosConversion; // -------------------------------------------- adeguet1, make sure these are degrees
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.VoltageToPosition.Scale, !robot.OnlyIO);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Offset", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot. VoltageToPositionOffset, !robot.OnlyIO);
-            actuator.Pot.VoltageToPositionOffset *= unitPosConversion; // -------------------------------------------- adeguet1, make sure these are degrees
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot. VoltageToPosition.Offset, !robot.OnlyIO);
+
+            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
+            if (actuator.JointType == PRM_JOINT_REVOLUTE) {
+                if (!osaUnitIsDistanceRevolute(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
+            } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
+                if (!osaUnitIsDistancePrismatic(unit)) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                       << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                    good = false;
+                }
+            }
+            actuator.Pot.VoltageToPosition.Unit = unit;
 
             // Add the actuator
             robot.Actuators.push_back(actuator);
@@ -303,11 +332,11 @@ namespace sawRobotIO1394 {
         // verify that all amps offsets are different from each other
         if (robot.Actuators.size() > 2) {
             bool allEqual = true;
-            const double defaultOffset = robot.Actuators[0].Drive.CurrentToBitsOffset;
+            const double defaultOffset = robot.Actuators[0].Drive.CurrentToBits.Offset;
             for (size_t index = 1;
                  index < robot.Actuators.size();
                  ++index) {
-                if (robot.Actuators[index].Drive.CurrentToBitsOffset != defaultOffset) {
+                if (robot.Actuators[index].Drive.CurrentToBits.Offset != defaultOffset) {
                     allEqual = false;
                 }
             }
@@ -319,13 +348,13 @@ namespace sawRobotIO1394 {
 
         // look for potentiometers position, if any
         std::string potentiometerPosition;
-        robot.PotLocation = POTENTIOMETER_UNDEFINED;
+        robot.PotLocation = osaPot1394Location::POTENTIOMETER_UNDEFINED;
         sprintf(path,"Robot[%d]/Potentiometers/@Position", robotIndex);
         if (xmlConfig.GetXMLValue(context, path, potentiometerPosition)) {
             if (potentiometerPosition == "Actuators") {
-                robot.PotLocation = POTENTIOMETER_ON_ACTUATORS;
+                robot.PotLocation = osaPot1394Location::POTENTIOMETER_ON_ACTUATORS;
             } else if (potentiometerPosition == "Joints") {
-                robot.PotLocation = POTENTIOMETER_ON_JOINTS;
+                robot.PotLocation = osaPot1394Location::POTENTIOMETER_ON_JOINTS;
             } else {
                 CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers Position=\"\"> value, must be either \"Joints\" or \"Actuators\" for robot number "
                                    << robotIndex << std::endl;
@@ -335,10 +364,10 @@ namespace sawRobotIO1394 {
         }
 
         // load pot tolerances
-        if ((robot.PotLocation == POTENTIOMETER_ON_ACTUATORS)
-            || robot.PotLocation == POTENTIOMETER_ON_JOINTS) {
+        if ((robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS)
+            || robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
             int numberOfPots = 0;
-            if (robot.PotLocation == POTENTIOMETER_ON_ACTUATORS) {
+            if (robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
                 numberOfPots = robot.NumberOfActuators;
             } else {
                 numberOfPots = robot.NumberOfJoints;
@@ -362,26 +391,20 @@ namespace sawRobotIO1394 {
                                            << robotIndex << "(" << robot.Name << ")" << std::endl;
                         good = false;
                     }
+                    pot.AxisID = axis;
                     // get data
                     sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Distance", robotIndex, xmlPotIndex);
                     good &= osaXML1394GetValue(xmlConfig, context, path, pot.Distance);
                     sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Latency", robotIndex, xmlPotIndex);
                     good &= osaXML1394GetValue(xmlConfig, context, path, pot.Latency);
                     // convert to proper units
-                    std::string units;
                     sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Unit", robotIndex, xmlPotIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, units);
-                    if (units == "deg") {
-                        pot.Distance *= cmnPI_180;
-                    } else if (units == "rad") {
-                        // SI ok
-                    } else if (units == "mm") {
-                        pot.Distance *= cmn_mm;
-                    } else if (units == "m") {
-                        pot.Distance *= cmn_m;
+                    good &= osaXML1394GetValue(xmlConfig, context, path, unit);
+                    if (osaUnitIsDistance(unit)) {
+                        pot.Distance *= osaUnitToSIFactor(unit);
                     } else {
                         CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Unit=\"\"> must be rad, deg, mm, m but found \""
-                                           << units << "\" for Axis " << axis << " for robot "
+                                           << unit << "\" for Axis " << axis << " for robot "
                                            << robotIndex << "(" << robot.Name << ")" << std::endl;
                         good = false;
                     }

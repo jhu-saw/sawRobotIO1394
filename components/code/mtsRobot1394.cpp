@@ -541,7 +541,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mJointEffortCommandLimits.SetSize(mNumberOfJoints);
     mActuatorCurrentCommandLimits.SetSize(mNumberOfActuators);
     mActuatorCurrentFeedbackLimits.SetSize(mNumberOfActuators);
-    if (mPotType == POTENTIOMETER_ON_ACTUATORS) {
+    if (mPotType == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
         mPotToleranceLatency.SetSize(mNumberOfActuators);
         mPotToleranceDistance.SetSize(mNumberOfActuators);
         for (size_t i = 0; i < mNumberOfActuators; ++i) {
@@ -550,7 +550,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         }
         mPotErrorDuration.SetSize(mNumberOfActuators);
         mPotValid.SetSize(mNumberOfActuators);
-    } else if (mPotType == POTENTIOMETER_ON_JOINTS) {
+    } else if (mPotType == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
         mPotToleranceLatency.SetSize(mNumberOfJoints);
         mPotToleranceDistance.SetSize(mNumberOfJoints);
         for (size_t i = 0; i < mNumberOfJoints; ++i) {
@@ -587,23 +587,23 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
         mConfigurationJoint.Type().at(i) = actuator.JointType;
 
-        mEffortToCurrentScales.at(i)         = drive.EffortToCurrentScale;
-        mActuatorCurrentToBitsScales.at(i)   = drive.CurrentToBitsScale;
-        mActuatorCurrentToBitsOffsets.at(i)  = drive.CurrentToBitsOffset;
-        mActuatorBitsToCurrentScales.at(i)   = drive.BitsToCurrentScale;
-        mActuatorBitsToCurrentOffsets.at(i)  = drive.BitsToCurrentOffset;
-        mActuatorEffortCommandLimits.at(i)   = drive.EffortCommandLimit;
-        mActuatorCurrentCommandLimits.at(i)  = drive.CurrentCommandLimit;
+        mEffortToCurrentScales.at(i)        = drive.EffortToCurrent.Scale;
+        mActuatorCurrentToBitsScales.at(i)  = drive.CurrentToBits.Scale;
+        mActuatorCurrentToBitsOffsets.at(i) = drive.CurrentToBits.Offset;
+        mActuatorBitsToCurrentScales.at(i)  = drive.BitsToCurrent.Scale;
+        mActuatorBitsToCurrentOffsets.at(i) = drive.BitsToCurrent.Offset;
+        mActuatorEffortCommandLimits.at(i)  = drive.EffortCommandLimit;
+        mActuatorCurrentCommandLimits.at(i) = drive.CurrentCommandLimit;
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
         mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
 
-        mBitsToPositionScales.at(i)   = encoder.BitsToPositionScale;
+        mBitsToPositionScales.at(i)     = encoder.BitsToPosition.Scale * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
 
-        mBitsToVoltageScales.at(i)      = pot.BitsToVoltageScale;
-        mBitsToVoltageOffsets.at(i)     = pot.BitsToVoltageOffset;
-        mVoltageToPositionScales.at(i)  = pot.VoltageToPositionScale;
-        mVoltageToPositionOffsets.at(i) = pot.VoltageToPositionOffset;
+        mBitsToVoltageScales.at(i)      = pot.BitsToVoltage.Scale;
+        mBitsToVoltageOffsets.at(i)     = pot.BitsToVoltage.Offset;
+        mVoltageToPositionScales.at(i)  = pot.VoltageToPosition.Scale  * osaUnitToSIFactor(pot.VoltageToPosition.Unit);
+        mVoltageToPositionOffsets.at(i) = pot.VoltageToPosition.Offset * osaUnitToSIFactor(pot.VoltageToPosition.Unit);
 
         // Initialize state vectors
         mActuatorMeasuredJS.Position().at(i) = 0.0;
@@ -648,10 +648,10 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         if (actuator.Brake) {
             const osaAnalogBrake1394Configuration * brake = actuator.Brake;
             const osaDrive1394Configuration & drive = brake->Drive;
-            mBrakeCurrentToBitsScales[currentBrake]   = drive.CurrentToBitsScale;
-            mBrakeCurrentToBitsOffsets[currentBrake]  = drive.CurrentToBitsOffset;
-            mBrakeBitsToCurrentScales[currentBrake]   = drive.BitsToCurrentScale;
-            mBrakeBitsToCurrentOffsets[currentBrake]  = drive.BitsToCurrentOffset;
+            mBrakeCurrentToBitsScales[currentBrake]   = drive.CurrentToBits.Scale;
+            mBrakeCurrentToBitsOffsets[currentBrake]  = drive.CurrentToBits.Offset;
+            mBrakeBitsToCurrentScales[currentBrake]   = drive.BitsToCurrent.Scale;
+            mBrakeBitsToCurrentOffsets[currentBrake]  = drive.BitsToCurrent.Offset;
             mBrakeCurrentCommandLimits[currentBrake]  = drive.CurrentCommandLimit;
             // 120% of command current is in the acceptable range
             // Add 50 mA for a2d noise around 0
@@ -683,11 +683,11 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                              const std::vector<osaBrakeMapping> & brakeBoards)
 {
     if (actuatorBoards.size() != mNumberOfActuators) {
-        cmnThrow(osaRuntimeError1394(this->Name() + ": number of actuator boards different than the number of actuators."));
+        cmnThrow(this->Name() + ": number of actuator boards different than the number of actuators.");
     }
 
     if (brakeBoards.size() != mNumberOfBrakes) {
-        cmnThrow(osaRuntimeError1394(this->Name() + ": number of brake boards different than the number of brakes."));
+        cmnThrow(this->Name() + ": number of brake boards different than the number of brakes.");
     }
 
     for (size_t i = 0; i < mNumberOfActuators; i++) {
@@ -756,7 +756,7 @@ void mtsRobot1394::PollValidity(void)
 {
     // Make sure the boards have been configured
     if (mNumberOfActuators != mActuatorInfo.size()) {
-        cmnThrow(osaRuntimeError1394(this->Name() + ": number of boards different than the number of actuators."));
+        cmnThrow(this->Name() + ": number of boards different than the number of actuators.");
     }
 
     // Store previous state
@@ -793,12 +793,12 @@ void mtsRobot1394::PollValidity(void)
                     message << static_cast<int>(board.second->GetBoardId()) << " ";
                 }
             }
-            cmnThrow(osaRuntimeError1394(message.str()));
+            cmnThrow(message.str());
         } else {
             mInvalidReadCounter++;
             if (mInvalidReadCounter == 10000) {
                 mInvalidReadCounter = 0;
-                cmnThrow(osaRuntimeError1394(this->Name() + ": port read errors, occurred 10,000 times"));
+                cmnThrow(this->Name() + ": port read errors, occurred 10,000 times");
             }
         }
     } else {
@@ -1039,7 +1039,7 @@ void mtsRobot1394::CheckState(void)
 
     if (mCurrentSafetyViolationsCounter > mCurrentSafetyViolationsMaximum) {
         this->PowerOffSequence(false /* do no open safety relays */);
-        cmnThrow(osaRuntimeError1394(this->Name() + ": too many consecutive current safety violations.  Power has been disabled."));
+        cmnThrow(this->Name() + ": too many consecutive current safety violations.  Power has been disabled.");
     }
 
     // check safety amp disable
@@ -1054,7 +1054,7 @@ void mtsRobot1394::CheckState(void)
         // update status - this needs to be here, throw will interrupt execution...
         mSafetyAmpDisabled = newSafetyAmpDisabled;
         // throw only if this is new
-        cmnThrow(osaRuntimeError1394(this->Name() + ": hardware current safety amp disable tripped." + mActuatorTimestamp.ToString()));
+        cmnThrow(this->Name() + ": hardware current safety amp disable tripped." + mActuatorTimestamp.ToString());
     } else {
         // update status
         mSafetyAmpDisabled = newSafetyAmpDisabled;
@@ -1164,13 +1164,13 @@ void mtsRobot1394::CheckState(void)
     // Check if encoders and potentiometers agree
     if (mUsePotsForSafetyCheck) {
         switch (mPotType) {
-        case POTENTIOMETER_UNDEFINED:
+        case osaPot1394Location::POTENTIOMETER_UNDEFINED:
             break;
-        case POTENTIOMETER_ON_ACTUATORS:
-        case POTENTIOMETER_ON_JOINTS:
+        case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
+        case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
             {
                 vctDynamicVectorRef<double> encoderRef;
-                if (mPotType == POTENTIOMETER_ON_ACTUATORS) {
+                if (mPotType == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
                     encoderRef.SetRef(mActuatorMeasuredJS.Position());
                 } else {
                     encoderRef.SetRef(mMeasuredJS.Position());
@@ -1242,7 +1242,7 @@ void mtsRobot1394::CheckState(void)
                         warningMessage.append("\nerror duration:\n");
                         warningMessage.append(mPotErrorDuration.ToString());
                         mInterface->SendWarning(warningMessage);
-                        cmnThrow(osaRuntimeError1394(errorMessage));
+                        cmnThrow(errorMessage);
                     } else {
                         CMN_LOG_CLASS_RUN_VERBOSE << "IO: " << this->Name()
                                                   << ": check between encoders and potentiomenters, recovery.  Valid pots:" << std::endl
@@ -1266,7 +1266,7 @@ void mtsRobot1394::CheckState(void)
             errorMessage.append(mEncoderOverflow.ToString());
             // if we have already performed encoder calibration, this is really bad
             if (mCalibrateEncodersPerformed) {
-                cmnThrow(osaRuntimeError1394(errorMessage));
+                cmnThrow(errorMessage);
             } else {
                 mInterface->SendError("IO: " + this->Name() + " encoder overflow detected");
             }
@@ -1276,16 +1276,16 @@ void mtsRobot1394::CheckState(void)
     mActuatorMeasuredJS.SetValid(true);
     mMeasuredJS.SetValid(true);
 
-    // if (mPreviousPowerStatus != mPowerStatus) {
-    //     EventTriggers.PowerStatus(mPowerStatus);
-    //     // this might be an issues
-    //     if (!mPowerStatus && mUserExpectsPower) {
-    //         // give some time to power, if greater then it's an issue
-    //         if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
-    //             mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
-    //         }
-    //     }
-    // }
+    if (mPreviousFullyPowered != mFullyPowered) {
+        EventTriggers.FullyPowered(mFullyPowered);
+        // this might be an issues
+        if (!mFullyPowered && mUserExpectsPower) {
+            // give some time to power, if greater then it's an issue
+            if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
+                mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
+            }
+        }
+    }
 
     if (mPreviousWatchdogTimeoutStatus != mWatchdogTimeoutStatus) {
         EventTriggers.WatchdogTimeoutStatus(mWatchdogTimeoutStatus);
@@ -1338,10 +1338,10 @@ void mtsRobot1394::CheckState(void)
             // determine where pots are
             vctDoubleVec actuatorPosition(mNumberOfActuators);
             switch(mPotType) {
-            case POTENTIOMETER_UNDEFINED:
+            case osaPot1394Location::POTENTIOMETER_UNDEFINED:
                 cmnThrow("mtsRobot1394::CheckState: can't set encoder offset, potentiometer's position undefined");
                 break;
-            case POTENTIOMETER_ON_JOINTS:
+            case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
                 if (mConfiguration.HasActuatorToJointCoupling) {
                     actuatorPosition.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
                                                potentiometers);
@@ -1350,7 +1350,7 @@ void mtsRobot1394::CheckState(void)
                 }
                 SetEncoderPosition(actuatorPosition);
                 break;
-            case POTENTIOMETER_ON_ACTUATORS:
+            case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
                 SetEncoderPosition(potentiometers);
                 break;
             }
@@ -1585,10 +1585,10 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
 {
     vctDoubleVec actuatorPosition(mNumberOfActuators);
     switch(mPotType) {
-    case POTENTIOMETER_UNDEFINED:
+    case osaPot1394Location::POTENTIOMETER_UNDEFINED:
         cmnThrow("mtsRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
         break;
-    case POTENTIOMETER_ON_JOINTS:
+    case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
         if (mConfiguration.HasActuatorToJointCoupling) {
             actuatorPosition.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
                                        mPotPosition);
@@ -1597,7 +1597,7 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
         }
         SetEncoderPosition(actuatorPosition);
         break;
-    case POTENTIOMETER_ON_ACTUATORS:
+    case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
         SetEncoderPosition(mPotPosition);
         break;
     };

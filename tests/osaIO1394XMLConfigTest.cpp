@@ -93,7 +93,7 @@ void osaIO1394XMLConfigTest::TestConfigure(void)
     CPPUNIT_ASSERT(robot.NumberOfActuators == 4);
     CPPUNIT_ASSERT(robot.NumberOfJoints == 4);
     CPPUNIT_ASSERT(robot.HasActuatorToJointCoupling == true);
-    CPPUNIT_ASSERT(robot.PotLocation == sawRobotIO1394::POTENTIOMETER_ON_ACTUATORS);
+    CPPUNIT_ASSERT(robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS);
 
     CPPUNIT_ASSERT(robot.Coupling.ActuatorToJointPosition().rows() == 4);
     CPPUNIT_ASSERT(robot.Coupling.JointToActuatorPosition().rows() == 4);

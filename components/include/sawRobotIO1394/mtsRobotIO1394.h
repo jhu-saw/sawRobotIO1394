@@ -40,7 +40,8 @@ protected:
     BasePort * mPort;
 
     double mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
-    bool mSkipConfigurationCheck;
+    bool mSkipConfigurationCheck = false;
+    std::string mSaveConfigurationJSON = "";
 
     std::map<int, AmpIO*> mBoards;
     typedef std::map<int, AmpIO*>::iterator board_iterator;
@@ -74,7 +75,8 @@ public:
 
     void Init(const std::string & port);
 
-    void SkipConfigurationCheck(const bool skip); // must be called before configure
+    void SkipConfigurationCheck(const bool skip); // must be called before Configure
+    void SaveConfigurationJSON(const std::string & filename); // must be called before Configure
     void Configure(const std::string & filename);
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);

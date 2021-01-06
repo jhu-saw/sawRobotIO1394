@@ -297,7 +297,7 @@ namespace sawRobotIO1394 {
 
         //! Robot type
         prmConfigurationJoint mConfigurationJoint;
-        osaPot1394Location mPotType;
+        osaPot1394Location::Type mPotType;
         bool mUsePotsForSafetyCheck;
 
         //! State Members

@@ -124,7 +124,7 @@ void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
 void mtsDigitalInput1394::SetBoard(AmpIO * board)
 {
     if (board == 0) {
-        cmnThrow(osaRuntimeError1394(this->Name() + ": invalid board pointer."));
+        cmnThrow(this->Name() + ": invalid board pointer.");
     }
     mBoard = board;
 }

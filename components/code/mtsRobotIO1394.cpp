@@ -17,6 +17,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 
 #include <cisstBuildType.h>
 #include <cisstCommon/cmnLogger.h>
@@ -233,6 +234,11 @@ void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
     mSkipConfigurationCheck = skip;
 }
 
+void mtsRobotIO1394::SaveConfigurationJSON(const std::string & filename)
+{
+    mSaveConfigurationJSON = filename;
+}
+
 void mtsRobotIO1394::Configure(const std::string & filename)
 {
     CMN_LOG_CLASS_INIT_VERBOSE << "Configure: configuring from " << filename << std::endl;
@@ -300,6 +306,17 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         } else {
             AddDallasChip(dallasChip);
         }
+    }
+
+    // Save as JSON if needed (used to port older XML file to JSON)
+    if (!mSaveConfigurationJSON.empty()) {
+        std::ofstream jsonFile;
+        jsonFile.open(mSaveConfigurationJSON);
+        Json::Value jsonConfig;
+        config.SerializeTextJSON(jsonConfig);
+        Json::StyledWriter writer;
+        jsonFile << writer.write(jsonConfig) << std::endl;
+        jsonFile.close();
     }
 
     // Check firmware versions used so far
@@ -487,9 +504,6 @@ void mtsRobotIO1394::Run(void)
     PreRead();
     try {
         Read();
-    } catch (sawRobotIO1394::osaRuntimeError1394 & sawException) {
-        gotException = true;
-        message = this->Name + ": sawRobotIO1394 exception \"" + sawException.what() + "\"";
     } catch (std::exception & stdException) {
         gotException = true;
         message = this->Name + ": standard exception \"" + stdException.what() + "\"";
@@ -585,14 +599,14 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
 void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
 {
     if (robot == 0) {
-        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddRobot: Robot pointer is null."));
+        cmnThrow("mtsRobotIO1394::AddRobot: Robot pointer is null.");
     }
 
     const osaRobot1394Configuration & config = robot->GetConfiguration();
 
     // Check to make sure this robot isn't already added
     if (mRobotsByName.count(config.Name) > 0) {
-        cmnThrow(osaRuntimeError1394(robot->Name() + ": robot name is not unique."));
+        cmnThrow(robot->Name() + ": robot name is not unique.");
     }
 
     // Construct a vector of boards relevant to this robot
@@ -647,14 +661,14 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
 void mtsRobotIO1394::AddDigitalInput(mtsDigitalInput1394 * digitalInput)
 {
     if (digitalInput == 0) {
-        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddDigitalInput: digital input pointer is null."));
+        cmnThrow("mtsRobotIO1394::AddDigitalInput: digital input pointer is null.");
     }
 
     const osaDigitalInput1394Configuration & config = digitalInput->Configuration();
 
     // Check to make sure this digital input isn't already added
     if (mDigitalInputsByName.count(config.Name) > 0) {
-        cmnThrow(osaRuntimeError1394(digitalInput->Name() + ": digital input name is not unique."));
+        cmnThrow(digitalInput->Name() + ": digital input name is not unique.");
     }
 
     // Construct a vector of boards relevant to this digital input
@@ -677,14 +691,14 @@ void mtsRobotIO1394::AddDigitalInput(mtsDigitalInput1394 * digitalInput)
 void mtsRobotIO1394::AddDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
 {
     if (digitalOutput == 0) {
-        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddDigitalOutput: digital output pointer is null."));
+        cmnThrow("mtsRobotIO1394::AddDigitalOutput: digital output pointer is null.");
     }
 
     const osaDigitalOutput1394Configuration & config = digitalOutput->Configuration();
 
     // Check to make sure this digital output isn't already added
     if (mDigitalOutputsByName.count(config.Name) > 0) {
-        cmnThrow(osaRuntimeError1394(digitalOutput->Name() + ": digital output name is not unique."));
+        cmnThrow(digitalOutput->Name() + ": digital output name is not unique.");
     }
 
     // Construct a vector of boards relevant to this digital output
@@ -707,14 +721,14 @@ void mtsRobotIO1394::AddDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
 void mtsRobotIO1394::AddDallasChip(mtsDallasChip1394 * dallasChip)
 {
     if (dallasChip == 0) {
-        cmnThrow(osaRuntimeError1394("mtsRobotIO1394::AddDallasChip: Dallas chip pointer is null."));
+        cmnThrow("mtsRobotIO1394::AddDallasChip: Dallas chip pointer is null.");
     }
 
     const osaDallasChip1394Configuration & config = dallasChip->Configuration();
 
     // Check to make sure this Dallas chip isn't already added
     if (mDallasChipsByName.count(config.Name) > 0) {
-        cmnThrow(osaRuntimeError1394(dallasChip->Name() + ": Dallas chip name is not unique."));
+        cmnThrow(dallasChip->Name() + ": Dallas chip name is not unique.");
     }
 
     // Construct a vector of boards relevant to this Dallas chip
