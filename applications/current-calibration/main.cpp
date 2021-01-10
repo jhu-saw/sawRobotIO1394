@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2013-12-20
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -30,7 +30,6 @@ http://www.cisst.org/cisst/license.txt.
 
 using namespace sawRobotIO1394;
 
-const double WatchdogPeriod = 100.0 * cmn_ms;
 enum PowerType {ALL, BOARD, ACTUATOR, BRAKE};
 bool brakes;
 mtsRobot1394 * robot;
