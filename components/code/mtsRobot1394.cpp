@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -95,7 +95,6 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(mActuatorAmpStatus, "ActuatorAmpStatus");
     mStateTableRead->AddData(mActuatorAmpEnable, "ActuatorAmpEnable");
     mStateTableRead->AddData(mEncoderPositionBits, "PositionEncoderRaw");
-    mStateTableRead->AddData(mEncoderAcceleration, "Accel");
     mStateTableRead->AddData(mPotBits, "AnalogInRaw");
     mStateTableRead->AddData(mPotVoltage, "AnalogInVolts");
     mStateTableRead->AddData(mPotPosition, "AnalogInPosSI");
@@ -104,6 +103,8 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
 
     mStateTableRead->AddData(mMeasuredJS, "measured_js");
     mStateTableRead->AddData(mActuatorMeasuredJS, "actuator_measured_js");
+    mStateTableRead->AddData(mEncoderAcceleration, "measured_ja");
+    mStateTableRead->AddData(mActuatorEncoderAcceleration, "actuator_measured_ja");
 
     mStateTableWrite->AddData(mActuatorCurrentBitsCommand, "ActuatorControlCurrentRaw");
     mStateTableWrite->AddData(mActuatorCurrentCommand, "ActuatorControlCurrent");
@@ -350,6 +351,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
 
     robotInterface->AddCommandReadState(*mStateTableRead, mEncoderAcceleration,
                                         "GetAcceleration"); // vector[double]
+    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorEncoderAcceleration,
+                                        "GetActuatorAcceleration"); // vector[double]
 
     robotInterface->AddCommandReadState(*mStateTableRead, this->mMeasuredJS,
                                         "measured_js");
@@ -500,25 +503,16 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mPreviousEncoderOverflow.SetSize(mNumberOfActuators);
     mPreviousEncoderOverflow.SetAll(false);
     mEncoderPositionBits.SetSize(mNumberOfActuators);
-    mEncoderPositionBitsPrev.SetSize(mNumberOfActuators);
     mActuatorCurrentBitsCommand.SetSize(mNumberOfActuators);
     mActuatorCurrentBitsFeedback.SetSize(mNumberOfActuators);
 
     mActuatorTimestamp.SetSize(mNumberOfActuators);
-    mActuatorTimestampChange.SetSize(mNumberOfActuators);
-    mActuatorTimestampChange.SetAll(0.0);
-    mActuatorPreviousTimestampChange.SetSize(mNumberOfActuators);
-    mActuatorPreviousTimestampChange.SetAll(0.0);
-    mVelocitySlopeToZero.SetSize(mNumberOfActuators);
-    mVelocitySlopeToZero.SetAll(0.0);
     mPotVoltage.SetSize(mNumberOfActuators);
     mPotPosition.SetSize(mNumberOfActuators);
-    mEncoderVelocityCountsPerSecond.SetSize(mNumberOfActuators);
-    mEncoderVelocityDelay.SetSize(mNumberOfActuators);
-    mEncoderVelocityPredicted.SetSize(mNumberOfActuators);
+    mEncoderVelocityPredictedCountsPerSec.SetSize(mNumberOfActuators);
     mEncoderAccelerationCountsPerSecSec.SetSize(mNumberOfActuators);
+    mActuatorEncoderAcceleration.SetSize(mNumberOfActuators);
     mEncoderAcceleration.SetSize(mNumberOfActuators);
-    mEncoderVelocitySoftware.SetSize(mNumberOfActuators);
     mActuatorCurrentCommand.SetSize(mNumberOfActuators);
     mActuatorEffortCommand.SetSize(mNumberOfActuators);
     mActuatorCurrentFeedback.SetSize(mNumberOfActuators);
@@ -826,10 +820,12 @@ void mtsRobot1394::PollState(void)
 
         // convert from 24 bits signed stored in 32 unsigned to 32 signed
         mEncoderPositionBits[i] = board->GetEncoderPosition(axis);
-        mEncoderVelocityDelay[i] = board->GetEncoderVelocityDelay(axis);
+
+        // Get estimation of acceleration, not used internally but maybe users could
+        mEncoderAccelerationCountsPerSecSec[i] = board->GetEncoderAcceleration(axis);
+
         // Second argument below is how much quantization error do we accept
-        mEncoderAccelerationCountsPerSecSec[i] = board->GetEncoderAcceleration(axis, 0.0005);
-        mEncoderVelocityCountsPerSecond[i] = board->GetEncoderVelocityCountsPerSecond(axis);
+        mEncoderVelocityPredictedCountsPerSec[i] = board->GetEncoderVelocityPredicted(axis, 0.0005);
 
         mPotBits[i] = board->GetAnalogInput(axis);
 
@@ -872,95 +868,22 @@ void mtsRobot1394::ConvertState(void)
         mMeasuredJS.Position().Assign(mActuatorMeasuredJS.Position());
     }
 
-    // Scale velocity from counts/sec to SI units
-    // Note that this velocity may not get used; depending on the firmware version,
-    // the system will compute the joint velocities from mEncoderVelocitySoftware or
-    // mEncoderVelocityPredicted.
-    mActuatorMeasuredJS.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityCountsPerSecond);
-
-    // Scale acceleration from counts/sec**2 to SI units
-    mEncoderAcceleration.ElementwiseProductOf(mBitsToPositionScales, mEncoderAccelerationCountsPerSecSec);
-
-    // Velocity computation
-
-    // If we have firmware 6, use FPGA acceleration to predict current velocity
-    if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
-        EncoderBitsToVelocityPredicted(mEncoderVelocityPredicted);
-    }
-
-    // In any case, compute velocities in "software"
-    // using iterator for efficiency and going over all actuators
-    const double timeToZeroVelocity = 1.0 * cmn_s;
-    const vctIntVec::const_iterator end = mEncoderPositionBits.end();
-    vctIntVec::const_iterator currentEncoder, previousEncoder;
-    vctDoubleVec::const_iterator currentTimestamp, bitsToPos;
-    vctDoubleVec::const_iterator encoderVelocity;
-    vctDoubleVec::iterator lastChangeTimestamp, slope, velocity;
-    size_t index = 0;
-    for (currentEncoder = mEncoderPositionBits.begin(),
-             previousEncoder = mEncoderPositionBitsPrev.begin(),
-             currentTimestamp = mActuatorTimestamp.begin(),
-             bitsToPos = mBitsToPositionScales.begin(),
-             lastChangeTimestamp = mActuatorTimestampChange.begin(),
-             slope = mVelocitySlopeToZero.begin(),
-             velocity = mEncoderVelocitySoftware.begin();
-         // end
-         currentEncoder != end;
-         // increment
-         ++currentEncoder,
-             ++previousEncoder,
-             ++currentTimestamp,
-             ++bitsToPos,
-             ++lastChangeTimestamp,
-             ++slope,
-             ++velocity,
-             ++index) {
-        // first see if there has been any change
-        const int difference = (*currentEncoder) - (*previousEncoder);
-        if (difference == 0) {
-            if (*lastChangeTimestamp < timeToZeroVelocity) {
-                *velocity -= (*slope) * (*currentTimestamp);
-            } else {
-                *velocity = 0.0;
-            }
-            *lastChangeTimestamp += (*currentTimestamp);
-        } else {
-            *lastChangeTimestamp += (*currentTimestamp);
-            // if we only have one bit change compute velocity since last change
-            if ((difference == 1) || (difference == -1)) {
-                *velocity = (difference / (*lastChangeTimestamp))
-                    * (*bitsToPos);
-            } else {
-                if (difference > 1) {
-                    // we know all but 1 bit difference happened in last Dt, other bit change happened between now and last change
-                    *velocity = ((difference - 1.0) / (*currentTimestamp) + 1.0 / (*lastChangeTimestamp))
-                        * (*bitsToPos);
-                } else {
-                    *velocity = ((difference + 1.0) / (*currentTimestamp) - 1.0 / (*lastChangeTimestamp))
-                        * (*bitsToPos);
-                }
-            }
-            // keep record of this change
-            *lastChangeTimestamp = 0.0;
-            *slope = (*velocity) / (timeToZeroVelocity);
-        }
-    }
-
-    // finally save previous encoder bits position
-    mEncoderPositionBitsPrev.Assign(mEncoderPositionBits);
-
-    // Figure out which velocity to use based on firmware version
-    vctDoubleVec *velToUse;
-    if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
-        velToUse = &mEncoderVelocityPredicted;   // velocity based on FPGA measurement of velocity and acceleration
-    } else {
-        velToUse = &mEncoderVelocitySoftware;    // velocity based on software computation (from position)
-    }
-
+    // Velocity from counts/sec to SI units
+    mActuatorMeasuredJS.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
     if (mConfiguration.HasActuatorToJointCoupling) {
-        mMeasuredJS.Velocity().ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(), *velToUse);
+        mMeasuredJS.Velocity().ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
+                                         mActuatorMeasuredJS.Velocity());
     } else {
-        mMeasuredJS.Velocity().Assign(*velToUse);
+        mMeasuredJS.Velocity().Assign(mActuatorMeasuredJS.Velocity());
+    }
+
+    // Acceleration from counts/sec**2 to SI units
+    mActuatorEncoderAcceleration.ElementwiseProductOf(mBitsToPositionScales, mEncoderAccelerationCountsPerSecSec);
+    if (mConfiguration.HasActuatorToJointCoupling) {
+        mEncoderAcceleration.ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
+                                       mActuatorEncoderAcceleration);
+    } else {
+        mEncoderAcceleration.Assign(mActuatorEncoderAcceleration);
     }
 
     // Effort computation
@@ -1457,10 +1380,6 @@ void mtsRobot1394::SetEncoderPositionBits(const vctIntVec & bits)
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->WriteEncoderPreload(mActuatorInfo[i].Axis, bits[i]);
     }
-    // initialize previous bits value
-    mEncoderPositionBitsPrev.Assign(bits);
-    mActuatorTimestampChange.SetAll(0.0);
-    mVelocitySlopeToZero.SetAll(0.0);
 }
 
 void mtsRobot1394::SetSingleEncoderPosition(const int index, const double pos)
@@ -1471,11 +1390,6 @@ void mtsRobot1394::SetSingleEncoderPosition(const int index, const double pos)
 void mtsRobot1394::SetSingleEncoderPositionBits(const int index, const int bits)
 {
     mActuatorInfo[index].Board->WriteEncoderPreload(mActuatorInfo[index].Axis, bits);
-
-    // initialize previous bits value
-    mEncoderPositionBitsPrev.Element(index) = bits;
-    mActuatorTimestampChange.Element(index) = 0.0;
-    mVelocitySlopeToZero.Element(index) = 0.0;
 }
 
 void mtsRobot1394::ClipActuatorEffort(vctDoubleVec & efforts)
@@ -1632,16 +1546,12 @@ const vctDoubleVec & mtsRobot1394::BrakeTimeStamp(void) const {
     return mBrakeTimestamp;
 }
 
-const vctDoubleVec & mtsRobot1394::EncoderVelocityPredicted(void) const {
-    return mEncoderVelocityPredicted;
+const vctDoubleVec & mtsRobot1394::ActuatorEncoderAcceleration(void) const {
+    return mActuatorEncoderAcceleration;
 }
 
 const vctDoubleVec & mtsRobot1394::EncoderAcceleration(void) const {
     return mEncoderAcceleration;
-}
-
-const vctDoubleVec & mtsRobot1394::EncoderVelocitySoftware(void) const {
-    return mEncoderVelocitySoftware;
 }
 
 const prmStateJoint & mtsRobot1394::ActuatorJointState(void) const {
@@ -1736,6 +1646,7 @@ void mtsRobot1394::EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & 
     }
 }
 
+#if 0
 void mtsRobot1394::EncoderBitsToVelocityPredicted(vctDoubleVec & vel) const
 {
     if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
@@ -1764,6 +1675,7 @@ void mtsRobot1394::EncoderBitsToVelocityPredicted(vctDoubleVec & vel) const
         }
     }
 }
+#endif
 
 void mtsRobot1394::ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoubleVec & currents) const {
     currents.ElementwiseProductOf(efforts, mEffortToCurrentScales);

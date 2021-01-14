@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -80,7 +80,6 @@ int main(int argc, char * argv[])
     vct4 * allPositions = new vct4[numberOfIterations];
     vct4 * allVelocities = new vct4[numberOfIterations];
     vct4 * allAccelerations = new vct4[numberOfIterations];
-    vct4 * allVelocitiesSoftware = new vct4[numberOfIterations];
 
     std::cout << "Loading config file ..." << std::endl;
     mtsRobotIO1394 * port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portName);
@@ -154,9 +153,6 @@ int main(int argc, char * argv[])
 
                 allAccelerations[iter][actuatorIndex-startIndex] =
                     robot->EncoderAcceleration()[actuatorIndex];
-
-                allVelocitiesSoftware[iter][actuatorIndex-startIndex] =
-                    robot->EncoderVelocitySoftware()[actuatorIndex];
             }
 
         // display progress
@@ -205,8 +201,7 @@ int main(int argc, char * argv[])
             {
                 output << allPositions[iter][actuatorIndex] << ","
                        << allVelocities[iter][actuatorIndex] << ","
-                       << allAccelerations[iter][actuatorIndex] << ","
-                       << allVelocitiesSoftware[iter][actuatorIndex] << ",";
+                       << allAccelerations[iter][actuatorIndex] << ",";
             }
         output << std::endl;
     }
@@ -217,7 +212,6 @@ int main(int argc, char * argv[])
     delete[] allPositions;
     delete[] allVelocities;
     delete[] allAccelerations;
-    delete[] allVelocitiesSoftware;
 
     delete port;
     return 0;

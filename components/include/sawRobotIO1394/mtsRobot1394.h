@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -196,9 +196,8 @@ namespace sawRobotIO1394 {
         const vctDoubleVec & PotPosition(void) const;
         const vctDoubleVec & ActuatorTimeStamp(void) const;
         const vctDoubleVec & BrakeTimeStamp(void) const;
-        const vctDoubleVec & EncoderVelocityPredicted(void) const;
+        const vctDoubleVec & ActuatorEncoderAcceleration(void) const;
         const vctDoubleVec & EncoderAcceleration(void) const;
-        const vctDoubleVec & EncoderVelocitySoftware(void) const;
         const prmStateJoint & ActuatorJointState(void) const;
         const prmStateJoint & JointState(void) const;
         /**}**/
@@ -331,9 +330,9 @@ namespace sawRobotIO1394 {
 
         vctIntVec
             mPotBits,
-            mEncoderPositionBits,
-            mEncoderPositionBitsPrev,
-            mEncoderDPositionBits;
+            mEncoderPositionBits;
+            // mEncoderPositionBitsPrev,
+            // mEncoderDPositionBits;
 
         vctIntVec
             mActuatorCurrentBitsCommand,
@@ -343,19 +342,20 @@ namespace sawRobotIO1394 {
 
         vctDoubleVec
             mActuatorTimestamp,
-            mActuatorTimestampChange, // cumulated time since last encoder changed
-            mActuatorPreviousTimestampChange,
-            mVelocitySlopeToZero, // slope used to reduced velocity to zero when no encoder count change
+            // mActuatorTimestampChange, // cumulated time since last encoder changed
+            // mActuatorPreviousTimestampChange,
+            // mVelocitySlopeToZero, // slope used to reduced velocity to zero when no encoder count change
             mBrakeTimestamp,
             mPotVoltage,
             mPotPosition,
 
-            mEncoderVelocityCountsPerSecond,  // velocity based on FPGA measurement of time between encoder edges (period)
-            mEncoderVelocityDelay,            // assumed delay in velocity measurement (period/2)
-            mEncoderVelocityPredicted,        // velocity based on FPGA measurement, combined with prediction based on acceleration (SI units)
-            mEncoderVelocitySoftware,         // velocity based on backward difference of position (SI units)
+            mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
+            // mEncoderVelocityDelay,            // assumed delay in velocity measurement (period/2)
+            // mEncoderVelocityPredicted,        // velocity based on FPGA measurement, combined with prediction based on acceleration (SI units)
+            // mEncoderVelocitySoftware,         // velocity based on backward difference of position (SI units)
             mEncoderAccelerationCountsPerSecSec, // acceleration based on FPGA measurement (firmware rev 6)
-            mEncoderAcceleration,             // acceleration in SI units (firmware rev 6)
+            mEncoderAcceleration,                // acceleration in SI units (firmware rev 6)
+            mActuatorEncoderAcceleration,
             mActuatorCurrentCommand,
             mBrakeCurrentCommand,
             mActuatorEffortCommand,

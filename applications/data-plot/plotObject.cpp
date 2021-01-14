@@ -59,10 +59,6 @@ plotObject::plotObject(mtsRobotIO1394 * port,
     mEncoderDxFilteredSignal->SetColor(vct3(7.0, 7.0, 0.0));
     std::cout << "yellow: encoder-dx-filtered" << std::endl;
 
-    mEncoderSoftware = mVelocityScale->AddSignal("encoder-software");
-    mEncoderSoftware->SetColor(vct3(0.5, 0.5, 1.0));
-    std::cout << "blue: - encoder-software" << std::endl;
-
     mPotDxSignal = mVelocityScale->AddSignal("pot-dx");
     mPotDxSignal->SetColor(vct3(1.0, 1.0, 1.0));
     std::cout << "white: pot-dx" << std::endl;
@@ -107,10 +103,6 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     // apply filter
     mFilterElementwiseProduct.ElementwiseProductOf(mSavitzkyGolayCoeff, mHistory);
     mEncoderDxFilteredSignal->AppendPoint(vct2(mElapsedTime, mFilterElementwiseProduct.SumOfElements()));
-
-    // software based on encoder
-    mEncoderSoftware->AppendPoint(vct2(mElapsedTime,
-                                       -mRobot->EncoderVelocitySoftware()[mActuatorIndex]));
 
     // pot velocity dx / dt
     mPotDx.ForceAssign(mRobot->PotPosition());

@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -54,7 +54,6 @@ protected:
     vctPlot2DBase::Signal * mEncoderDtSignal;
     vctPlot2DBase::Signal * mEncoderDxSignal;
     vctPlot2DBase::Signal * mEncoderDxFilteredSignal;
-    vctPlot2DBase::Signal * mEncoderSoftware;
     vctPlot2DBase::Signal * mPotDxSignal;
 
     mtsRobotIO1394 * mPort;
