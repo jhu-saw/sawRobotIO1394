@@ -8,6 +8,7 @@ inline-header {
 #include <cisstParameterTypes/prmJointType.h>
 #include <cisstParameterTypes/prmActuatorJointCoupling.h>
 #include <sawRobotIO1394/sawRobotIO1394Revision.h>
+#include <sawRobotIO1394/sawRobotIO1394Export.h>
 
 class AmpIO;
 
