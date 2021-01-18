@@ -280,15 +280,16 @@ namespace sawRobotIO1394 {
             }
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Unit", robotIndex, actuatorIndex);
+            unit = "none";
             good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
             if (actuator.JointType == PRM_JOINT_REVOLUTE) {
-                if (!osaUnitIsDistanceRevolute(unit)) {
+                if (!osaUnitIsDistanceRevolute(unit) && !robot.OnlyIO) {
                     CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
                                        << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
                     good = false;
                 }
             } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
-                if (!osaUnitIsDistancePrismatic(unit)) {
+                if (!osaUnitIsDistancePrismatic(unit) && !robot.OnlyIO) {
                     CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
                                        << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
                     good = false;
@@ -309,15 +310,16 @@ namespace sawRobotIO1394 {
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot. VoltageToPosition.Offset, !robot.OnlyIO);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
+            unit = "none";
             good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
             if (actuator.JointType == PRM_JOINT_REVOLUTE) {
-                if (!osaUnitIsDistanceRevolute(unit)) {
+                if (!osaUnitIsDistanceRevolute(unit) && !robot.OnlyIO) {
                     CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
                                        << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
                     good = false;
                 }
             } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
-                if (!osaUnitIsDistancePrismatic(unit)) {
+                if (!osaUnitIsDistancePrismatic(unit) && !robot.OnlyIO) {
                     CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
                                        << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
                     good = false;

@@ -43,7 +43,8 @@ namespace sawRobotIO1394 {
             { "m",   cmn_m},
             { "mA",  1.000},
             { "mm",  cmn_mm},
-            { "rad", 1.0}
+            { "rad", 1.0},
+            { "none", 1.0}        
         };
         const auto factor = factors.find(unit);
         if (factor != factors.end()) {
