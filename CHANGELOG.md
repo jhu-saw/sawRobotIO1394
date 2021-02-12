@@ -1,6 +1,34 @@
 Change log
 ==========
 
+2.0.0 (2021-02-xx)
+==================
+
+* API changes:
+  * Using CRTK naming convention
+  * XML configuration format change to version 4
+* Deprecated features:
+  * Removed support for firmware 4 and 5
+  * Removed software based velocity estimation, now rely on firmware
+  * Removed code for compiling without *cisst*
+* New features:
+  * Added `DallasChip` class to query tool type on dVRK PSMs 
+  * Support for ethernet/UDP port
+  * Monitor period statistics and send warnings/errors if compute time is too long
+  * Monitor amplifiers temperature and send warnings/errors if too hot
+  * Powering off doesn't automatically open safety relays (optional parameter)
+  * Better velocity estimation with firmware 7
+  * Check units for scale/offset in configuration file for `xxToPosSI` parameters
+  * Added user defined optional threshold for quick tap (click) in configuration files
+  * Use *cisstDataGenerator* for configuration, plan to move to replace XML with JSON (or YAML)
+  * Minor updates to compile on Ubuntu 20.04, Windows and MacOS
+  * Widget:
+    * Better names for powering and enable amps (matches component interface)
+    * Expose state of safety relays (and control in *Direct mode*)
+  * Application console Qt can be used qith multiple XML configurations files
+* Bug fixes:
+  * Better powering sequence, added delay when requesting power to check if power is ok
+
 1.7.0 (2019-04-09)
 ==================
 
