@@ -25,7 +25,7 @@ Change log
   * Widget:
     * Better names for powering and enable amps (matches component interface)
     * Expose state of safety relays (and control in *Direct mode*)
-  * Application console Qt can be used qith multiple XML configurations files
+  * Application console Qt can be used with multiple XML configurations files
 * Bug fixes:
   * Better powering sequence, added delay when requesting power to check if power is ok
 
