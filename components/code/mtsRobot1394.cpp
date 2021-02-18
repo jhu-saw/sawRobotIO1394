@@ -54,9 +54,7 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mCurrentSafetyViolationsCounter(0),
     mCurrentSafetyViolationsMaximum(100),
     mStateTableRead(0),
-    mStateTableWrite(0),
-    mSamplesForCalibrateEncoderOffsetsFromPots(0),
-    mCalibrateEncodersPerformed(false)
+    mStateTableWrite(0)
 {
     this->Configure(config);
 }
@@ -126,6 +124,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mActuatorStateJointAccessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>*>(accessorBase);
     CMN_ASSERT(mActuatorStateJointAccessor);
 
+    // return pointers to state tables
     stateTableRead = mStateTableRead;
     stateTableWrite = mStateTableWrite;
     return true;
@@ -279,13 +278,14 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
         }
         // if all encoders are at midrange, assume encoder bias on pots is already done
         if (!isMidrange) {
-            mSamplesForCalibrateEncoderOffsetsFromPots = 0;
+            CalibrateEncoderOffsets.SamplesFromPots = 0;
+            CalibrateEncoderOffsets.Performed = true;
             EventTriggers.BiasEncoder(-1);
             return;
         }
     }
-    mSamplesForCalibrateEncoderOffsetsFromPots = std::abs(numberOfSamples) + 1;
-    mSamplesForCalibrateEncoderOffsetsFromPotsRequested = std::abs(numberOfSamples);
+    CalibrateEncoderOffsets.SamplesFromPots = std::abs(numberOfSamples) + 1;
+    CalibrateEncoderOffsets.SamplesFromPotsRequested = std::abs(numberOfSamples);
 }
 
 void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
@@ -1188,7 +1188,7 @@ void mtsRobot1394::CheckState(void)
             std::string errorMessage = this->Name() + ": encoder overflow detected: ";
             errorMessage.append(mEncoderOverflow.ToString());
             // if we have already performed encoder calibration, this is really bad
-            if (mCalibrateEncodersPerformed) {
+            if (CalibrateEncoderOffsets.Performed) {
                 cmnThrow(errorMessage);
             } else {
                 mInterface->SendError("IO: " + this->Name() + " encoder overflow detected");
@@ -1220,10 +1220,10 @@ void mtsRobot1394::CheckState(void)
     }
 
     // if nb samples > 0, need to countdown
-    if (mSamplesForCalibrateEncoderOffsetsFromPots > 0) {
+    if (CalibrateEncoderOffsets.SamplesFromPots > 0) {
         // if count down is at 1, compute average of encoders and potentiometers
-        if (mSamplesForCalibrateEncoderOffsetsFromPots > 1) {
-            mSamplesForCalibrateEncoderOffsetsFromPots--;
+        if (CalibrateEncoderOffsets.SamplesFromPots > 1) {
+            CalibrateEncoderOffsets.SamplesFromPots--;
         } else {
             // data read from state table
             vctDoubleVec potentiometers(mNumberOfActuators, 0.0);
@@ -1237,7 +1237,7 @@ void mtsRobot1394::CheckState(void)
             int nbElements = 0;
             mtsStateIndex index = mStateTableRead->GetIndexReader();
             bool validIndex = true;
-            while (validIndex && (nbElements < mSamplesForCalibrateEncoderOffsetsFromPotsRequested)) {
+            while (validIndex && (nbElements < CalibrateEncoderOffsets.SamplesFromPotsRequested)) {
                 mPotPositionAccessor->Get(index, newPot);
                 mActuatorStateJointAccessor->Get(index, newEnc);
                 if (nbElements == 0) {
@@ -1277,8 +1277,24 @@ void mtsRobot1394::CheckState(void)
                 SetEncoderPosition(potentiometers);
                 break;
             }
-            EventTriggers.BiasEncoder(nbElements);
-            mSamplesForCalibrateEncoderOffsetsFromPots = 0; // not needed anymore
+            // samples from pots not needed anymore
+            CalibrateEncoderOffsets.SamplesFromPots = 0;
+            // one cycle to write encoder preload, one to get encoder
+            // with new offsets.  then send event so higher level
+            // classes have calibrated positions
+            CalibrateEncoderOffsets.PostCalibrationCounter = 2;
+        }
+    }
+
+    // post encoder calibration event
+    if (CalibrateEncoderOffsets.PostCalibrationCounter >= 0) {
+        if (CalibrateEncoderOffsets.PostCalibrationCounter == 0) {
+            // ready to send event
+            CalibrateEncoderOffsets.PostCalibrationCounter = -1;
+            EventTriggers.BiasEncoder(CalibrateEncoderOffsets.SamplesFromPotsRequested);
+        } else {
+            // not ready, keep decrementing
+            CalibrateEncoderOffsets.PostCalibrationCounter--;
         }
     }
 }
@@ -1515,7 +1531,7 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
         SetEncoderPosition(mPotPosition);
         break;
     };
-    mCalibrateEncodersPerformed = true;
+    CalibrateEncoderOffsets.Performed = true;
 }
 
 const vctDoubleVec & mtsRobot1394::ActuatorCurrentFeedback(void) const {

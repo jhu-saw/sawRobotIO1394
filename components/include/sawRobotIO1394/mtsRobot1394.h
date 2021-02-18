@@ -403,9 +403,13 @@ namespace sawRobotIO1394 {
             mtsFunctionWrite UsePotsForSafetyCheck;
         } EventTriggers;
 
-        int mSamplesForCalibrateEncoderOffsetsFromPots;
-        int mSamplesForCalibrateEncoderOffsetsFromPotsRequested;
-        bool mCalibrateEncodersPerformed;
+        struct {
+            int SamplesFromPots = 0;
+            int SamplesFromPotsRequested;
+            bool Performed = false;
+            int PostCalibrationCounter = -1; // -1: nothing to do, 0: emit event, anything else: decrement
+        } CalibrateEncoderOffsets;
+        
         mtsStateTable::Accessor<vctDoubleVec> * mPotPositionAccessor;
         mtsStateTable::Accessor<prmStateJoint> * mActuatorStateJointAccessor;
 
