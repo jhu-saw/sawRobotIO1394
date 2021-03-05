@@ -270,14 +270,16 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
     // if the encoders are not already preloaded
     if (numberOfSamples < 0) {
         // get encoder preload values re. midrange
-        bool isMidrange = true;
+        bool anyAtMidRange = false;
         for (size_t i = 0; i < mNumberOfActuators; i++) {
             bool thisAxis;
             mActuatorInfo[i].Board->IsEncoderPreloadMidrange(mActuatorInfo[i].Axis, thisAxis);
-            isMidrange = (isMidrange && thisAxis);
+            if (thisAxis) {
+                anyAtMidRange = true;
+            }
         }
-        // if all encoders are at midrange, assume encoder bias on pots is already done
-        if (!isMidrange) {
+        // if none at midrange, assume encoder bias on pots is already done
+        if (!anyAtMidRange) {
             CalibrateEncoderOffsets.SamplesFromPots = 0;
             CalibrateEncoderOffsets.Performed = true;
             EventTriggers.BiasEncoder(-1);
