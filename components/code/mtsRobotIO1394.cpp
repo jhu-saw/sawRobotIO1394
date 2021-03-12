@@ -218,9 +218,9 @@ void mtsRobotIO1394::Init(const std::string & port)
         configurationInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
                                                     "period_statistics");
         configurationInterface->AddCommandReadState(*mStateTableRead, mStateTableRead->PeriodStats,
-                                                    "GetPeriodStatisticsRead");
+                                                    "period_statistics_read");
         configurationInterface->AddCommandReadState(*mStateTableWrite, mStateTableWrite->PeriodStats,
-                                                    "GetPeriodStatisticsWrite");
+                                                    "period_statistics_write");
     } else {
         CMN_LOG_CLASS_INIT_ERROR << "Configure: unable to create configuration interface." << std::endl;
     }
