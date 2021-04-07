@@ -1,7 +1,7 @@
 Change log
 ==========
 
-2.0.0 (2021-02-xx)
+2.0.0 (2021-04-08)
 ==================
 
 * API changes:
@@ -12,6 +12,7 @@ Change log
   * Removed software based velocity estimation, now rely on firmware
   * Removed code for compiling without *cisst*
 * New features:
+  * Support for latest AmpIO API + firmware 7
   * Added `DallasChip` class to query tool type on dVRK PSMs 
   * Support for ethernet/UDP port
   * Monitor period statistics and send warnings/errors if compute time is too long
@@ -64,7 +65,7 @@ Change log
 1.5.0 (2017-11-07)
 ==================
 
-* API changes:
+* API changes:https://dvrk.lcsr.jhu.edu
   * SafetyRelay now uses bool, was unsigned int
 * Deprecated features:
   * Qt widget used to continuously set watchdog to prevent timeout, now moved to AmpIO
