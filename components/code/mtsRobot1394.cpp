@@ -117,7 +117,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mtsStateTable::AccessorBase * accessorBase;
     accessorBase = mStateTableRead->GetAccessorByInstance(mPotPosition);
     CMN_ASSERT(accessorBase);
-    mPotPositionAccessor = dynamic_cast<mtsStateTable::Accessor<vctDoubleVec>* >(accessorBase);
+    mPotPositionAccessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>* >(accessorBase);
     CMN_ASSERT(mPotPositionAccessor);
     accessorBase = mStateTableRead->GetAccessorByInstance(mActuatorMeasuredJS);
     CMN_ASSERT(accessorBase);
@@ -463,7 +463,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     actuatorInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorCurrentToBits, this,
                                                "DriveAmpsToBits", mActuatorCurrentFeedback, mActuatorCurrentBitsFeedback);
     actuatorInterface->AddCommandQualifiedRead(&mtsRobot1394::PotVoltageToPosition, this,
-                                               "AnalogInVoltsToPosSI", mPotVoltage, mPotPosition);
+                                               "AnalogInVoltsToPosSI", mPotVoltage, mPotPosition.Position());
 }
 
 bool mtsRobot1394::CheckConfiguration(void)
@@ -510,7 +510,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
     mActuatorTimestamp.SetSize(mNumberOfActuators);
     mPotVoltage.SetSize(mNumberOfActuators);
-    mPotPosition.SetSize(mNumberOfActuators);
+    mPotPosition.Position().SetSize(mNumberOfActuators);
     mEncoderVelocityPredictedCountsPerSec.SetSize(mNumberOfActuators);
     mEncoderAccelerationCountsPerSecSec.SetSize(mNumberOfActuators);
     mActuatorEncoderAcceleration.SetSize(mNumberOfActuators);
@@ -903,7 +903,7 @@ void mtsRobot1394::ConvertState(void)
     BrakeBitsToCurrent(mBrakeCurrentBitsFeedback, mBrakeCurrentFeedback);
 
     PotBitsToVoltage(mPotBits, mPotVoltage);
-    PotVoltageToPosition(mPotVoltage, mPotPosition);
+    PotVoltageToPosition(mPotVoltage, mPotPosition.Position());
 }
 
 void mtsRobot1394::CheckState(void)
@@ -911,6 +911,7 @@ void mtsRobot1394::CheckState(void)
     // set data as invalid by default
     mMeasuredJS.SetValid(false);
     mActuatorMeasuredJS.SetValid(false);
+    mPotPosition.SetValid(false);
 
     // If we had a read error, all checks are pretty much useless
     if (mInvalidReadCounter > 0) {
@@ -1102,9 +1103,9 @@ void mtsRobot1394::CheckState(void)
                 }
                 bool statusChanged = false;
                 bool error = false;
-                vctDoubleVec::const_iterator pot = mPotPosition.begin();
+                vctDoubleVec::const_iterator pot = mPotPosition.Position().begin();
                 vctDynamicVectorRef<double>::const_iterator enc = encoderRef.begin();
-                const vctDoubleVec::const_iterator potEnd = mPotPosition.end();
+                const vctDoubleVec::const_iterator potEnd = mPotPosition.Position().end();
                 vctDoubleVec::const_iterator potLatency = mPotToleranceLatency.begin();
                 vctDoubleVec::const_iterator potError = mPotToleranceDistance.begin();
                 vctDoubleVec::const_iterator potTimestamp = mActuatorTimestamp.begin(); // this is a bit approximative when there's coupling
@@ -1157,7 +1158,7 @@ void mtsRobot1394::CheckState(void)
                         std::string warningMessage = errorMessage + "\nencoders:\n";
                         warningMessage.append(encoderRef.ToString());
                         warningMessage.append("\npotentiomers:\n");
-                        warningMessage.append(mPotPosition.ToString());
+                        warningMessage.append(mPotPosition.Position().ToString());
                         warningMessage.append("\ntolerance distance:\n");
                         warningMessage.append(mPotToleranceDistance.ToString());
                         warningMessage.append("\nvalid pots:\n");
@@ -1200,6 +1201,7 @@ void mtsRobot1394::CheckState(void)
 
     mActuatorMeasuredJS.SetValid(true);
     mMeasuredJS.SetValid(true);
+    mPotPosition.SetValid(true);
 
     if (mPreviousFullyPowered != mFullyPowered) {
         EventTriggers.FullyPowered(mFullyPowered);
@@ -1229,8 +1231,8 @@ void mtsRobot1394::CheckState(void)
         } else {
             // data read from state table
             vctDoubleVec potentiometers(mNumberOfActuators, 0.0);
-            mtsGenericObjectProxy<vctDoubleVec> newPot;
-            newPot.Data.SetSize(mNumberOfActuators);
+            prmStateJoint newPot;
+            newPot.Position().SetSize(mNumberOfActuators);
             vctDoubleVec encoderRef(mNumberOfActuators, 0.0);
             vctDoubleVec encoderDelta(mNumberOfActuators);
             prmStateJoint newEnc;
@@ -1248,8 +1250,8 @@ void mtsRobot1394::CheckState(void)
                 } else {
                     // correct pot using encoder delta
                     encoderDelta.DifferenceOf(newEnc.Position(), encoderRef);
-                    newPot.Data.Subtract(encoderDelta);
-                    potentiometers.Add(newPot.Data);
+                    newPot.Position().Subtract(encoderDelta);
+                    potentiometers.Add(newPot.Position());
                 }
                 ++nbElements;
                 --index;
@@ -1523,14 +1525,14 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
     case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
         if (mConfiguration.HasActuatorToJointCoupling) {
             actuatorPosition.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
-                                       mPotPosition);
+                                       mPotPosition.Position());
         } else {
-            actuatorPosition.Assign(mPotPosition);
+            actuatorPosition.Assign(mPotPosition.Position());
         }
         SetEncoderPosition(actuatorPosition);
         break;
     case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
-        SetEncoderPosition(mPotPosition);
+        SetEncoderPosition(mPotPosition.Position());
         break;
     };
     CalibrateEncoderOffsets.Performed = true;
@@ -1553,7 +1555,7 @@ const vctDoubleVec & mtsRobot1394::BrakeCurrentFeedback(void) const {
 }
 
 const vctDoubleVec & mtsRobot1394::PotPosition(void) const {
-    return mPotPosition;
+    return mPotPosition.Position();
 }
 
 const vctDoubleVec & mtsRobot1394::ActuatorTimeStamp(void) const {
@@ -1619,6 +1621,12 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
     mConfigurationJoint.Name().Assign(jointConfig.Name());
     mMeasuredJS.Name().SetSize(mNumberOfActuators);
     mMeasuredJS.Name() = jointConfig.Name();
+    // these are a bit abusive as actuator and joints should have different names
+    mActuatorMeasuredJS.Name().SetSize(mNumberOfActuators);
+    mActuatorMeasuredJS.Name() = jointConfig.Name();
+    // same here, pots are not always on joints
+    mPotPosition.Name().SetSize(mNumberOfActuators);
+    mPotPosition.Name() = jointConfig.Name();
 }
 
 void mtsRobot1394::GetJointEffortCommandLimits(vctDoubleVec & limits) const

@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-16
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -365,7 +365,7 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
             ActuatorStateJoint.Velocity().ElementwiseMultiply(UnitFactor); // to degrees or mm
             Robot.GetAnalogInputVolts(PotentiometersVolts);
             Robot.GetAnalogInputPosSI(PotentiometersPosition);
-            PotentiometersPosition.ElementwiseMultiply(UnitFactor); // to degrees or mm
+            PotentiometersPosition.Position().ElementwiseMultiply(UnitFactor); // to degrees or mm
             Robot.GetActuatorFeedbackCurrent(ActuatorFeedbackCurrent);
             ActuatorFeedbackCurrent.Multiply(1000.0); // to mA
             Robot.GetActuatorAmpTemperature(ActuatorAmpTemperature);
@@ -384,7 +384,7 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         ActuatorStateJoint.Position().SetAll(DummyValueWhenNotConnected);
         ActuatorStateJoint.Velocity().SetAll(DummyValueWhenNotConnected);
         PotentiometersVolts.SetAll(DummyValueWhenNotConnected);
-        PotentiometersPosition.SetAll(DummyValueWhenNotConnected);
+        PotentiometersPosition.Position().SetAll(DummyValueWhenNotConnected);
         ActuatorFeedbackCurrent.SetAll(DummyValueWhenNotConnected);
         ActuatorAmpTemperature.SetAll(DummyValueWhenNotConnected);
     }
@@ -405,7 +405,7 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         QVRActuatorPosition->SetValue(ActuatorStateJoint.Position());
         QVRActuatorVelocity->SetValue(ActuatorStateJoint.Velocity());
         QVRPotVolts->SetValue(PotentiometersVolts);
-        QVRPotPosition->SetValue(PotentiometersPosition);
+        QVRPotPosition->SetValue(PotentiometersPosition.Position());
         QVRActuatorCurrentFeedback->SetValue(ActuatorFeedbackCurrent);
         QVRActuatorAmpTemperature->SetValue(ActuatorAmpTemperature);
     }

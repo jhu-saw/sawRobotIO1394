@@ -347,7 +347,6 @@ namespace sawRobotIO1394 {
             // mVelocitySlopeToZero, // slope used to reduced velocity to zero when no encoder count change
             mBrakeTimestamp,
             mPotVoltage,
-            mPotPosition,
 
             mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
             // mEncoderVelocityDelay,            // assumed delay in velocity measurement (period/2)
@@ -389,7 +388,8 @@ namespace sawRobotIO1394 {
         prmForceTorqueJointSet mTorqueJoint;
         prmStateJoint
             mActuatorMeasuredJS,
-            mMeasuredJS;
+            mMeasuredJS,
+            mPotPosition;
 
         // Functions for events
         struct {
@@ -409,8 +409,8 @@ namespace sawRobotIO1394 {
             bool Performed = false;
             int PostCalibrationCounter = -1; // -1: nothing to do, 0: emit event, anything else: decrement
         } CalibrateEncoderOffsets;
-        
-        mtsStateTable::Accessor<vctDoubleVec> * mPotPositionAccessor;
+
+        mtsStateTable::Accessor<prmStateJoint> * mPotPositionAccessor;
         mtsStateTable::Accessor<prmStateJoint> * mActuatorStateJointAccessor;
 
     public:

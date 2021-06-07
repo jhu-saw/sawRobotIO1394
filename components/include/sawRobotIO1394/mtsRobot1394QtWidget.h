@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen
   Created on: 2012-07-20
 
-  (C) Copyright 2012-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2012-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -150,7 +150,7 @@ private:
     vctDoubleVec UnitFactor;
     prmStateJoint StateJoint, ActuatorStateJoint;
     vctDoubleVec PotentiometersVolts;
-    vctDoubleVec PotentiometersPosition;
+    prmStateJoint PotentiometersPosition;
     vctDoubleVec ActuatorFeedbackCurrent;
     vctDoubleVec ActuatorRequestedCurrent;
     vctDoubleVec ActuatorAmpTemperature;
