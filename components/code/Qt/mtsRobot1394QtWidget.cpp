@@ -26,11 +26,16 @@ http://www.cisst.org/cisst/license.txt.
 #include <QCloseEvent>
 #include <QCoreApplication>
 #include <QTime>
+#include <QCheckBox>
+#include <QDoubleSpinBox>
+#include <QPushButton>
+#include <QSignalMapper>
 
 // project include
 #include <sawRobotIO1394/mtsRobot1394QtWidget.h>
 
 #include <cisstOSAbstraction/osaGetTime.h>
+#include <cisstVector/vctPlot2DOpenGLQtWidget.h>
 #include <cisstMultiTask/mtsInterfaceRequired.h>
 #include <cisstParameterTypes/prmConfigurationJoint.h>
 
@@ -43,6 +48,7 @@ mtsRobot1394QtWidget::mtsRobot1394QtWidget(const std::string & componentName,
                                            double periodInSeconds):
     mtsComponent(componentName),
     DirectControl(false),
+    PlotMode(false),
     TimerPeriodInMilliseconds(periodInSeconds * 1000), // Qt timers are in milliseconds
     SerialNumber(0),
     NumberOfActuators(numberOfActuators),
@@ -77,6 +83,8 @@ void mtsRobot1394QtWidget::Init(void)
     ActuatorAmpTemperature.SetSize(NumberOfActuators);
 
     StartTime = osaGetTime();
+
+    PlotIndex = 0;
 
     SetupCisstInterface();
     setupUi();
@@ -229,6 +237,22 @@ void mtsRobot1394QtWidget::SlotEnableDirectControl(bool toggle)
 
     // set all current to 0
     SlotResetCurrentAll();
+}
+
+void mtsRobot1394QtWidget::SlotEnablePlotMode(bool toggle)
+{
+    PlotMode = toggle;
+    if (PlotMode) {
+        QWPlot->show();
+        QWText->hide();
+        QPlot->resize(QPlot->sizeHint());
+        delete MainLayout->takeAt(MainLayout->count() - 1);
+    } else {
+        QWPlot->hide();
+        QWText->show();
+        // add stretch at end of main layout
+        MainLayout->addStretch();
+    }
 }
 
 void mtsRobot1394QtWidget::SlotResetCurrentAll(void)
@@ -400,19 +424,32 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
     }
 
     QMIntervalStatistics->SetValue(IntervalStatistics);
-    if (NumberOfActuators != 0) {
-        QVRJointPosition->SetValue(StateJoint.Position());
-        QVRActuatorPosition->SetValue(ActuatorStateJoint.Position());
-        QVRActuatorVelocity->SetValue(ActuatorStateJoint.Velocity());
-        QVRPotVolts->SetValue(PotentiometersVolts);
-        QVRPotPosition->SetValue(PotentiometersPosition.Position());
-        QVRActuatorCurrentFeedback->SetValue(ActuatorFeedbackCurrent);
-        QVRActuatorAmpTemperature->SetValue(ActuatorAmpTemperature);
-    }
-    if (NumberOfBrakes != 0) {
-        QVRBrakeCurrentCommand->SetValue(BrakeRequestedCurrent);
-        QVRBrakeCurrentFeedback->SetValue(BrakeFeedbackCurrent);
-        QVRBrakeAmpTemperature->SetValue(BrakeAmpTemperature);
+    if (PlotMode) {
+        Robot.measured_js(StateJoint);
+        PlotSignals[0]->AppendPoint(vct2(StateJoint.Timestamp(),
+                                         StateJoint.Position()[PlotIndex] * UnitFactor[PlotIndex]));
+        Actuators.measured_js(ActuatorStateJoint);
+        PlotSignals[1]->AppendPoint(vct2(ActuatorStateJoint.Timestamp(),
+                                         ActuatorStateJoint.Position()[PlotIndex] * UnitFactor[PlotIndex]));
+        Robot.GetAnalogInputPosSI(PotentiometersPosition);
+        PlotSignals[2]->AppendPoint(vct2(PotentiometersPosition.Timestamp(),
+                                         PotentiometersPosition.Position()[PlotIndex] * UnitFactor[PlotIndex]));
+        QPlot->update();
+    } else {
+        if (NumberOfActuators != 0) {
+            QVRJointPosition->SetValue(StateJoint.Position());
+            QVRActuatorPosition->SetValue(ActuatorStateJoint.Position());
+            QVRActuatorVelocity->SetValue(ActuatorStateJoint.Velocity());
+            QVRPotVolts->SetValue(PotentiometersVolts);
+            QVRPotPosition->SetValue(PotentiometersPosition.Position());
+            QVRActuatorCurrentFeedback->SetValue(ActuatorFeedbackCurrent);
+            QVRActuatorAmpTemperature->SetValue(ActuatorAmpTemperature);
+        }
+        if (NumberOfBrakes != 0) {
+            QVRBrakeCurrentCommand->SetValue(BrakeRequestedCurrent);
+            QVRBrakeCurrentFeedback->SetValue(BrakeFeedbackCurrent);
+            QVRBrakeAmpTemperature->SetValue(BrakeAmpTemperature);
+        }
     }
 
     // refresh watchdog period if needed
@@ -585,27 +622,29 @@ void mtsRobot1394QtWidget::setupUi(void)
     encoderFrame->setLayout(encoderLayout);
     encoderFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
-    // Current commands
-    QVBoxLayout * currentLayout = new QVBoxLayout;
-    currentLayout->setContentsMargins(2, 2, 2, 2);
-    QFrame * currentFrame = new QFrame;
-    QLabel * currentTitle = new QLabel("Current");
-    currentTitle->setFont(font);
-    currentTitle->setAlignment(Qt::AlignCenter);
-    currentLayout->addWidget(currentTitle);
+    // Service commands
+    QVBoxLayout * ServiceLayout = new QVBoxLayout;
+    ServiceLayout->setContentsMargins(2, 2, 2, 2);
+    QFrame * serviceFrame = new QFrame;
+    QLabel * ServiceTitle = new QLabel("Service");
+    ServiceTitle->setFont(font);
+    ServiceTitle->setAlignment(Qt::AlignCenter);
+    ServiceLayout->addWidget(ServiceTitle);
     QCBEnableDirectControl = new QCheckBox("Direct control");
-    currentLayout->addWidget(QCBEnableDirectControl);
-    currentLayout->addStretch();
+    ServiceLayout->addWidget(QCBEnableDirectControl);
+    QCBEnablePlotMode = new QCheckBox("Plot position");
+    ServiceLayout->addWidget(QCBEnablePlotMode);
+    ServiceLayout->addStretch();
     QLabel * serialTitle = new QLabel("Serial number");
     serialTitle->setFont(font);
     serialTitle->setAlignment(Qt::AlignCenter);
-    currentLayout->addWidget(serialTitle);
+    ServiceLayout->addWidget(serialTitle);
     QLSerialNumber = new QLabel("-----");
     QLSerialNumber->setAlignment(Qt::AlignCenter);
-    currentLayout->addWidget(QLSerialNumber);
-    currentLayout->addStretch();
-    currentFrame->setLayout(currentLayout);
-    currentFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    ServiceLayout->addWidget(QLSerialNumber);
+    ServiceLayout->addStretch();
+    serviceFrame->setLayout(ServiceLayout);
+    serviceFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
     // Timing
     QVBoxLayout * timingLayout = new QVBoxLayout;
@@ -622,19 +661,22 @@ void mtsRobot1394QtWidget::setupUi(void)
     timingFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
     // Commands layout
-    QHBoxLayout * commandLayout = new QHBoxLayout;
+    QWidget * commandWidget = new QWidget();
+    QHBoxLayout * commandLayout = new QHBoxLayout(commandWidget);
+    commandWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
     commandLayout->setContentsMargins(2, 2, 2, 2);
     commandLayout->addWidget(powerFrame, 1);
     commandLayout->addWidget(relayFrame, 1);
     commandLayout->addWidget(watchdogFrame, 1);
     commandLayout->addWidget(encoderFrame, 1);
-    commandLayout->addWidget(currentFrame, 1);
+    commandLayout->addWidget(serviceFrame, 1);
     commandLayout->addWidget(timingFrame);
 
     // Feedbacks Label
-    QGridLayout * gridLayout = new QGridLayout;
-    gridLayout->setContentsMargins(2, 2, 2, 2);
-    gridLayout->setSpacing(1);
+    QWText = new QWidget();
+    QGridLayout * textLayout = new QGridLayout(QWText);
+    textLayout->setContentsMargins(2, 2, 2, 2);
+    textLayout->setSpacing(1);
     int row = 0;
 
     if (NumberOfActuators != 0) {
@@ -642,58 +684,58 @@ void mtsRobot1394QtWidget::setupUi(void)
         vctBoolVec defaultEnable(NumberOfActuators, false);
         vctDoubleVec defaultCurrent(NumberOfActuators, 0.0);
 
-        gridLayout->addWidget(new QLabel("Actuator power"), row, 0);
+        textLayout->addWidget(new QLabel("Actuator power"), row, 0);
         QVWActuatorCurrentEnableEach = new vctQtWidgetDynamicVectorBoolWrite();
         QVWActuatorCurrentEnableEach->SetValue(defaultEnable);
-        gridLayout->addWidget(QVWActuatorCurrentEnableEach, row, 1);
+        textLayout->addWidget(QVWActuatorCurrentEnableEach, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Desired current (mA)"), row, 0);
+        textLayout->addWidget(new QLabel("Desired current (mA)"), row, 0);
         QVWActuatorCurrentSpinBox = new vctQtWidgetDynamicVectorDoubleWrite(vctQtWidgetDynamicVectorDoubleWrite::SPINBOX_WIDGET);
         QVWActuatorCurrentSpinBox->SetValue(defaultCurrent);
-        gridLayout->addWidget(QVWActuatorCurrentSpinBox, row, 1);
+        textLayout->addWidget(QVWActuatorCurrentSpinBox, row, 1);
         row++;
 
         QPBResetCurrentAll = new QPushButton("Reset current");
-        gridLayout->addWidget(QPBResetCurrentAll, row, 0);
+        textLayout->addWidget(QPBResetCurrentAll, row, 0);
         QVWActuatorCurrentSlider = new vctQtWidgetDynamicVectorDoubleWrite(vctQtWidgetDynamicVectorDoubleWrite::SLIDER_WIDGET);
         QVWActuatorCurrentSlider->SetValue(defaultCurrent);
-        gridLayout->addWidget(QVWActuatorCurrentSlider, row, 1);
+        textLayout->addWidget(QVWActuatorCurrentSlider, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Current feedback (mA)"), row, 0);
+        textLayout->addWidget(new QLabel("Current feedback (mA)"), row, 0);
         QVRActuatorCurrentFeedback = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRActuatorCurrentFeedback, row, 1);
+        textLayout->addWidget(QVRActuatorCurrentFeedback, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Joint position (deg)"), row, 0);
+        textLayout->addWidget(new QLabel("Joint position (deg)"), row, 0);
         QVRJointPosition = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRJointPosition, row, 1);
+        textLayout->addWidget(QVRJointPosition, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Actuator position (deg)"), row, 0);
+        textLayout->addWidget(new QLabel("Actuator position (deg|mm)"), row, 0);
         QVRActuatorPosition = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRActuatorPosition, row, 1);
+        textLayout->addWidget(QVRActuatorPosition, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Actuator velocity (deg/s)"), row, 0);
+        textLayout->addWidget(new QLabel("Actuator velocity (deg/s)"), row, 0);
         QVRActuatorVelocity = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRActuatorVelocity, row, 1);
+        textLayout->addWidget(QVRActuatorVelocity, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Analog inputs (V)"), row, 0);
+        textLayout->addWidget(new QLabel("Analog inputs (V)"), row, 0);
         QVRPotVolts = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRPotVolts, row, 1);
+        textLayout->addWidget(QVRPotVolts, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Potentiometers (deg)"), row, 0);
+        textLayout->addWidget(new QLabel("Potentiometer (deg|mm)"), row, 0);
         QVRPotPosition = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRPotPosition, row, 1);
+        textLayout->addWidget(QVRPotPosition, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Amp temperature (C)"), row, 0);
+        textLayout->addWidget(new QLabel("Amp temperature (C)"), row, 0);
         QVRActuatorAmpTemperature = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRActuatorAmpTemperature, row, 1);
+        textLayout->addWidget(QVRActuatorAmpTemperature, row, 1);
         row++;
     }
 
@@ -701,45 +743,122 @@ void mtsRobot1394QtWidget::setupUi(void)
 
         vctBoolVec defaultEnable(NumberOfBrakes, false);
 
-        gridLayout->addWidget(new QLabel("Brakes"), row, 0);
+        textLayout->addWidget(new QLabel("Brakes"), row, 0);
         QHBoxLayout * brakeButtonsLayout = new QHBoxLayout();
         QPBBrakeRelease =  new QPushButton("Release");
         brakeButtonsLayout->addWidget(QPBBrakeRelease);
         QPBBrakeEngage =  new QPushButton("Engage");
         brakeButtonsLayout->addWidget(QPBBrakeEngage);
-        gridLayout->addLayout(brakeButtonsLayout, row, 1);
+        textLayout->addLayout(brakeButtonsLayout, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Brake power"), row, 0);
+        textLayout->addWidget(new QLabel("Brake power"), row, 0);
         QVWBrakeCurrentEnableEach = new vctQtWidgetDynamicVectorBoolWrite();
         QVWBrakeCurrentEnableEach->SetValue(defaultEnable);
-        gridLayout->addWidget(QVWBrakeCurrentEnableEach, row, 1);
+        textLayout->addWidget(QVWBrakeCurrentEnableEach, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Current desired (mA)"), row, 0);
+        textLayout->addWidget(new QLabel("Current desired (mA)"), row, 0);
         QVRBrakeCurrentCommand = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRBrakeCurrentCommand, row, 1);
+        textLayout->addWidget(QVRBrakeCurrentCommand, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Current feedback (mA)"), row, 0);
+        textLayout->addWidget(new QLabel("Current feedback (mA)"), row, 0);
         QVRBrakeCurrentFeedback = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRBrakeCurrentFeedback, row, 1);
+        textLayout->addWidget(QVRBrakeCurrentFeedback, row, 1);
         row++;
 
-        gridLayout->addWidget(new QLabel("Amp temperature (C)"), row, 0);
+        textLayout->addWidget(new QLabel("Amp temperature (C)"), row, 0);
         QVRBrakeAmpTemperature = new vctQtWidgetDynamicVectorDoubleRead();
-        gridLayout->addWidget(QVRBrakeAmpTemperature, row, 1);
+        textLayout->addWidget(QVRBrakeAmpTemperature, row, 1);
         row++;
     }
 
-    // main layout
-    QVBoxLayout * mainLayout = new QVBoxLayout;
-    mainLayout->setContentsMargins(2, 2, 2, 2);
-    mainLayout->addLayout(commandLayout);
-    mainLayout->addLayout(gridLayout);
-    mainLayout->addStretch();
+    // Plot area
+    QWPlot = new QWidget();
+    QWPlot->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    QHBoxLayout * plotLayout = new QHBoxLayout(QWPlot);
+    plotLayout->setContentsMargins(0, 0, 0, 0);
 
-    setLayout(mainLayout);
+    // left side, selector and legend
+    QVBoxLayout * plotLeftLayout = new QVBoxLayout;
+    plotLeftLayout->setContentsMargins(2, 2, 2, 2);
+    plotLayout->addLayout(plotLeftLayout);
+
+    // axis selection to plot
+    QSBPlotIndex = new QSpinBox();
+    QSBPlotIndex->setRange(0, (NumberOfActuators > 0) ? (NumberOfActuators - 1) : 0);
+    plotLeftLayout->addWidget(QSBPlotIndex);
+    connect(QSBPlotIndex, SIGNAL(valueChanged(int)), this, SLOT(SlotPlotIndex(int)));
+
+    // constants
+    const QColor textColor = palette().color(QPalette::Text);
+    const QColor baseColor = palette().color(QPalette::Base);
+    const vct3 _colors[3] = {vct3(1.0, 0.0, 0.0),
+                             vct3(0.0, 1.0, 0.0),
+                             vct3(0.0, 0.0, 1.0)};
+    const std::string _signals[3] = {"Joint position", "Actuator position", "Potentiometer"};
+
+    // mapping
+    PlotSignalMapper = new QSignalMapper();
+
+    // legends
+    QLabel * label;
+    QPalette palette;
+
+    for (size_t signal = 0;
+         signal < 3;
+         ++signal) {
+        QHBoxLayout * signalLayout = new QHBoxLayout();
+        signalLayout->setContentsMargins(0, 0, 0, 0);
+        plotLeftLayout->addLayout(signalLayout);
+        // checkbox
+        PlotCheckBoxes[signal] = new QCheckBox("");
+        PlotCheckBoxes[signal]->setChecked(true);
+        signalLayout->addWidget(PlotCheckBoxes[signal]);
+        PlotSignalMapper->setMapping(PlotCheckBoxes[signal], signal);
+        connect(PlotCheckBoxes[signal], SIGNAL(released()), PlotSignalMapper, SLOT(map()));
+        // label
+        label = new QLabel(_signals[signal].c_str());
+        label->setAutoFillBackground(true);
+        palette.setColor(QPalette::WindowText, QColor(_colors[signal].X() * 255,
+                                                      _colors[signal].Y() * 255,
+                                                      _colors[signal].Z() * 255));
+        label->setPalette(palette);
+        signalLayout->addWidget(label);
+    }
+
+    connect(PlotSignalMapper, SIGNAL(mapped(int)),
+            this, SLOT(SlotPlotVisibleSignal(int)));
+
+    plotLeftLayout->addStretch();
+
+    // plot area
+    QPlot = new vctPlot2DOpenGLQtWidget();
+    QPlot->SetBackgroundColor(vct3(baseColor.redF(), baseColor.greenF(), baseColor.blueF()));
+    QPlot->resize(QPlot->sizeHint());
+    QPlot->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    plotLayout->addWidget(QPlot);
+
+    // create scale and signals
+    PlotScale = QPlot->AddScale("Position");
+    QPlot->SetDisplayYRangeScale(PlotScale);
+    for (size_t signal = 0;
+         signal < 3;
+         ++signal) {
+        PlotSignals[signal] = PlotScale->AddSignal(_signals[signal]);
+        PlotSignals[signal]->SetColor(_colors[signal]);
+        PlotVisibleSignals[signal] = true;
+    }
+
+    // main layout
+    MainLayout = new QVBoxLayout;
+    MainLayout->setContentsMargins(2, 2, 2, 2);
+    MainLayout->addWidget(commandWidget);
+    MainLayout->addWidget(QWText);
+    MainLayout->addWidget(QWPlot);
+
+    setLayout(MainLayout);
 
     setWindowTitle(QString(this->GetName().c_str()));
     resize(sizeHint());
@@ -753,6 +872,8 @@ void mtsRobot1394QtWidget::setupUi(void)
             this, SLOT(SlotEnableAll(bool)));
     connect(QCBEnableDirectControl, SIGNAL(toggled(bool)),
             this, SLOT(SlotEnableDirectControl(bool)));
+    connect(QCBEnablePlotMode, SIGNAL(toggled(bool)),
+            this, SLOT(SlotEnablePlotMode(bool)));
     connect(QPBResetCurrentAll, SIGNAL(clicked()),
             this, SLOT(SlotResetCurrentAll()));
     connect(QPBResetEncAll, SIGNAL(clicked()),
@@ -793,6 +914,8 @@ void mtsRobot1394QtWidget::setupUi(void)
     QCBEnableAll->setChecked(false);
     QCBEnableDirectControl->setChecked(DirectControl);
     SlotEnableDirectControl(DirectControl);
+    QCBEnablePlotMode->setChecked(PlotMode);
+    SlotEnablePlotMode(PlotMode);
 }
 
 
@@ -903,4 +1026,17 @@ void mtsRobot1394QtWidget::SlotUsePotsForSafetyCheck(bool checked)
     if (!result.IsOK()) {
         CMN_LOG_CLASS_RUN_WARNING << "SlotUsePotsForSafetyCheck: command failed \"" << result << "\"" << std::endl;
     }
+}
+
+void mtsRobot1394QtWidget::SlotPlotVisibleSignal(int index)
+{
+    const bool checked = PlotCheckBoxes[index]->isChecked();
+    PlotSignals[index]->SetVisible(checked);
+    PlotVisibleSignals[index] = checked;
+}
+
+void mtsRobot1394QtWidget::SlotPlotIndex(int index)
+{
+    PlotIndex = index;
+    QPlot->SetContinuousExpandYResetSlot();
 }

@@ -21,15 +21,19 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <cisstOSAbstraction/osaTimeServer.h>
 #include <cisstVector/vctQtWidgetDynamicVector.h>
+#include <cisstVector/vctPlot2DBase.h>
 #include <cisstMultiTask/mtsQtWidgetIntervalStatistics.h>
 #include <cisstMultiTask/mtsComponent.h>
 #include <cisstParameterTypes/prmStateJoint.h>
 
 #include <QWidget>
-#include <QCheckBox>
-#include <QPushButton>
-#include <QDoubleSpinBox>
 #include <sawRobotIO1394/sawRobotIO1394ExportQt.h>
+
+class QCheckBox;
+class QPushButton;
+class QDoubleSpinBox;
+class QSignalMapper;
+class QSpinBox;
 
 /*!
   \todo maybe rename this class to mtsRobotIO1394{Robot,DigitalInputs,Log}QtWidget and create using mtsRobotIO1394FactoryQtWidget
@@ -61,6 +65,7 @@ private slots:
     void SlotPowerEnable(bool toggle);
     void SlotEnableAll(bool toggle);
     void SlotEnableDirectControl(bool toggle);
+    void SlotEnablePlotMode(bool toggle);
     void SlotActuatorAmpEnable(void);
     void SlotResetCurrentAll(void);
     void SlotActuatorCurrentValueChanged(void);
@@ -85,6 +90,7 @@ private:
 
 protected:
     bool DirectControl;
+    bool PlotMode;
     int TimerPeriodInMilliseconds;
     double WatchdogPeriodInSeconds;
     size_t WatchdogCounter;
@@ -171,6 +177,11 @@ private:
     vctDynamicVector<bool> LastEnableState;
     double StartTime;
 
+    // GUI: Layouts
+    QVBoxLayout * MainLayout;
+    QWidget * QWText;
+    QWidget * QWPlot;
+
     // GUI: Commands
     QCheckBox * QCBSafetyRelay;
     QCheckBox * QCBPowerEnable;
@@ -183,6 +194,7 @@ private:
     QCheckBox * QCBUsePotsForSafetyCheck;
     QDoubleSpinBox * QSBWatchdogPeriod;
     QCheckBox * QCBEnableDirectControl;
+    QCheckBox * QCBEnablePlotMode;
     QLabel * QLSerialNumber;
 
     // GUI: timing
@@ -207,6 +219,16 @@ private:
     vctQtWidgetDynamicVectorDoubleRead * QVRBrakeCurrentFeedback;
     vctQtWidgetDynamicVectorDoubleRead * QVRBrakeAmpTemperature;
 
+    // Plot area
+    QSpinBox * QSBPlotIndex;
+    vctPlot2DOpenGLQtWidget * QPlot;
+    QSignalMapper * PlotSignalMapper;
+    vctPlot2DBase::Signal * PlotSignals[3];
+    bool PlotVisibleSignals[3];
+    QCheckBox * PlotCheckBoxes[3];
+    vctPlot2DBase::Scale * PlotScale;
+    size_t PlotIndex;
+
     QLabel * QLAmpStatus;
     QLabel * QLFullyPowered;
     QLabel * QLSafetyRelayStatus;
@@ -229,6 +251,8 @@ protected slots:
     void SlotFullyPoweredEvent(bool status);
     void SlotWatchdogTimeoutStatusEvent(bool status);
     void SlotUsePotsForSafetyCheckEvent(bool status);
+    void SlotPlotVisibleSignal(int index);
+    void SlotPlotIndex(int index);
 };
 
 CMN_DECLARE_SERVICES_INSTANTIATION(mtsRobot1394QtWidget);
