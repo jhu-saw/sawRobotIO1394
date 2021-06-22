@@ -792,7 +792,6 @@ void mtsRobot1394QtWidget::setupUi(void)
     connect(QSBPlotIndex, SIGNAL(valueChanged(int)), this, SLOT(SlotPlotIndex(int)));
 
     // constants
-    const QColor textColor = palette().color(QPalette::Text);
     const QColor baseColor = palette().color(QPalette::Base);
     const vct3 _colors[3] = {vct3(1.0, 0.0, 0.0),
                              vct3(0.0, 1.0, 0.0),
