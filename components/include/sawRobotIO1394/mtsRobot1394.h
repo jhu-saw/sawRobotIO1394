@@ -162,6 +162,10 @@ namespace sawRobotIO1394 {
         inline bool PowerStatus(void) const {
             return mPowerStatus;
         }
+        //! Power fault (board level)
+        inline bool PowerFault(void) const {
+            return mPowerFault;
+        }
         //! Safety relay desired state
         inline bool SafetyRelay(void) const {
             return mSafetyRelay;
@@ -306,6 +310,8 @@ namespace sawRobotIO1394 {
             mPreviousFullyPowered,
             mPowerEnable,
             mPowerStatus,
+            mPowerFault,
+            mPreviousPowerFault,
             mWatchdogTimeoutStatus,
             mPreviousWatchdogTimeoutStatus;
 
@@ -396,6 +402,7 @@ namespace sawRobotIO1394 {
             mtsFunctionWrite SafetyRelay;
             mtsFunctionWrite SafetyRelayStatus;
             mtsFunctionWrite FullyPowered;
+            mtsFunctionWrite PowerFault;
             mtsFunctionWrite WatchdogTimeoutStatus;
             mtsFunctionWrite WatchdogPeriod;
             mtsFunctionWrite Coupling;

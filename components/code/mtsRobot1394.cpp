@@ -46,6 +46,8 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mPreviousFullyPowered(false),
     mPowerEnable(false),
     mPowerStatus(false),
+    mPowerFault(false),
+    mPreviousPowerFault(false),
     mWatchdogTimeoutStatus(true),
     mPreviousWatchdogTimeoutStatus(true),
     mWatchdogPeriod(sawRobotIO1394::WatchdogTimeout),
@@ -85,6 +87,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(mFullyPowered, "FullyPowered");
     mStateTableRead->AddData(mPowerEnable, "PowerEnable");
     mStateTableRead->AddData(mPowerStatus, "PowerStatus");
+    mStateTableRead->AddData(mPowerFault, "PowerFault");
     mStateTableRead->AddData(mSafetyRelay, "SafetyRelay");
     mStateTableRead->AddData(mSafetyRelayStatus, "SafetyRelayStatus");
     mStateTableRead->AddData(mWatchdogTimeoutStatus, "WatchdogTimeoutStatus");
@@ -331,6 +334,9 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     robotInterface->AddCommandWrite(&mtsRobot1394::WritePowerEnable, this,
                                     "WritePowerEnable"); // bool
 
+    robotInterface->AddCommandReadState(*mStateTableRead, mPowerFault,
+                                        "GetPowerFault"); // bool
+
     robotInterface->AddCommandWrite(&mtsRobot1394::SetWatchdogPeriod, this,
                                     "SetWatchdogPeriod");
 
@@ -437,6 +443,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
 
     // Events
     robotInterface->AddEventWrite(EventTriggers.FullyPowered, "FullyPowered", false);
+    robotInterface->AddEventWrite(EventTriggers.PowerFault, "PowerFault", false);
     robotInterface->AddEventWrite(EventTriggers.WatchdogTimeoutStatus, "WatchdogTimeoutStatus", false);
     robotInterface->AddEventWrite(EventTriggers.WatchdogPeriod, "WatchdogPeriod", sawRobotIO1394::WatchdogTimeout);
     robotInterface->AddEventWrite(EventTriggers.Coupling, "Coupling", prmActuatorJointCoupling());
@@ -757,12 +764,14 @@ void mtsRobot1394::PollValidity(void)
 
     // Store previous state
     mPreviousFullyPowered = mFullyPowered;
+    mPreviousPowerFault = mPowerFault;
     mPreviousWatchdogTimeoutStatus = mWatchdogTimeoutStatus;
 
     // Initialize flags
     mValid = true;
     mPowerEnable = true;
     mPowerStatus = true;
+    mPowerFault = false;
     mSafetyRelay = true;
     mSafetyRelayStatus = true;
     mWatchdogTimeoutStatus = false;
@@ -772,12 +781,13 @@ void mtsRobot1394::PollValidity(void)
         mValid &= board.second->ValidRead();
         mPowerEnable &= board.second->GetPowerEnable();
         mPowerStatus &= board.second->GetPowerStatus();
+        mPowerFault |= board.second->GetPowerFault();
         mSafetyRelay &= board.second->GetSafetyRelay();
         mSafetyRelayStatus &= board.second->GetSafetyRelayStatus();
         mWatchdogTimeoutStatus |= board.second->GetWatchdogTimeoutStatus();
     }
 
-    mFullyPowered = mPowerStatus && mSafetyRelay && mSafetyRelayStatus && !mWatchdogTimeoutStatus;
+    mFullyPowered = mPowerStatus && !mPowerFault && mSafetyRelay && mSafetyRelayStatus && !mWatchdogTimeoutStatus;
 
     if (!mValid) {
         if (mInvalidReadCounter == 0) {
@@ -1211,6 +1221,13 @@ void mtsRobot1394::CheckState(void)
             if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
                 mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
             }
+        }
+    }
+
+    if (mPreviousPowerFault != mPowerFault) {
+        EventTriggers.PowerFault(mPowerFault);
+        if (mPowerFault) {
+            mInterface->SendError("IO: " + this->Name() + " detected power fault");
         }
     }
 
