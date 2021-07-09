@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2019-05-23
 
-  (C) Copyright 2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2019-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -24,9 +24,10 @@ http://www.cisst.org/cisst/license.txt.
 
 #include "AmpIO.h"
 
-#define DALLAS_START_READ   0x80
-#define DALLAS_MODEL_OFFSET 0xa4
-#define DALLAS_NAME_OFFSET  0x160
+#define DALLAS_START_READ     0x80
+#define DALLAS_MODEL_OFFSET   0xa4
+#define DALLAS_VERSION_OFFSET 0xa8
+#define DALLAS_NAME_OFFSET    0x160
 
 using namespace sawRobotIO1394;
 
@@ -145,10 +146,14 @@ void mtsDallasChip1394::PollState(void)
                 // model number uses only 3 bytes, set first one to zero just in case
                 buffer[DALLAS_MODEL_OFFSET] = 0;
                 int32_t * model = reinterpret_cast<int32_t *>(buffer + (DALLAS_MODEL_OFFSET - DALLAS_START_READ));
-                std::stringstream toolType;
                 cmnDataByteSwap(*model);
-                // concatenate name and model
-                toolType << std::string(buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ)) << "_" << *model;
+                // version number
+                unsigned int version = static_cast<unsigned int>(buffer[DALLAS_VERSION_OFFSET - DALLAS_START_READ]);
+                // concatenate name, model and version
+                std::stringstream toolType;
+                toolType << std::string(buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ))
+                         << ":" << *model
+                         << "[" << version << "]";
                 mToolType.Data = toolType.str();
                 // replace spaces with "_" and use upper case (see mtsIntuitiveResearchKitToolTypes.cdg)
                 std::replace(mToolType.Data.begin(), mToolType.Data.end(), ' ', '_');
@@ -207,6 +212,6 @@ void mtsDallasChip1394::TriggerRead(void)
         return;
     }
 
-    mInterface->SendStatus(mName + ": requested tool read"); 
+    mInterface->SendStatus(mName + ": requested tool read");
     mStatus = 1;
 }
