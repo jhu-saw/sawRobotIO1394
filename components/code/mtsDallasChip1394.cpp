@@ -28,6 +28,7 @@ http://www.cisst.org/cisst/license.txt.
 #define DALLAS_MODEL_OFFSET   0xa4
 #define DALLAS_VERSION_OFFSET 0xa8
 #define DALLAS_NAME_OFFSET    0x160
+#define DALLAS_NAME_END       0x17c
 
 using namespace sawRobotIO1394;
 
@@ -149,15 +150,18 @@ void mtsDallasChip1394::PollState(void)
                 cmnDataByteSwap(*model);
                 // version number
                 unsigned int version = static_cast<unsigned int>(buffer[DALLAS_VERSION_OFFSET - DALLAS_START_READ]);
+                // name
+                buffer[DALLAS_NAME_END - DALLAS_START_READ] = '\0';
+                std::string name = buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ);
+                // replace spaces with "_" and use upper case (see mtsIntuitiveResearchKitToolTypes.cdg)
+                std::replace(name.begin(), name.end(), ' ', '_');
+                std::transform(name.begin(), name.end(), name.begin(), ::toupper);
                 // concatenate name, model and version
                 std::stringstream toolType;
-                toolType << std::string(buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ))
+                toolType << name
                          << ":" << *model
                          << "[" << version << "]";
                 mToolType.Data = toolType.str();
-                // replace spaces with "_" and use upper case (see mtsIntuitiveResearchKitToolTypes.cdg)
-                std::replace(mToolType.Data.begin(), mToolType.Data.end(), ' ', '_');
-                std::transform(mToolType.Data.begin(), mToolType.Data.end(), mToolType.Data.begin(), ::toupper);
                 // send info
                 mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
                 ToolTypeEvent(mToolType);
