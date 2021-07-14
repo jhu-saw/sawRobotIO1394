@@ -147,6 +147,7 @@ Samples collectSamples(void) {
 
     // compute standard deviation
     vctDoubleVec sumDifferencesSquared(numberOfAxis);
+    sumDifferencesSquared.Zeros(); // Force to zero
     vctDoubleVec difference(numberOfAxis);
     for (size_t index = 0; index < totalSamples; ++index) {
         difference.DifferenceOf(samples[index], averageAllSamples);
