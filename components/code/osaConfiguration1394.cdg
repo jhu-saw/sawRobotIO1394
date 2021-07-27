@@ -44,7 +44,7 @@ namespace sawRobotIO1394 {
             { "mA",  1.000},
             { "mm",  cmn_mm},
             { "rad", 1.0},
-            { "none", 1.0}        
+            { "none", 1.0}
         };
         const auto factor = factors.find(unit);
         if (factor != factors.end()) {
@@ -142,13 +142,29 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
+        name Type;
+        type int;
+        visibility public;
+        description  1 for analog pots, 2 for digital pots;
+    }
+    member {
         name BitsToVoltage;
         type osaLinearFunction;
         visibility public;
     }
     member {
-        name VoltageToPosition;
+        name SensorToPosition;
         type osaLinearFunction;
+        visibility public;
+    }
+    member {
+        name DigPotResolution;
+        type double;
+        visibility public;
+    }
+    member {
+        name DigPotMin;
+        type double;
         visibility public;
     }
 }
@@ -298,6 +314,12 @@ class {
     }
     member {
         name HasActuatorToJointCoupling;
+        type bool;
+        default false;
+        visibility public;
+    }
+    member {
+        name HasEncoderPreload;
         type bool;
         default false;
         visibility public;

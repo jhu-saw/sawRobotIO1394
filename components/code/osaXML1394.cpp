@@ -169,6 +169,23 @@ namespace sawRobotIO1394 {
             robot.OnlyIO = false;
         }
 
+        std::string hasEncoderPreload;
+        sprintf(path, "Robot[%d]/@HasEncoderPreload", robotIndex);
+        if (xmlConfig.GetXMLValue(context, path, hasEncoderPreload)) {
+            if (hasEncoderPreload == std::string("False")) {
+                robot.HasEncoderPreload = false;
+            } else if (hasEncoderPreload == std::string("True")) {
+                robot.HasEncoderPreload = true;
+            } else {
+                CMN_LOG_INIT_ERROR << "osaXML1394ConfigureRobot: HasEncoderPreload must be \"True\" or \"False\", not "
+                                   << hasEncoderPreload << std::endl;
+                good = false;
+            }
+        } else {
+            // default is true
+            robot.HasEncoderPreload = true;
+        }
+
         sprintf(path, "Robot[%d]/@SN", robotIndex);
         robot.SerialNumber = 0;
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.SerialNumber, false); // not required
@@ -273,6 +290,7 @@ namespace sawRobotIO1394 {
                 actuator.Brake = 0;
             }
 
+            // encoders
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Scale", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.BitsToPosition.Scale, !robot.OnlyIO);
             if (robot.OnlyIO) {
@@ -297,35 +315,86 @@ namespace sawRobotIO1394 {
             }
             actuator.Encoder.BitsToPosition.Unit = unit;
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Scale);
+            // potentiometers
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Offset", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Offset);
+            // first analog pots for Classic with QLA/FPGA, look for AnalogIn
+            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn", robotIndex, actuatorIndex);
+            int analogPot;
+            xmlConfig.GetXMLValue(context, path, analogPot, -1);
+            if (analogPot != -1) {
+                actuator.Pot.Type = 1;
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Scale", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.VoltageToPosition.Scale, !robot.OnlyIO);
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Scale", robotIndex, actuatorIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Scale);
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Offset", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot. VoltageToPosition.Offset, !robot.OnlyIO);
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Offset", robotIndex, actuatorIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Offset);
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
-            unit = "none";
-            good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-            if (actuator.JointType == PRM_JOINT_REVOLUTE) {
-                if (!osaUnitIsDistanceRevolute(unit) && !robot.OnlyIO) {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                       << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
-                    good = false;
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Scale", robotIndex, actuatorIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Scale, !robot.OnlyIO);
+
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Offset", robotIndex, actuatorIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Offset, !robot.OnlyIO);
+
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
+                unit = "none";
+                good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
+                if (actuator.JointType == PRM_JOINT_REVOLUTE) {
+                    if (!osaUnitIsDistanceRevolute(unit) && !robot.OnlyIO) {
+                        CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                           << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                        good = false;
+                    }
+                } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
+                    if (!osaUnitIsDistancePrismatic(unit) && !robot.OnlyIO) {
+                        CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                           << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                        good = false;
+                    }
                 }
-            } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
-                if (!osaUnitIsDistancePrismatic(unit) && !robot.OnlyIO) {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                       << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
-                    good = false;
+                actuator.Pot.SensorToPosition.Unit = unit;
+            } else {
+                // look for digital pot
+                sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot", robotIndex, actuatorIndex);
+                int digitalPot;
+                xmlConfig.GetXMLValue(context, path, digitalPot, -1);
+                if (digitalPot != -1) {
+                    actuator.Pot.Type = 2;
+
+                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/Pot/@Min", robotIndex, actuatorIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.DigPotMin);
+
+                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/Pot/@Resolution", robotIndex, actuatorIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.DigPotResolution);
+
+                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Scale", robotIndex, actuatorIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Scale);
+
+                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Offset", robotIndex, actuatorIndex);
+                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Offset);
+
+                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
+                    unit = "none";
+                    good &= osaXML1394GetValue(xmlConfig, context, path, unit);
+                    if (actuator.JointType == PRM_JOINT_REVOLUTE) {
+                        if (!osaUnitIsDistanceRevolute(unit)) {
+                            CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                               << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                            good = false;
+                        }
+                    } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
+                        if (!osaUnitIsDistancePrismatic(unit)) {
+                            CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                               << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                            good = false;
+                        }
+                    }
+                    actuator.Pot.SensorToPosition.Unit = unit;
+                } else {
+                    CMN_LOG_INIT_ERROR << "Configure: didn't find any potentiometer!" << std::endl;
+                    actuator.Pot.Type = 0;
                 }
             }
-            actuator.Pot.VoltageToPosition.Unit = unit;
 
             // Add the actuator
             robot.Actuators.push_back(actuator);

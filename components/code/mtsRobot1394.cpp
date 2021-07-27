@@ -494,7 +494,8 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mNumberOfActuators = config.NumberOfActuators;
     mNumberOfJoints = config.NumberOfJoints;
     mSerialNumber = config.SerialNumber;
-    mPotType = config.PotLocation;
+    mPotLocation = config.PotLocation;
+    mHasEncoderPreload = config.HasEncoderPreload;
 
     // Low-level API
     mActuatorInfo.resize(mNumberOfActuators);
@@ -544,7 +545,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mJointEffortCommandLimits.SetSize(mNumberOfJoints);
     mActuatorCurrentCommandLimits.SetSize(mNumberOfActuators);
     mActuatorCurrentFeedbackLimits.SetSize(mNumberOfActuators);
-    if (mPotType == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
+    if (mPotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
         mPotToleranceLatency.SetSize(mNumberOfActuators);
         mPotToleranceDistance.SetSize(mNumberOfActuators);
         for (size_t i = 0; i < mNumberOfActuators; ++i) {
@@ -553,7 +554,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         }
         mPotErrorDuration.SetSize(mNumberOfActuators);
         mPotValid.SetSize(mNumberOfActuators);
-    } else if (mPotType == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
+    } else if (mPotLocation == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
         mPotToleranceLatency.SetSize(mNumberOfJoints);
         mPotToleranceDistance.SetSize(mNumberOfJoints);
         for (size_t i = 0; i < mNumberOfJoints; ++i) {
@@ -567,12 +568,19 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mPotValid.SetAll(true);
     mUsePotsForSafetyCheck = false;
 
+    // encoders
     mBitsToPositionScales.SetSize(mNumberOfActuators);
+    mBitsToPositionOffsets.SetSize(mNumberOfActuators);
 
+    // analog pots
     mBitsToVoltageScales.SetSize(mNumberOfActuators);
     mBitsToVoltageOffsets.SetSize(mNumberOfActuators);
-    mVoltageToPositionScales.SetSize(mNumberOfActuators);
-    mVoltageToPositionOffsets.SetSize(mNumberOfActuators);
+    // digital pots
+    mDigPotMin.SetSize(mNumberOfActuators);
+    mDigPotResolution.SetSize(mNumberOfActuators);
+    // all pots
+    mSensorToPositionScales.SetSize(mNumberOfActuators);
+    mSensorToPositionOffsets.SetSize(mNumberOfActuators);
 
     mActuatorTemperature.SetSize(mNumberOfActuators);
 
@@ -601,12 +609,30 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         // Add 50 mA for non motorized actuators due to a2d noise
         mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
 
-        mBitsToPositionScales.at(i)     = encoder.BitsToPosition.Scale * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
+        mBitsToPositionScales.at(i) = encoder.BitsToPosition.Scale * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
+        mBitsToPositionOffsets.at(i) = encoder.BitsToPosition.Offset * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
+        
+        // check which pots we have
+        if (mPotType == 0) {
+            mPotType = pot.Type;
+        } else {
+            if (pot.Type != mPotType) {
+                CMN_LOG_INIT_ERROR << "osaRobot1394::Configure: " << this->mName
+                                   << ", all potentiometers must be either analog or digital" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
 
-        mBitsToVoltageScales.at(i)      = pot.BitsToVoltage.Scale;
-        mBitsToVoltageOffsets.at(i)     = pot.BitsToVoltage.Offset;
-        mVoltageToPositionScales.at(i)  = pot.VoltageToPosition.Scale  * osaUnitToSIFactor(pot.VoltageToPosition.Unit);
-        mVoltageToPositionOffsets.at(i) = pot.VoltageToPosition.Offset * osaUnitToSIFactor(pot.VoltageToPosition.Unit);
+        if (pot.Type == 1) { // analog pots
+            mBitsToVoltageScales.at(i)  = pot.BitsToVoltage.Scale;
+            mBitsToVoltageOffsets.at(i) = pot.BitsToVoltage.Offset;
+        } else if (pot.Type == 2) { // digital pots
+            mDigPotResolution.at(i) = pot.DigPotResolution;
+            mDigPotMin.at(i) = pot.DigPotMin;
+        }
+        // all pots
+        mSensorToPositionScales.at(i)  = pot.SensorToPosition.Scale  * osaUnitToSIFactor(pot.SensorToPosition.Unit);
+        mSensorToPositionOffsets.at(i) = pot.SensorToPosition.Offset * osaUnitToSIFactor(pot.SensorToPosition.Unit);
 
         // Initialize state vectors
         mActuatorMeasuredJS.Position().at(i) = 0.0;
@@ -912,8 +938,36 @@ void mtsRobot1394::ConvertState(void)
 
     BrakeBitsToCurrent(mBrakeCurrentBitsFeedback, mBrakeCurrentFeedback);
 
-    PotBitsToVoltage(mPotBits, mPotVoltage);
-    PotVoltageToPosition(mPotVoltage, mPotPosition.Position());
+    // Pots
+    if (mPotType == 1) {
+        PotBitsToVoltage(mPotBits, mPotVoltage);
+        PotVoltageToPosition(mPotVoltage, mPotPosition.Position());
+    } else if (mPotType == 2) {
+        vctIntVec::const_iterator raw = mPotBits.begin();
+        const vctIntVec::const_iterator end = mPotBits.end();
+        vctDoubleVec::const_iterator min = mDigPotMin.begin();
+        vctDoubleVec::const_iterator resolution = mDigPotResolution.begin();
+        vctDoubleVec::iterator position = mPotVoltage.begin();
+        vctDoubleVec::const_iterator scale = mSensorToPositionScales.begin();
+        vctDoubleVec::const_iterator offset = mSensorToPositionOffsets.begin();
+        vctDoubleVec::iterator si = mPotPosition.Position().begin();
+        for (; raw != end;
+             ++raw,
+                 ++min,
+                 ++resolution,
+                 ++position,
+                 ++scale,
+                 ++offset,
+                 ++si) {
+            // wrap around on raw encoder signal
+            *position = *raw - *min;
+            if (*position < 0) {
+                *position += *resolution;
+            }
+            // convert to SI
+            *si = *scale * *position + *offset;
+        }
+    }
 }
 
 void mtsRobot1394::CheckState(void)
@@ -1099,14 +1153,14 @@ void mtsRobot1394::CheckState(void)
 
     // Check if encoders and potentiometers agree
     if (mUsePotsForSafetyCheck) {
-        switch (mPotType) {
+        switch (mPotLocation) {
         case osaPot1394Location::POTENTIOMETER_UNDEFINED:
             break;
         case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
         case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
             {
                 vctDynamicVectorRef<double> encoderRef;
-                if (mPotType == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
+                if (mPotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
                     encoderRef.SetRef(mActuatorMeasuredJS.Position());
                 } else {
                     encoderRef.SetRef(mMeasuredJS.Position());
@@ -1281,7 +1335,7 @@ void mtsRobot1394::CheckState(void)
 
             // determine where pots are
             vctDoubleVec actuatorPosition(mNumberOfActuators);
-            switch(mPotType) {
+            switch (mPotLocation) {
             case osaPot1394Location::POTENTIOMETER_UNDEFINED:
                 cmnThrow("mtsRobot1394::CheckState: can't set encoder offset, potentiometer's position undefined");
                 break;
@@ -1535,7 +1589,7 @@ void mtsRobot1394::BrakeEngage(void)
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
 {
     vctDoubleVec actuatorPosition(mNumberOfActuators);
-    switch(mPotType) {
+    switch (mPotLocation) {
     case osaPot1394Location::POTENTIOMETER_UNDEFINED:
         cmnThrow("mtsRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
         break;
@@ -1666,12 +1720,14 @@ void mtsRobot1394::EncoderPositionToBits(const vctDoubleVec & pos, vctIntVec & b
     const vctDoubleVec::const_iterator end = pos.end();
     vctDoubleVec::const_iterator position = pos.begin();
     vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
+    vctDoubleVec::const_iterator offset = mBitsToPositionOffsets.begin();
     vctIntVec::iterator bit = bits.begin();
     for (; position != end;
          ++position,
              ++scale,
+             ++offset,
              ++bit) {
-        *bit = static_cast<int>(*position / *scale);
+        *bit = static_cast<int>((*position -*offset)/ *scale);
     }
 }
 
@@ -1680,45 +1736,16 @@ void mtsRobot1394::EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & 
     const vctIntVec::const_iterator end = bits.end();
     vctIntVec::const_iterator bit = bits.begin();
     vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
+    vctDoubleVec::const_iterator offset = mBitsToPositionOffsets.begin();
     vctDoubleVec::iterator position = pos.begin();
     for (; bit != end;
          ++bit,
              ++scale,
+             ++offset,
              ++position) {
-        *position = static_cast<double>(*bit) * *scale;
+        *position = *offset + static_cast<double>(*bit) * *scale;
     }
 }
-
-#if 0
-void mtsRobot1394::EncoderBitsToVelocityPredicted(vctDoubleVec & vel) const
-{
-    if ((mLowestFirmWareVersion >= 6) && (mHighestFirmWareVersion >= 6)) {
-        const vctDoubleVec::iterator end = vel.end();
-        vctDoubleVec::iterator velocity = vel.begin();
-        vctDoubleVec::const_iterator enc_vel_cnts_per_sec = mEncoderVelocityCountsPerSecond.begin();
-        vctDoubleVec::const_iterator enc_acc_cnts_per_sec_sec = mEncoderAccelerationCountsPerSecSec.begin();
-        vctDoubleVec::const_iterator enc_vel_delay = mEncoderVelocityDelay.begin();
-        vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
-        for (; velocity != end;
-             ++velocity,
-                 ++enc_vel_cnts_per_sec,
-                 ++enc_acc_cnts_per_sec_sec,
-                 ++enc_vel_delay,
-                 ++scale) {
-            const double vel_term = *enc_vel_cnts_per_sec;
-            const double acc_term = *enc_acc_cnts_per_sec_sec * *enc_vel_delay;
-            // Don't decelerate past a zero-crossing; first expression checks whether vel_term and
-            // acc_term have different signs (i.e., one positive and one negative).
-            if ((vel_term * acc_term < 0.0) && (abs(acc_term) > abs(vel_term))){
-                *velocity = 0.0;
-            }
-            else {
-                *velocity = *scale * (vel_term + acc_term);
-            }
-        }
-    }
-}
-#endif
 
 void mtsRobot1394::ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoubleVec & currents) const {
     currents.ElementwiseProductOf(efforts, mEffortToCurrentScales);
@@ -1811,6 +1838,6 @@ void mtsRobot1394::PotBitsToVoltage(const vctIntVec & bits, vctDoubleVec & volta
 
 void mtsRobot1394::PotVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const
 {
-    pos.ElementwiseProductOf(voltages, mVoltageToPositionScales);
-    pos.SumOf(pos, mVoltageToPositionOffsets);
+    pos.ElementwiseProductOf(voltages, mSensorToPositionScales);
+    pos.SumOf(pos, mSensorToPositionOffsets);
 }
