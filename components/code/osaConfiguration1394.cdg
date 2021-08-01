@@ -14,7 +14,7 @@ class AmpIO;
 
 namespace sawRobotIO1394 {
     const size_t MAX_BOARDS = 16;
-    const size_t MAX_AXES = 4;
+    const size_t MAX_AXES = 10;
 
     inline bool osaUnitIsDistance(const std::string & unit) {
         // make sure this is properly sorted?

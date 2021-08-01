@@ -763,7 +763,7 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
         }
     }
 
-    const AmpIO_UInt32 currentFirmwareRevision = 7;
+    const AmpIO_UInt32 currentFirmwareRevision = 8;
     const AmpIO_UInt32 lowestFirmwareSupported = 6;
 
     std::stringstream message;
