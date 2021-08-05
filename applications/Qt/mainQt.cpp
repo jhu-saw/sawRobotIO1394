@@ -43,6 +43,7 @@ int main(int argc, char ** argv)
     // parse options
     cmnCommandLineOptions options;
     std::string port = mtsRobotIO1394::DefaultPort();
+    std::string protocol;
     std::list<std::string> configFiles;
     std::string robotName = "Robot";
     double periodInSeconds = 1.0 * cmn_ms;
@@ -50,8 +51,11 @@ int main(int argc, char ** argv)
                                     "configuration file",
                                     cmnCommandLineOptions::REQUIRED_OPTION, &configFiles);
     options.AddOptionOneValue("p", "port",
-                              "firewire port number(s)",
+                              "port used to communicate with the dVRK controllers (fw, udp)",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &port);
+    options.AddOptionOneValue("f", "firewire-protocol",
+                              "FireWire protocol",
+                              cmnCommandLineOptions::OPTIONAL_OPTION, &protocol);
     options.AddOptionOneValue("n", "name",
                               "robot name",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &robotName);
@@ -74,6 +78,9 @@ int main(int argc, char ** argv)
 
     // RobotIO
     mtsRobotIO1394 * robotIO = new mtsRobotIO1394("robotIO", periodInSeconds, port);
+    if (options.IsSet("firewire-protocol")) {
+        robotIO->SetProtocol(protocol);
+    }
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
 
     componentManager->AddComponent(robotIO);
