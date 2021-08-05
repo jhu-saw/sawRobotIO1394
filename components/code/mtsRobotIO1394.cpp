@@ -5,16 +5,16 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
- --- begin cisst license - do not edit ---
+--- begin cisst license - do not edit ---
 
- This software is provided "as is" under an open source license, with
- no warranty.  The complete license can be found in license.txt and
- http://www.cisst.org/cisst/license.txt.
+This software is provided "as is" under an open source license, with
+no warranty.  The complete license can be found in license.txt and
+http://www.cisst.org/cisst/license.txt.
 
- --- end cisst license ---
- */
+--- end cisst license ---
+*/
 
 #include <iostream>
 #include <fstream>
@@ -110,21 +110,14 @@ mtsRobotIO1394::~mtsRobotIO1394()
     delete mMessageStream;
 }
 
-void mtsRobotIO1394::SetProtocol(const sawRobotIO1394::ProtocolType & protocol)
+void mtsRobotIO1394::SetProtocol(const std::string & protocol)
 {
+    BasePort::ProtocolType protocolType;
     bool ok = false;
-    switch (protocol) {
-    case PROTOCOL_SEQ_RW:
-        ok = mPort->SetProtocol(BasePort::PROTOCOL_SEQ_RW);
-        break;
-    case PROTOCOL_SEQ_R_BC_W:
-        ok = mPort->SetProtocol(BasePort::PROTOCOL_SEQ_R_BC_W);
-        break;
-    case PROTOCOL_BC_QRW:
-        ok = mPort->SetProtocol(BasePort::PROTOCOL_BC_QRW);
-        break;
-    default:
-        break;
+    if (BasePort::ParseProtocol(protocol.c_str(),
+                                protocolType,
+                                *mMessageStream)) {
+        ok = mPort->SetProtocol(protocolType);
     }
     if (!ok) {
         CMN_LOG_CLASS_INIT_ERROR << "mtsRobot1394::SetProtocol failed" << std::endl;

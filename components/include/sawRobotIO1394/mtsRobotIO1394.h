@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -25,6 +25,9 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <cisstMultiTask/mtsTaskPeriodic.h>
 #include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
+#include <sawRobotIO1394/osaConfiguration1394.h>
+
+// Always include last!
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
 
 class CISST_EXPORT mtsRobotIO1394 : public mtsTaskPeriodic {
@@ -70,7 +73,7 @@ public:
     mtsRobotIO1394(const mtsTaskPeriodicConstructorArg & arg); // TODO: add port_num
     virtual ~mtsRobotIO1394();
 
-    void SetProtocol(const sawRobotIO1394::ProtocolType & protocol);
+    void SetProtocol(const std::string & protocol);
     void SetWatchdogPeriod(const double & periodInSeconds);
 
     void Init(const std::string & port);
