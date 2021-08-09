@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2013-2015 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -48,6 +48,8 @@ if (cisst_FOUND_AS_REQUIRED)
                ${SAW_ROBOTIO1394_QT_WRAP_CPP})
   set_property (TARGET sawRobotIO1394Qt PROPERTY FOLDER "sawRobotIO1394")
   cisst_target_link_libraries (sawRobotIO1394Qt ${REQUIRED_CISST_LIBRARIES})
+  target_link_libraries (sawRobotIO1394Qt
+                         ${sawRobotIO1394_LIBRARIES})
 
   # make sure the new library is known by the parent folder to add to the config file
   set (sawRobotIO1394Qt_LIBRARIES sawRobotIO1394Qt PARENT_SCOPE)
