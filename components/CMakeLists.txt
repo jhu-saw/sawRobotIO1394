@@ -69,7 +69,7 @@ if (cisst_FOUND_AS_REQUIRED)
 
   # Set the version number
   set (sawRobotIO1394_VERSION_MAJOR "2")
-  set (sawRobotIO1394_VERSION_MINOR "0")
+  set (sawRobotIO1394_VERSION_MINOR "1")
   set (sawRobotIO1394_VERSION_PATCH "0")
   set (sawRobotIO1394_VERSION "${sawRobotIO1394_VERSION_MAJOR}.${sawRobotIO1394_VERSION_MINOR}.${sawRobotIO1394_VERSION_PATCH}")
 

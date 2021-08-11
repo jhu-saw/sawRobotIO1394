@@ -1,6 +1,24 @@
 Change log
 ==========
 
+2.1.0 (2021-08-11)
+==================
+
+* API changes:
+  * Using prmStateJoint for potentiometer values
+  * Instrument name is now following the convention `name:model[version]`.  It used to be `name_model`
+  * Removed enum used to define the FireWire protocol, now uses a string passed to AmpIO
+* Deprecated features:
+  * None
+* New features:
+  * Added option to plot potentiometers and encoders in IO widget, useful to debug potentiometer issues
+  * Monitoring power fault bit from AmpIO
+  * Instrument name now includes version
+  * Added option to set FireWire protocol for `sawRobotIO1394QtConsole`
+* Bug fixes:
+  * Fixed bug in current calibration utility (thx to Robert at Twente)
+  * Fixed CMake dependency for Qt library using header files generated along the core library (`.cdg`)
+
 2.0.0 (2021-04-08)
 ==================
 
@@ -13,7 +31,7 @@ Change log
   * Removed code for compiling without *cisst*
 * New features:
   * Support for latest AmpIO API + firmware 7
-  * Added `DallasChip` class to query tool type on dVRK PSMs 
+  * Added `DallasChip` class to query tool type on dVRK PSMs
   * Support for ethernet/UDP port
   * Monitor period statistics and send warnings/errors if compute time is too long
   * Monitor amplifiers temperature and send warnings/errors if too hot
@@ -51,7 +69,7 @@ Change log
 * API changes:
   * All classes with `osa` and `mts` levels have been merged to simplify code
 * Deprecated features:
-  * Since all `osa` classes have been removed, programs that used the `osa` level need to be updated.  See for example `applications/current-calibration` 
+  * Since all `osa` classes have been removed, programs that used the `osa` level need to be updated.  See for example `applications/current-calibration`
   * Firmware Rev 3 and below are not supported anymore
 * New features:
   * Use FPGA based velocity with firmware Rev 6
@@ -59,7 +77,7 @@ Change log
   * Setting encoder/pot error to 0 disables the check completly (e.g. MTM last two joints)
   * Reports 3 different timing statisctics, time to "read", "write" and overall.  These are also exposed using ROS topics
 * Bug fixes:
-  * Interval statistics were base on the "Read" phase only, it was missing the PID computing time as well as "Write" to IO 
+  * Interval statistics were base on the "Read" phase only, it was missing the PID computing time as well as "Write" to IO
   * Qt widget: brake control requires "direct control"
 
 1.5.0 (2017-11-07)
