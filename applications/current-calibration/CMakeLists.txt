@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2013-2016 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -44,7 +44,6 @@ if (cisst_FOUND_AS_REQUIRED)
 
     add_executable (sawRobotIO1394CurrentCalibration main.cpp)
     set_target_properties (sawRobotIO1394CurrentCalibration PROPERTIES
-                           COMPONENT sawRobotIO1394Applications
                            FOLDER "sawRobotIO1394")
 
     # link against non cisst libraries and cisst components
@@ -54,7 +53,7 @@ if (cisst_FOUND_AS_REQUIRED)
     # link against cisst libraries (and dependencies)
     cisst_target_link_libraries (sawRobotIO1394CurrentCalibration ${REQUIRED_CISST_LIBRARIES})
 
-    install (TARGETS sawRobotIO1394CurrentCalibration COMPONENT sawRobotIO1394Applications
+    install (TARGETS sawRobotIO1394CurrentCalibration COMPONENT sawRobotIO1394-Applications
              RUNTIME DESTINATION bin
              LIBRARY DESTINATION lib
              ARCHIVE DESTINATION lib)

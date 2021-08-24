@@ -1,5 +1,4 @@
 #
-#
 # (C) Copyright 2013 Johns Hopkins University (JHU), All Rights
 # Reserved.
 #
@@ -21,14 +20,15 @@ if (cisst_FOUND)
 
   set (FILES_TO_COPY sawRobotIO1394Example.xml sawRobotIO1394TestBoard.xml)
 
-  set (DESTINATION_DIRECTORY "${CISST_BINARY_DIR}/${CISST_SHARE_INSTALL_SUFFIX}/sawRobotIO1394")
-  foreach (_file ${FILES_TO_COPY})
-    file (MAKE_DIRECTORY "${DESTINATION_DIRECTORY}")
-    add_custom_target (sawRobotIO1394_copy_${_file} ALL
-                       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                               "${CMAKE_CURRENT_SOURCE_DIR}/${_file}"
-                               "${DESTINATION_DIRECTORY}/${_file}"
-                       COMMENT "Copying data files ${_file} to ${DESTINATION_DIRECTORY}")
-  endforeach (_file)
+  message ("----------------------------------------------------- ${CISST_BINARY_DIR}")
+  # set (DESTINATION_DIRECTORY "${CISST_BINARY_DIR}/${CISST_SHARE_INSTALL_SUFFIX}/sawRobotIO1394")
+  # file (MAKE_DIRECTORY "${DESTINATION_DIRECTORY}")
+  # foreach (_file ${FILES_TO_COPY})
+  #   add_custom_target (sawRobotIO1394_copy_${_file} ALL
+  #                      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  #                              "${CMAKE_CURRENT_SOURCE_DIR}/${_file}"
+  #                              "${DESTINATION_DIRECTORY}/${_file}"
+  #                      COMMENT "Copying data files ${_file} to ${DESTINATION_DIRECTORY}")
+  # endforeach (_file)
 
 endif (cisst_FOUND)

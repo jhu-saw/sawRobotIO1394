@@ -44,7 +44,7 @@ if (cisst_FOUND_AS_REQUIRED)
 
     add_executable (sawRobotIO1394XMLtoJSON main.cpp)
     set_target_properties (sawRobotIO1394XMLtoJSON PROPERTIES
-                           COMPONENT sawRobotIO1394Applications
+                           COMPONENT sawRobotIO1394-Applications
                            FOLDER "sawRobotIO1394")
 
     # link against non cisst libraries and cisst components
@@ -54,7 +54,7 @@ if (cisst_FOUND_AS_REQUIRED)
     # link against cisst libraries (and dependencies)
     cisst_target_link_libraries (sawRobotIO1394XMLtoJSON ${REQUIRED_CISST_LIBRARIES})
 
-    install (TARGETS sawRobotIO1394XMLtoJSON COMPONENT sawRobotIO1394Applications
+    install (TARGETS sawRobotIO1394XMLtoJSON COMPONENT sawRobotIO1394-Applications
              RUNTIME DESTINATION bin
              LIBRARY DESTINATION lib
              ARCHIVE DESTINATION lib)

@@ -36,5 +36,7 @@ add_subdirectory (tests)
 
 include (CPack)
 cpack_add_component (sawRobotIO1394)
-cpack_add_component (sawRobotIO1394Applications
+cpack_add_component (sawRobotIO1394-Qt
                      DEPENDS sawRobotIO1394)
+cpack_add_component (sawRobotIO1394-Applications
+                     DEPENDS sawRobotIO1394 sawRobotIO1394-Qt)

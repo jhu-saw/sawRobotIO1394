@@ -127,13 +127,12 @@ if (cisst_FOUND_AS_REQUIRED)
 
   cisst_add_config_version ("${sawRobotIO1394_CONFIG_FILE_DIR}/sawRobotIO1394ConfigVersion.cmake"
                             VERSION ${sawRobotIO1394_VERSION}
-                            DESTINATION ${CISST_CMAKE_INSTALL_SUFFIX}/saw
+                            DESTINATION "share/sawRobotIO1394"
                             COMPONENT sawRobotIO1394)
 
   # Install targets for headers and library
-  install (DIRECTORY
-           ${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394
-           ${sawRobotIO1394_BINARY_DIR}/include/sawRobotIO1394
+  install (DIRECTORY "${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394"
+                     "${sawRobotIO1394_BINARY_DIR}/include/sawRobotIO1394"
            DESTINATION include
            COMPONENT sawRobotIO1394-dev
            PATTERN .svn EXCLUDE)
