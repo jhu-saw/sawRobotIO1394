@@ -22,7 +22,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstOSAbstraction/osaTimeServer.h>
 #include <cisstVector/vctQtWidgetDynamicVector.h>
 #include <cisstVector/vctPlot2DBase.h>
-#include <cisstMultiTask/mtsQtWidgetIntervalStatistics.h>
+#include <cisstMultiTask/mtsIntervalStatisticsQtWidget.h>
 #include <cisstMultiTask/mtsComponent.h>
 #include <cisstParameterTypes/prmStateJoint.h>
 
@@ -198,7 +198,7 @@ private:
     QLabel * QLSerialNumber;
 
     // GUI: timing
-    mtsQtWidgetIntervalStatistics * QMIntervalStatistics;
+    mtsIntervalStatisticsQtWidget * QMIntervalStatistics;
 
     vctQtWidgetDynamicVectorBoolWrite * QVWActuatorCurrentEnableEach;
     vctQtWidgetDynamicVectorDoubleWrite * QVWActuatorCurrentSpinBox;

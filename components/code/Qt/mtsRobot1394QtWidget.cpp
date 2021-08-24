@@ -654,7 +654,7 @@ void mtsRobot1394QtWidget::setupUi(void)
     timingTitle->setFont(font);
     timingTitle->setAlignment(Qt::AlignCenter);
     timingLayout->addWidget(timingTitle);
-    QMIntervalStatistics = new mtsQtWidgetIntervalStatistics();
+    QMIntervalStatistics = new mtsIntervalStatisticsQtWidget();
     timingLayout->addWidget(QMIntervalStatistics);
     timingLayout->addStretch();
     timingFrame->setLayout(timingLayout);
