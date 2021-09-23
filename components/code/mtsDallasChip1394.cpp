@@ -126,10 +126,9 @@ void mtsDallasChip1394::PollState(void)
                 }
             }
         } else if (mStatus == 2) {
-            nodeaddr_t address = 0x6000;
             char buffer[256];
             // Read first block of data (up to 256 bytes)
-            if (!mBoard->ReadBlock(address, reinterpret_cast<quadlet_t *>(buffer), 256)) {
+            if (!mBoard->DallasReadBlock(reinterpret_cast<unsigned char *>(buffer), 256)) {
                 mInterface->SendWarning(mName + ": ReadBlock failed");
                 ToolTypeEvent(ToolTypeError);
                 mStatus = 0;
