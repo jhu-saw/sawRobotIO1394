@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2009-2016 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2009-2021 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -46,7 +46,9 @@ if (cisst_FOUND_AS_REQUIRED)
     link_directories (${sawRobotIO1394_LIBRARY_DIR})
 
     add_executable (sawRobotIO1394QtConsole mainQt.cpp)
-    set_property (TARGET sawRobotIO1394QtConsole PROPERTY FOLDER "sawRobotIO1394")
+    set_target_properties (sawRobotIO1394QtConsole PROPERTIES
+                           COMPONENT sawRobotIO1394-Applications
+                           FOLDER "sawRobotIO1394")
 
     # link against non cisst libraries and cisst components
     target_link_libraries (sawRobotIO1394QtConsole
@@ -54,6 +56,11 @@ if (cisst_FOUND_AS_REQUIRED)
 
     # link against cisst libraries (and dependencies)
     cisst_target_link_libraries (sawRobotIO1394QtConsole ${REQUIRED_CISST_LIBRARIES})
+
+    install (TARGETS sawRobotIO1394QtConsole COMPONENT sawRobotIO1394-Applications
+             RUNTIME DESTINATION bin
+             LIBRARY DESTINATION lib
+             ARCHIVE DESTINATION lib)
 
   endif (sawRobotIO1394_FOUND)
 

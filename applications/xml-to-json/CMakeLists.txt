@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -16,8 +16,8 @@ set (REQUIRED_CISST_LIBRARIES cisstCommon
                               cisstCommonXML
                               cisstVector
                               cisstOSAbstraction
-			      cisstMultiTask
-			      cisstParameterTypes)
+                              cisstMultiTask
+                              cisstParameterTypes)
 
 # find cisst and make sure the required libraries have been compiled
 find_package (cisst REQUIRED ${REQUIRED_CISST_LIBRARIES})
@@ -43,7 +43,9 @@ if (cisst_FOUND_AS_REQUIRED)
     link_directories (${sawRobotIO1394_LIBRARY_DIR})
 
     add_executable (sawRobotIO1394XMLtoJSON main.cpp)
-    set_property (TARGET sawRobotIO1394XMLtoJSON PROPERTY FOLDER "sawRobotIO1394")
+    set_target_properties (sawRobotIO1394XMLtoJSON PROPERTIES
+                           COMPONENT sawRobotIO1394-Applications
+                           FOLDER "sawRobotIO1394")
 
     # link against non cisst libraries and cisst components
     target_link_libraries (sawRobotIO1394XMLtoJSON
@@ -51,6 +53,11 @@ if (cisst_FOUND_AS_REQUIRED)
 
     # link against cisst libraries (and dependencies)
     cisst_target_link_libraries (sawRobotIO1394XMLtoJSON ${REQUIRED_CISST_LIBRARIES})
+
+    install (TARGETS sawRobotIO1394XMLtoJSON COMPONENT sawRobotIO1394-Applications
+             RUNTIME DESTINATION bin
+             LIBRARY DESTINATION lib
+             ARCHIVE DESTINATION lib)
 
   endif (sawRobotIO1394_FOUND)
 
