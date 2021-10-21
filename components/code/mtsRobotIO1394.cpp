@@ -112,6 +112,7 @@ mtsRobotIO1394::~mtsRobotIO1394()
 
 void mtsRobotIO1394::SetProtocol(const std::string & protocol)
 {
+#if 0
     BasePort::ProtocolType protocolType;
     bool ok = false;
     if (BasePort::ParseProtocol(protocol.c_str(),
@@ -123,6 +124,9 @@ void mtsRobotIO1394::SetProtocol(const std::string & protocol)
         CMN_LOG_CLASS_INIT_ERROR << "mtsRobot1394::SetProtocol failed" << std::endl;
         exit(EXIT_FAILURE);
     }
+#else
+    mPort->SetProtocol(BasePort::PROTOCOL_SEQ_R_BC_W);
+#endif
 }
 
 void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
