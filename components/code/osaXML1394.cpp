@@ -373,7 +373,7 @@ namespace sawRobotIO1394 {
                     sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Offset", robotIndex, actuatorIndex);
                     good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Offset);
 
-                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
+                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Unit", robotIndex, actuatorIndex);
                     unit = "none";
                     good &= osaXML1394GetValue(xmlConfig, context, path, unit);
                     if (actuator.JointType == PRM_JOINT_REVOLUTE) {
