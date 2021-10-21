@@ -267,6 +267,7 @@ namespace sawRobotIO1394 {
         size_t mNumberOfJoints;
         size_t mNumberOfBrakes;
         size_t mSerialNumber;
+        bool mHasEncoderPreload;
 
         // state of brakes
         bool mBrakeReleasing;
@@ -284,10 +285,11 @@ namespace sawRobotIO1394 {
             mActuatorBitsToCurrentOffsets,
             mBrakeBitsToCurrentOffsets,
             mBitsToPositionScales,
+            mBitsToPositionOffsets, // this is used only if the hardware doesn't allow encoder pre-loading
             mBitsToVoltageScales,
             mBitsToVoltageOffsets,
-            mVoltageToPositionScales,
-            mVoltageToPositionOffsets;
+            mSensorToPositionScales,
+            mSensorToPositionOffsets;
 
         vctDoubleVec
             mJointEffortCommandLimits,
@@ -300,7 +302,8 @@ namespace sawRobotIO1394 {
 
         //! Robot type
         prmConfigurationJoint mConfigurationJoint;
-        osaPot1394Location::Type mPotType;
+        osaPot1394Location::Type mPotLocation;
+        int mPotType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
         bool mUsePotsForSafetyCheck;
 
         //! State Members
@@ -348,16 +351,11 @@ namespace sawRobotIO1394 {
 
         vctDoubleVec
             mActuatorTimestamp,
-            // mActuatorTimestampChange, // cumulated time since last encoder changed
-            // mActuatorPreviousTimestampChange,
-            // mVelocitySlopeToZero, // slope used to reduced velocity to zero when no encoder count change
             mBrakeTimestamp,
+            mDigPotMin,
+            mDigPotResolution,
             mPotVoltage,
-
             mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
-            // mEncoderVelocityDelay,            // assumed delay in velocity measurement (period/2)
-            // mEncoderVelocityPredicted,        // velocity based on FPGA measurement, combined with prediction based on acceleration (SI units)
-            // mEncoderVelocitySoftware,         // velocity based on backward difference of position (SI units)
             mEncoderAccelerationCountsPerSecSec, // acceleration based on FPGA measurement (firmware rev 6)
             mEncoderAcceleration,                // acceleration in SI units (firmware rev 6)
             mActuatorEncoderAcceleration,
