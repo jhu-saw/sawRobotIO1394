@@ -40,6 +40,7 @@ using namespace sawRobotIO1394;
 mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
                                          const osaDigitalInput1394Configuration & config):
     OwnerServices(owner.Services()),
+    mFirstRun(true),
     mData(0),
     mValue(false),
     mPreviousValue(false),
@@ -81,7 +82,7 @@ void mtsDigitalInput1394::CheckState(void)
     // Send appropriate events if the value changed in the last update
 
     // Check if value has changed
-    if (mValue != mPreviousValue) {
+    if (mFirstRun || (mValue != mPreviousValue)) {
         // Check if the value is equal to the value when the digital input is considered pressed
         if (mValue) {
             // Emit a press event
@@ -100,6 +101,9 @@ void mtsDigitalInput1394::CheckState(void)
                 Button(mEventPayloads.Released);
             }
         }
+    }
+    if (mFirstRun) {
+        mFirstRun = false;
     }
 }
 

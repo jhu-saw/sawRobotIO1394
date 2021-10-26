@@ -75,6 +75,7 @@ namespace sawRobotIO1394 {
     protected:
         mtsFunctionWrite Button;    // The event function for button, will return prmEventButton
         AmpIO * mBoard;              // Board Assignment
+        bool mFirstRun;
         mtsDigitalInput1394Data * mData; // Internal data using AmpIO types
         osaDigitalInput1394Configuration mConfiguration;
         std::string mName;
