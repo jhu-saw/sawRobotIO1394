@@ -128,7 +128,6 @@ void mtsDallasChip1394::PollState(void)
         } else if (mStatus == 2) {
             char buffer[256];
             // Read first block of data (up to 256 bytes)
-#if 0
             if (!mBoard->DallasReadBlock(reinterpret_cast<unsigned char *>(buffer), 256)) {
                 mInterface->SendWarning(mName + ": ReadBlock failed");
                 ToolTypeEvent(ToolTypeError);
@@ -167,7 +166,6 @@ void mtsDallasChip1394::PollState(void)
                 ToolTypeEvent(mToolType);
                 mStatus = 0;
             }
-#endif
         }
     }
 }
