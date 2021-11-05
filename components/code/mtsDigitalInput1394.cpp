@@ -161,7 +161,7 @@ void mtsDigitalInput1394::PollState(void)
     } else {
         if (mDebounceCounter < mDebounceThreshold) {
             if (value == mTransitionValue) {
-                mDebounceCounter += mBoard->GetTimestamp() / (49.125 * 1000.0 * 1000.0); // clock is 49.125 MHz
+                mDebounceCounter += mBoard->GetTimestamp() * mBoard->GetFPGAClockPeriod();
             } else {
                 // click if button is now released and counter is short enough
                 if (!value && (mDebounceCounter >  mDebounceThresholdClick)) {
