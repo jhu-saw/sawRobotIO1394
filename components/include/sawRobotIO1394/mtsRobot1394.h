@@ -77,6 +77,14 @@ namespace sawRobotIO1394 {
         void servo_jf(const prmForceTorqueJointSet & jointTorques);
         void SetSomeEncoderPosition(const prmMaskedDoubleVec & values);
         void SetCoupling(const prmActuatorJointCoupling & coupling);
+        void ActuatorToJointPosition(const vctDoubleVec & actuators,
+                                     vctDoubleVec & joints) const;
+        void JointToActuatorPosition(const vctDoubleVec & joints,
+                                     vctDoubleVec & actuators) const;
+        void ActuatorToJointEffort(const vctDoubleVec & actuators,
+                                   vctDoubleVec & joints) const;
+        void JointToActuatorEffort(const vctDoubleVec & joints,
+                                   vctDoubleVec & actuators) const;
 
         /*! \name Bias Calibration */
         void CalibrateEncoderOffsetsFromPots(const int & numberOfSamples);

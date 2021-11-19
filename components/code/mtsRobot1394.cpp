@@ -267,6 +267,50 @@ void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
     EventTriggers.Coupling(coupling);
 }
 
+void mtsRobot1394::ActuatorToJointPosition(const vctDoubleVec & actuators,
+                                           vctDoubleVec & joints) const
+{
+    if (mConfiguration.HasActuatorToJointCoupling) {
+        joints.ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
+                         actuators);
+    } else {
+        joints.Assign(actuators);
+    }
+}
+
+void mtsRobot1394::JointToActuatorPosition(const vctDoubleVec & joints,
+                                           vctDoubleVec & actuators) const
+{
+    if (mConfiguration.HasActuatorToJointCoupling) {
+        actuators.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
+                            joints);
+    } else {
+        actuators.Assign(joints);
+    }
+}
+
+void mtsRobot1394::ActuatorToJointEffort(const vctDoubleVec & actuators,
+                                           vctDoubleVec & joints) const
+{
+    if (mConfiguration.HasActuatorToJointCoupling) {
+        joints.ProductOf(mConfiguration.Coupling.ActuatorToJointEffort(),
+                         actuators);
+    } else {
+        joints.Assign(actuators);
+    }
+}
+
+void mtsRobot1394::JointToActuatorEffort(const vctDoubleVec & joints,
+                                           vctDoubleVec & actuators) const
+{
+    if (mConfiguration.HasActuatorToJointCoupling) {
+        actuators.ProductOf(mConfiguration.Coupling.JointToActuatorEffort(),
+                            joints);
+    } else {
+        actuators.Assign(joints);
+    }
+}
+
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
 {
     // if the number of samples is negative, user wants to first check
@@ -434,6 +478,15 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
                                             "DriveNmToAmps", mActuatorEffortCommand, mActuatorCurrentCommand);
     robotInterface->AddCommandQualifiedRead(&mtsRobot1394::PotBitsToVoltage, this,
                                             "AnalogInBitsToVolts", mPotBits, mPotVoltage);
+    // coupling conversion methods
+    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorToJointPosition, this,
+                                            "ActuatorToJointPosition", vctDoubleVec(), vctDoubleVec());
+    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::JointToActuatorPosition, this,
+                                            "JointToActuatorPosition", vctDoubleVec(), vctDoubleVec());
+    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorToJointEffort, this,
+                                            "ActuatorToJointEffort", vctDoubleVec(), vctDoubleVec());
+    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::JointToActuatorEffort, this,
+                                            "JointToActuatorEffort", vctDoubleVec(), vctDoubleVec());
 
     //
     robotInterface->AddCommandWrite(&mtsRobot1394::CalibrateEncoderOffsetsFromPots,
@@ -611,7 +664,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
         mBitsToPositionScales.at(i) = encoder.BitsToPosition.Scale * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
         mBitsToPositionOffsets.at(i) = encoder.BitsToPosition.Offset * osaUnitToSIFactor(encoder.BitsToPosition.Unit);
-        
+
         // check which pots we have
         if (mPotType == 0) {
             mPotType = pot.Type;
