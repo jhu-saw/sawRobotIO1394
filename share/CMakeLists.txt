@@ -20,7 +20,6 @@ if (cisst_FOUND)
 
   set (FILES_TO_COPY sawRobotIO1394Example.xml sawRobotIO1394TestBoard.xml)
 
-  message ("----------------------------------------------------- ${CISST_BINARY_DIR}")
   # set (DESTINATION_DIRECTORY "${CISST_BINARY_DIR}/${CISST_SHARE_INSTALL_SUFFIX}/sawRobotIO1394")
   # file (MAKE_DIRECTORY "${DESTINATION_DIRECTORY}")
   # foreach (_file ${FILES_TO_COPY})
