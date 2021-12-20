@@ -22,6 +22,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <sawRobotIO1394/mtsDallasChip1394.h>
 
+#include "BasePort.h"
 #include "AmpIO.h"
 
 #define DALLAS_START_READ     0x80
@@ -187,6 +188,16 @@ const std::string & mtsDallasChip1394::ToolType(void) const
 
 void mtsDallasChip1394::TriggerRead(void)
 {
+    // dRAC, just use SPSM
+    if (mBoard->GetHardwareVersion() == dRA1_String) {
+        AmpIO_UInt32 model = mBoard->SPSMReadToolModel();
+        unsigned int version = static_cast<unsigned int>(mBoard->SPSMReadToolVersion());
+        std::stringstream tool;
+        tool << ":" << model << "[" << version << "]";
+        ToolTypeEvent(tool.str());
+        return;
+    }
+
     if (mStatus > 0) {
         mInterface->SendWarning(mName + ": tool info read is already in progress, ignoring");
         ToolTypeEvent(ToolTypeError);
