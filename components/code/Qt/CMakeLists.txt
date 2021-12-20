@@ -53,9 +53,6 @@ if (cisst_FOUND_AS_REQUIRED)
   target_link_libraries (sawRobotIO1394Qt
                          ${sawRobotIO1394_LIBRARIES})
 
-  # make sure the new library is known by the parent folder to add to the config file
-  set (sawRobotIO1394Qt_LIBRARIES sawRobotIO1394Qt PARENT_SCOPE)
-
   install (TARGETS sawRobotIO1394Qt COMPONENT sawRobotIO1394-Qt
            RUNTIME DESTINATION bin
            LIBRARY DESTINATION lib
