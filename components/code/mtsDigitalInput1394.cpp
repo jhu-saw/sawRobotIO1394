@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -164,7 +164,10 @@ void mtsDigitalInput1394::PollState(void)
                 mDebounceCounter += mBoard->GetTimestamp() * mBoard->GetFPGAClockPeriod();
             } else {
                 // click if button is now released and counter is short enough
-                if (!value && (mDebounceCounter >  mDebounceThresholdClick)) {
+                if ((mDebounceThresholdClick != mDebounceThreshold) // click is activated 
+                    && !value // input is "released"
+                    && (mDebounceCounter >  mDebounceThresholdClick) // pressed long enough
+                    ) {
                     if (mStateTable) {
                         mEventPayloads.Clicked.SetTimestamp(mStateTable->GetTic());
                     }
