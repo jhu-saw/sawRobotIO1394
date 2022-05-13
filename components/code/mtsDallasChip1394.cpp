@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2019-05-23
 
-  (C) Copyright 2019-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2019-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -86,43 +86,58 @@ void mtsDallasChip1394::PollState(void)
 {
     if (mStatus > 0) {
         if (mStatus == 1) {
-            AmpIO_UInt32 status;
-            if (!mBoard->DallasReadStatus(status)) {
-                mInterface->SendWarning(mName + ": DallasReadStatus failed");
-                ToolTypeEvent(ToolTypeError);
-                mStatus = 0;
+            // for S arms, check if the version provided by ESPM is valid
+            if (mBoard->GetHardwareVersion() == dRA1_String) {
+                unsigned int version = static_cast<unsigned int>(mBoard->SPSMReadToolVersion());
+                if (version != 255) {
+                    AmpIO_UInt32 model = mBoard->SPSMReadToolModel();
+                    std::stringstream tool;
+                    tool << ":" << model << "[" << version << "]";
+                    ToolTypeEvent(tool.str());
+                    mStatus = 0;
+                }
                 return;
-            } else {
-                if ((status&0x000000F0) == 0) {
-                    // Check family_code, dout_cfg_bidir, ds_reset, and ds_enable
-                    if ((status & 0xFF00000F) != 0x0B00000B) {
-                        mInterface->SendWarning(mName + ": check family_code, dout_cfg_bidir, ds_reset and/or ds_enable failed (see logs)");
-                        ToolTypeEvent(ToolTypeError);
-                        mStatus = 0;
-                        // detailled messages in logs
-                        if ((status & 0x00000001) != 0x00000001) {
-                            CMN_LOG_CLASS_RUN_ERROR << "PollState: DS2505 interface not enabled (hardware problem)" << std::endl;
-                        }
-                        unsigned char ds_reset = static_cast<unsigned char>((status & 0x00000006)>>1);
-                        if (ds_reset != 1) {
-                            CMN_LOG_CLASS_RUN_ERROR << "PollState: failed to communicate with DS2505" << std::endl;
-                            if (ds_reset == 2) {
-                                CMN_LOG_CLASS_RUN_ERROR << "PollState: DOUT3 did not reach high state -- is pullup resistor missing?" << std::endl;
-                            } else if (ds_reset == 3) {
-                                CMN_LOG_CLASS_RUN_ERROR << "PollState: did not received ACK from DS2505 -- is dMIB signal jumpered?" << std::endl;
+            }
+            // Classic
+            else {
+                AmpIO_UInt32 status;
+                if (!mBoard->DallasReadStatus(status)) {
+                    mInterface->SendWarning(mName + ": DallasReadStatus failed");
+                    ToolTypeEvent(ToolTypeError);
+                    mStatus = 0;
+                    return;
+                } else {
+                    if ((status&0x000000F0) == 0) {
+                        // Check family_code, dout_cfg_bidir, ds_reset, and ds_enable
+                        if ((status & 0xFF00000F) != 0x0B00000B) {
+                            mInterface->SendWarning(mName + ": check family_code, dout_cfg_bidir, ds_reset and/or ds_enable failed (see logs)");
+                            ToolTypeEvent(ToolTypeError);
+                            mStatus = 0;
+                            // detailled messages in logs
+                            if ((status & 0x00000001) != 0x00000001) {
+                                CMN_LOG_CLASS_RUN_ERROR << "PollState: DS2505 interface not enabled (hardware problem)" << std::endl;
                             }
+                            unsigned char ds_reset = static_cast<unsigned char>((status & 0x00000006)>>1);
+                            if (ds_reset != 1) {
+                                CMN_LOG_CLASS_RUN_ERROR << "PollState: failed to communicate with DS2505" << std::endl;
+                                if (ds_reset == 2) {
+                                    CMN_LOG_CLASS_RUN_ERROR << "PollState: DOUT3 did not reach high state -- is pullup resistor missing?" << std::endl;
+                                } else if (ds_reset == 3) {
+                                    CMN_LOG_CLASS_RUN_ERROR << "PollState: did not received ACK from DS2505 -- is dMIB signal jumpered?" << std::endl;
+                                }
+                            }
+                            unsigned char family_code = static_cast<unsigned char>((status&0xFF000000)>>24);
+                            if (family_code != 0x0B) {
+                                CMN_LOG_CLASS_RUN_ERROR << "PollState: unknown device family code: 0x" << std::hex << static_cast<unsigned int>(family_code)
+                                                        << " (DS2505 should be 0x0B)" << std::endl;
+                            }
+                            unsigned char rise_time = static_cast<unsigned char>((status&0x00FF0000)>>16);
+                            CMN_LOG_CLASS_RUN_ERROR << "PollState: measured rise time: " << (rise_time/49.152) << " microseconds" << std::endl;
+                            return;
+                        } else {
+                            mInterface->SendStatus(mName + ": reading tool info");
+                            mStatus = 2;
                         }
-                        unsigned char family_code = static_cast<unsigned char>((status&0xFF000000)>>24);
-                        if (family_code != 0x0B) {
-                            CMN_LOG_CLASS_RUN_ERROR << "PollState: unknown device family code: 0x" << std::hex << static_cast<unsigned int>(family_code)
-                                                    << " (DS2505 should be 0x0B)" << std::endl;
-                        }
-                        unsigned char rise_time = static_cast<unsigned char>((status&0x00FF0000)>>16);
-                        CMN_LOG_CLASS_RUN_ERROR << "PollState: measured rise time: " << (rise_time/49.152) << " microseconds" << std::endl;
-                        return;
-                    } else {
-                        mInterface->SendStatus(mName + ": reading tool info");
-                        mStatus = 2;
                     }
                 }
             }
@@ -190,11 +205,7 @@ void mtsDallasChip1394::TriggerRead(void)
 {
     // dRAC, just use SPSM
     if (mBoard->GetHardwareVersion() == dRA1_String) {
-        AmpIO_UInt32 model = mBoard->SPSMReadToolModel();
-        unsigned int version = static_cast<unsigned int>(mBoard->SPSMReadToolVersion());
-        std::stringstream tool;
-        tool << ":" << model << "[" << version << "]";
-        ToolTypeEvent(tool.str());
+        mStatus = 1;
         return;
     }
 
