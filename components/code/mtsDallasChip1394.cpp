@@ -71,7 +71,7 @@ void mtsDallasChip1394::Configure(const osaDallasChip1394Configuration & config)
     mConfiguration = config;
     mName = config.Name;
     mToolType = ToolTypeUndefined;
-    mStatus = 0; // nothing happened so far
+    mWaiting = false;
 }
 
 void mtsDallasChip1394::SetBoard(AmpIO * board)
@@ -84,106 +84,10 @@ void mtsDallasChip1394::SetBoard(AmpIO * board)
 
 void mtsDallasChip1394::PollState(void)
 {
-    if (mStatus > 0) {
-        if (mStatus == 1) {
-            // for S arms, check if the version provided by ESPM is valid
-            if (mBoard->GetHardwareVersion() == dRA1_String) {
-                unsigned int version = static_cast<unsigned int>(mBoard->SPSMReadToolVersion());
-                if (version != 255) {
-                    AmpIO_UInt32 model = mBoard->SPSMReadToolModel();
-                    std::stringstream tool;
-                    tool << ":" << model << "[" << version << "]";
-                    ToolTypeEvent(tool.str());
-                    mStatus = 0;
-                }
-                return;
-            }
-            // Classic
-            else {
-                AmpIO_UInt32 status;
-                if (!mBoard->DallasReadStatus(status)) {
-                    mInterface->SendWarning(mName + ": DallasReadStatus failed");
-                    ToolTypeEvent(ToolTypeError);
-                    mStatus = 0;
-                    return;
-                } else {
-                    if ((status&0x000000F0) == 0) {
-                        // Check family_code, dout_cfg_bidir, ds_reset, and ds_enable
-                        if ((status & 0xFF00000F) != 0x0B00000B) {
-                            mInterface->SendWarning(mName + ": check family_code, dout_cfg_bidir, ds_reset and/or ds_enable failed (see logs)");
-                            ToolTypeEvent(ToolTypeError);
-                            mStatus = 0;
-                            // detailled messages in logs
-                            if ((status & 0x00000001) != 0x00000001) {
-                                CMN_LOG_CLASS_RUN_ERROR << "PollState: DS2505 interface not enabled (hardware problem)" << std::endl;
-                            }
-                            unsigned char ds_reset = static_cast<unsigned char>((status & 0x00000006)>>1);
-                            if (ds_reset != 1) {
-                                CMN_LOG_CLASS_RUN_ERROR << "PollState: failed to communicate with DS2505" << std::endl;
-                                if (ds_reset == 2) {
-                                    CMN_LOG_CLASS_RUN_ERROR << "PollState: DOUT3 did not reach high state -- is pullup resistor missing?" << std::endl;
-                                } else if (ds_reset == 3) {
-                                    CMN_LOG_CLASS_RUN_ERROR << "PollState: did not received ACK from DS2505 -- is dMIB signal jumpered?" << std::endl;
-                                }
-                            }
-                            unsigned char family_code = static_cast<unsigned char>((status&0xFF000000)>>24);
-                            if (family_code != 0x0B) {
-                                CMN_LOG_CLASS_RUN_ERROR << "PollState: unknown device family code: 0x" << std::hex << static_cast<unsigned int>(family_code)
-                                                        << " (DS2505 should be 0x0B)" << std::endl;
-                            }
-                            unsigned char rise_time = static_cast<unsigned char>((status&0x00FF0000)>>16);
-                            CMN_LOG_CLASS_RUN_ERROR << "PollState: measured rise time: " << (rise_time/49.152) << " microseconds" << std::endl;
-                            return;
-                        } else {
-                            mInterface->SendStatus(mName + ": reading tool info");
-                            mStatus = 2;
-                        }
-                    }
-                }
-            }
-        } else if (mStatus == 2) {
-            char buffer[256];
-            // Read first block of data (up to 256 bytes)
-            if (!mBoard->DallasReadBlock(reinterpret_cast<unsigned char *>(buffer), 256)) {
-                mInterface->SendWarning(mName + ": ReadBlock failed");
-                ToolTypeEvent(ToolTypeError);
-                mStatus = 0;
-                return;
-            } else {
-                // make sure we read the 997 from company statement
-                buffer[3] = '\0';
-                if (std::string(buffer) != std::string("997")) {
-                    mInterface->SendWarning(mName + ": failed to find string \"997\" in tool data.");
-                    ToolTypeEvent(ToolTypeError);
-                    mStatus = 0;
-                    return;
-                }
-                // get model and name of tool to create unique string identifier
-                // model number uses only 3 bytes, set first one to zero just in case
-                buffer[DALLAS_MODEL_OFFSET] = 0;
-                int32_t * model = reinterpret_cast<int32_t *>(buffer + (DALLAS_MODEL_OFFSET - DALLAS_START_READ));
-                cmnDataByteSwap(*model);
-                // version number
-                unsigned int version = static_cast<unsigned int>(buffer[DALLAS_VERSION_OFFSET - DALLAS_START_READ]);
-                // name
-                buffer[DALLAS_NAME_END - DALLAS_START_READ] = '\0';
-                std::string name = buffer + (DALLAS_NAME_OFFSET - DALLAS_START_READ);
-                // replace spaces with "_" and use upper case (see mtsIntuitiveResearchKitToolTypes.cdg)
-                std::replace(name.begin(), name.end(), ' ', '_');
-                std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-                // concatenate name, model and version
-                std::stringstream toolType;
-                toolType << name
-                         << ":" << *model
-                         << "[" << version << "]";
-                mToolType.Data = toolType.str();
-                // send info
-                mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
-                ToolTypeEvent(mToolType);
-                mStatus = 0;
-            }
-        }
+    if (!mWaiting) {
+        return;
     }
+    TriggerRead();
 }
 
 const osaDallasChip1394Configuration & mtsDallasChip1394::Configuration(void) const
@@ -201,42 +105,49 @@ const std::string & mtsDallasChip1394::ToolType(void) const
     return mToolType;
 }
 
+void mtsDallasChip1394::TriggerToolTypeEvent(const unsigned int & model,
+                                             const unsigned int & version,
+                                             const std::string & name)
+{
+    std::string sanitizedName = name;
+    // replace spaces with "_" and use upper case (see mtsIntuitiveResearchKitToolTypes.cdg)
+    std::replace(sanitizedName.begin(), sanitizedName.end(), ' ', '_');
+    std::transform(sanitizedName.begin(), sanitizedName.end(), sanitizedName.begin(), ::toupper);
+    // concatenate name, model and version
+    std::stringstream toolType;
+    toolType << sanitizedName
+             << ":" << model
+             << "[" << version << "]";
+    mToolType.Data = toolType.str();
+    // send info
+    mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
+    ToolTypeEvent(mToolType);
+}
+
 void mtsDallasChip1394::TriggerRead(void)
 {
-    // dRAC, just use SPSM
-    if (mBoard->GetHardwareVersion() == dRA1_String) {
-        mStatus = 1;
-        return;
+    AmpIO_UInt32 model;
+    AmpIO_UInt8 version;
+    std::string name;
+    AmpIO::DallasStatus status
+        = mBoard->DallasReadTool(model, version, name);
+    switch (status) {
+    case AmpIO::DALLAS_OK:
+        TriggerToolTypeEvent(model, version, name);
+        break;
+    case AmpIO::DALLAS_WAIT:
+        // check if we were not already waiting
+        if (!mWaiting) {
+            mInterface->SendStatus(mName + ": requested tool read");
+            mWaiting = true;
+        }
+        break;
+    case AmpIO::DALLAS_TIMEOUT:
+        mInterface->SendError(mName + ": tool read timeout");
+        mWaiting = false;
+        break;
+    default:
+        std::cerr << "----------------- add error handling here for " << mName << std::endl;
+        break;
     }
-
-    if (mStatus > 0) {
-        mInterface->SendWarning(mName + ": tool info read is already in progress, ignoring");
-        ToolTypeEvent(ToolTypeError);
-        return;
-    }
-
-    AmpIO_UInt32 fver = mBoard->GetFirmwareVersion();
-    if (fver < 7) {
-        mInterface->SendWarning(mName + ": tool info read requires firmware version 7 or greater");
-        ToolTypeEvent(ToolTypeError);
-        return;
-    }
-    AmpIO_UInt32 status = mBoard->ReadStatus();
-    // Check whether bi-directional I/O is available
-    if ((status & 0x00300000) != 0x00300000) {
-        mInterface->SendWarning(mName + ": QLA does not support bidirectional I/O (QLA Rev 1.4+ required)");
-        ToolTypeEvent(ToolTypeError);
-        return;
-    }
-
-    // Address to read tool info
-    unsigned short address = DALLAS_START_READ;
-    if (!(mBoard->DallasWriteControl( (address<<16)|2 ))) {
-        mInterface->SendWarning(mName + ": DallasWriteControl failed");
-        ToolTypeEvent(ToolTypeError);
-        return;
-    }
-
-    mInterface->SendStatus(mName + ": requested tool read");
-    mStatus = 1;
 }
