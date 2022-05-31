@@ -134,6 +134,11 @@ void mtsDallasChip1394::TriggerRead(void)
     switch (status) {
     case AmpIO::DALLAS_OK:
         TriggerToolTypeEvent(model, version, name);
+        mWaiting = false;
+        break;
+    case AmpIO::DALLAS_IO_ERROR:
+        mInterface->SendError(mName + ": tool read IO error");
+        mWaiting = false;
         break;
     case AmpIO::DALLAS_WAIT:
         // check if we were not already waiting
@@ -142,12 +147,21 @@ void mtsDallasChip1394::TriggerRead(void)
             mWaiting = true;
         }
         break;
+    case AmpIO::DALLAS_NONE:
+        mInterface->SendError(mName + ": tool read not supported on this system (hardware or firmware too old)");
+        mWaiting = false;
+        break;
     case AmpIO::DALLAS_TIMEOUT:
         mInterface->SendError(mName + ": tool read timeout");
         mWaiting = false;
         break;
+    case AmpIO::DALLAS_DATA_ERROR:
+        mInterface->SendError(mName + ": tool read received some unexpected data");
+        mWaiting = false;
+        break;
     default:
-        std::cerr << "----------------- add error handling here for " << mName << std::endl;
+        mInterface->SendError(mName + ": tool read unknown error");
+        mWaiting = false;
         break;
     }
 }
