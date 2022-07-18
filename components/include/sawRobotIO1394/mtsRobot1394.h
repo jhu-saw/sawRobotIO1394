@@ -140,6 +140,7 @@ namespace sawRobotIO1394 {
         void SetActuatorEffort(const vctDoubleVec & efforts);
         void SetActuatorCurrent(const vctDoubleVec & currents);
         void SetActuatorCurrentBits(const vctIntVec & bits);
+        void SetActuatorVoltageRatio(const vctDoubleVec & ratios);
 
         //! Brake Control
         void SetBrakeCurrent(const vctDoubleVec & currents);
@@ -205,6 +206,7 @@ namespace sawRobotIO1394 {
         const vctDoubleVec & ActuatorCurrentCommand(void) const;
         const vctDoubleVec & ActuatorEffortCommand(void) const;
         const vctDoubleVec & BrakeCurrentFeedback(void) const;
+        const vctIntVec & PotBits(void) const;
         const vctDoubleVec & PotPosition(void) const;
         const vctDoubleVec & ActuatorTimeStamp(void) const;
         const vctDoubleVec & BrakeTimeStamp(void) const;

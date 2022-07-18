@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -541,6 +541,16 @@ void mtsRobotIO1394::GetNumberOfDigitalInputs(int & placeHolder) const
     placeHolder = mDigitalInputs.size();
 }
 
+mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index)
+{
+    return mDigitalInputs.at(index);
+}
+
+const mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index) const
+{
+    return mDigitalInputs.at(index);
+}
+
 void mtsRobotIO1394::GetNumberOfDigitalOutputs(int & placeHolder) const
 {
     placeHolder = mDigitalOutputs.size();
@@ -561,14 +571,14 @@ mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
     return mRobots.at(index);
 }
 
-std::string mtsRobotIO1394::DefaultPort(void)
-{
-    return BasePort::DefaultPort();
-}
-
 const mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index) const
 {
     return mRobots.at(index);
+}
+
+std::string mtsRobotIO1394::DefaultPort(void)
+{
+    return BasePort::DefaultPort();
 }
 
 void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const

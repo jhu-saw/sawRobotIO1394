@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -96,6 +96,8 @@ public:
     void Run(void);
     void Cleanup(void);
     void GetNumberOfDigitalInputs(int & placeHolder) const;
+    sawRobotIO1394::mtsDigitalInput1394 * DigitalInput(const size_t index);
+    const sawRobotIO1394::mtsDigitalInput1394* DigitalInput(const size_t index) const;
     void GetNumberOfDigitalOutputs(int & placeHolder) const;
 
     // public so these can be used outside cisstMultiTask

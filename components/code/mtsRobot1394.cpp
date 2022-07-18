@@ -1598,6 +1598,13 @@ void mtsRobot1394::SetActuatorCurrentBits(const vctIntVec & bits)
     mActuatorCurrentBitsCommand = bits;
 }
 
+void mtsRobot1394::SetActuatorVoltageRatio(const vctDoubleVec & ratios)
+{
+    for (size_t i = 0; i < mNumberOfActuators; i++) {
+        mActuatorInfo[i].Board->SetMotorVoltageRatio(mActuatorInfo[i].Axis, ratios[i]);
+    }
+}
+
 void mtsRobot1394::SetBrakeCurrent(const vctDoubleVec & currents)
 {
     // Convert amps to bits and set the command
@@ -1676,6 +1683,10 @@ const vctDoubleVec & mtsRobot1394::ActuatorEffortCommand(void) const {
 
 const vctDoubleVec & mtsRobot1394::BrakeCurrentFeedback(void) const {
     return mBrakeCurrentFeedback;
+}
+
+const vctIntVec & mtsRobot1394::PotBits(void) const {
+    return mPotBits;
 }
 
 const vctDoubleVec & mtsRobot1394::PotPosition(void) const {
