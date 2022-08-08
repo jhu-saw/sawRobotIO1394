@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <sawRobotIO1394/osaXML1394.h>
 #include <cisstCommon/cmnUnits.h>
+#include <cisstCommon/cmnPath.h>
 #include <cisstNumerical/nmrInverse.h>
 
 namespace sawRobotIO1394 {
@@ -316,8 +317,10 @@ namespace sawRobotIO1394 {
             actuator.Encoder.BitsToPosition.Unit = unit;
 
             // potentiometers
+            // set default type to 0, i.e. not defined
+            actuator.Pot.Type = 0;
 
-            // first analog pots for Classic with QLA/FPGA, look for AnalogIn
+            // analog pots for Classic with QLA/FPGA, look for AnalogIn
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn", robotIndex, actuatorIndex);
             int analogPot;
             xmlConfig.GetXMLValue(context, path, analogPot, -1);
@@ -353,49 +356,7 @@ namespace sawRobotIO1394 {
                     }
                 }
                 actuator.Pot.SensorToPosition.Unit = unit;
-            } else {
-                // look for digital pot
-                sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot", robotIndex, actuatorIndex);
-                int digitalPot;
-                xmlConfig.GetXMLValue(context, path, digitalPot, -1);
-                if (digitalPot != -1) {
-                    actuator.Pot.Type = 2;
-
-                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/Pot/@Min", robotIndex, actuatorIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.DigPotMin);
-
-                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/Pot/@Resolution", robotIndex, actuatorIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.DigPotResolution);
-
-                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Scale", robotIndex, actuatorIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Scale);
-
-                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Offset", robotIndex, actuatorIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Offset);
-
-                    sprintf(path, "Robot[%i]/Actuator[%d]/DigitalPot/PotToPosSI/@Unit", robotIndex, actuatorIndex);
-                    unit = "none";
-                    good &= osaXML1394GetValue(xmlConfig, context, path, unit);
-                    if (actuator.JointType == PRM_JOINT_REVOLUTE) {
-                        if (!osaUnitIsDistanceRevolute(unit)) {
-                            CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                               << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
-                            good = false;
-                        }
-                    } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
-                        if (!osaUnitIsDistancePrismatic(unit)) {
-                            CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                               << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
-                            good = false;
-                        }
-                    }
-                    actuator.Pot.SensorToPosition.Unit = unit;
-                } else {
-                    CMN_LOG_INIT_ERROR << "Configure: didn't find any potentiometer!" << std::endl;
-                    actuator.Pot.Type = 0;
-                }
             }
-
             // Add the actuator
             robot.Actuators.push_back(actuator);
         }
@@ -412,8 +373,59 @@ namespace sawRobotIO1394 {
                 }
             }
             if (allEqual) {
-                CMN_LOG_INIT_ERROR << "All offsets equal, it is very unlikely that the current calibration has been performed for this arm:"
-                                   << "  " << robot.Name << std::endl;
+                CMN_LOG_INIT_ERROR << "All offsets equal, it is very unlikely that the current calibration has been performed for "
+                                   << robot.Name << std::endl;
+                return false;
+            }
+        }
+
+        // if potType is not set, check if a LookupTable is available (digital pots on Si arms)
+        std::string potentiometerLookupTable;
+        vctDoubleMat lookupTable;
+        sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
+        if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
+            // load the file
+            if (!cmnPath::Exists(potentiometerLookupTable)) {
+                CMN_LOG_INIT_ERROR << "Unable to find the potentiometer lookup table file \""
+                                   << potentiometerLookupTable << "\" for "
+                                   << robot.Name << std::endl;
+                return false;
+            }
+            try {
+                std::ifstream jsonStream;
+                Json::Value jsonValue;
+                Json::Reader jsonReader;
+
+                jsonStream.open(potentiometerLookupTable.c_str());
+                if (!jsonReader.parse(jsonStream, jsonValue)) {
+                    CMN_LOG_INIT_ERROR << "Error found while parsing \""
+                                       << potentiometerLookupTable << "\":"
+                                       << jsonReader.getFormattedErrorMessages();
+                    return false;
+                }
+                cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue);
+                // make sure the table size makes sense
+                if ((lookupTable.rows() != robot.Actuators.size())
+                    || (lookupTable.cols() == 0)) {
+                    CMN_LOG_INIT_ERROR << "Size of lookup table for " << robot.Name
+                                       << " from " << potentiometerLookupTable
+                                       << " doesn't match the number of actuators, found "
+                                       << lookupTable.rows() << " but was expecting " << robot.Actuators.size()
+                                       << std::endl;
+                    return false;
+                }
+                // set actuator type for all actuators
+                for (size_t index = 0;
+                     index < robot.Actuators.size();
+                     ++index) {
+                    robot.Actuators.at(index).Pot.Type = 2;
+                    robot.Actuators.at(index).Pot.LookupTable = lookupTable.Row(index);
+                }
+            } catch (...) {
+                CMN_LOG_INIT_ERROR << "Error found while parsing \""
+                                   << potentiometerLookupTable << "\", make sure the file is in JSON format."
+                                   << std::endl;
+                return false;
             }
         }
 

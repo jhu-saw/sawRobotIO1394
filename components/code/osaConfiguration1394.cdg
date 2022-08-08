@@ -158,13 +158,8 @@ class {
         visibility public;
     }
     member {
-        name DigPotResolution;
-        type double;
-        visibility public;
-    }
-    member {
-        name DigPotMin;
-        type double;
+        name LookupTable;
+        type vctDoubleVec;
         visibility public;
     }
 }

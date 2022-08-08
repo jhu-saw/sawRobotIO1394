@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -362,8 +362,6 @@ namespace sawRobotIO1394 {
         vctDoubleVec
             mActuatorTimestamp,
             mBrakeTimestamp,
-            mDigPotMin,
-            mDigPotResolution,
             mPotVoltage,
             mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
             mEncoderAccelerationCountsPerSecSec, // acceleration based on FPGA measurement (firmware rev 6)
@@ -383,6 +381,8 @@ namespace sawRobotIO1394 {
             mBrakeReleaseTime,
             mBrakeReleasedCurrent,
             mBrakeEngagedCurrent;
+
+        vctDynamicVector<vctDoubleVec> mPotLookupTable;
 
         size_t
             mCurrentSafetyViolationsCounter,

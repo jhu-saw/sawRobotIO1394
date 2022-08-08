@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -629,8 +629,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mBitsToVoltageScales.SetSize(mNumberOfActuators);
     mBitsToVoltageOffsets.SetSize(mNumberOfActuators);
     // digital pots
-    mDigPotMin.SetSize(mNumberOfActuators);
-    mDigPotResolution.SetSize(mNumberOfActuators);
+    mPotLookupTable.SetSize(mNumberOfActuators);
     // all pots
     mSensorToPositionScales.SetSize(mNumberOfActuators);
     mSensorToPositionOffsets.SetSize(mNumberOfActuators);
@@ -679,13 +678,11 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         if (pot.Type == 1) { // analog pots
             mBitsToVoltageScales.at(i)  = pot.BitsToVoltage.Scale;
             mBitsToVoltageOffsets.at(i) = pot.BitsToVoltage.Offset;
+            mSensorToPositionScales.at(i)  = pot.SensorToPosition.Scale  * osaUnitToSIFactor(pot.SensorToPosition.Unit);
+            mSensorToPositionOffsets.at(i) = pot.SensorToPosition.Offset * osaUnitToSIFactor(pot.SensorToPosition.Unit);
         } else if (pot.Type == 2) { // digital pots
-            mDigPotResolution.at(i) = pot.DigPotResolution;
-            mDigPotMin.at(i) = pot.DigPotMin;
+            mPotLookupTable.at(i).ForceAssign(pot.LookupTable);
         }
-        // all pots
-        mSensorToPositionScales.at(i)  = pot.SensorToPosition.Scale  * osaUnitToSIFactor(pot.SensorToPosition.Unit);
-        mSensorToPositionOffsets.at(i) = pot.SensorToPosition.Offset * osaUnitToSIFactor(pot.SensorToPosition.Unit);
 
         // Initialize state vectors
         mActuatorMeasuredJS.Position().at(i) = 0.0;
@@ -996,29 +993,18 @@ void mtsRobot1394::ConvertState(void)
         PotBitsToVoltage(mPotBits, mPotVoltage);
         PotVoltageToPosition(mPotVoltage, mPotPosition.Position());
     } else if (mPotType == 2) {
-        vctIntVec::const_iterator raw = mPotBits.begin();
-        const vctIntVec::const_iterator end = mPotBits.end();
-        vctDoubleVec::const_iterator min = mDigPotMin.begin();
-        vctDoubleVec::const_iterator resolution = mDigPotResolution.begin();
-        vctDoubleVec::iterator position = mPotVoltage.begin();
-        vctDoubleVec::const_iterator scale = mSensorToPositionScales.begin();
-        vctDoubleVec::const_iterator offset = mSensorToPositionOffsets.begin();
-        vctDoubleVec::iterator si = mPotPosition.Position().begin();
+        // dummy voltages
+        mPotVoltage.Assign(mPotBits);
+        auto raw = mPotBits.begin();
+        const auto end = mPotBits.end();
+        auto table = mPotLookupTable.begin();
+        auto si = mPotPosition.Position().begin();
         for (; raw != end;
              ++raw,
-                 ++min,
-                 ++resolution,
-                 ++position,
-                 ++scale,
-                 ++offset,
+                 ++table,
                  ++si) {
-            // wrap around on raw encoder signal
-            *position = *raw - *min;
-            if (*position < 0) {
-                *position += *resolution;
-            }
-            // convert to SI
-            *si = *scale * *position + *offset;
+            // look up in table
+            *si = (*table).at(*raw);
         }
     }
 }
