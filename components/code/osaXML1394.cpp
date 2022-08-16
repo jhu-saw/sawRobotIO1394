@@ -680,6 +680,9 @@ namespace sawRobotIO1394 {
             return false;
         }
 
+        sprintf(path, "DigitalIn[%i]/@SkipFirstRun", inputIndex);
+        xmlConfig.GetXMLValue(context, path, digitalInput.SkipFirstRun, 0);
+
         double debounce = 0.0;
         sprintf(path, "DigitalIn[%i]/@Debounce", inputIndex);
         xmlConfig.GetXMLValue(context, path, debounce, 0.0);

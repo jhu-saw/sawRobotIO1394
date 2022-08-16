@@ -117,6 +117,7 @@ void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
     mPressedValue = config.PressedValue;
     mTriggerPress = config.TriggerWhenPressed;
     mTriggerRelease = config.TriggerWhenReleased;
+    mFirstRun = !config.SkipFirstRun;
     mDebounceThreshold = config.DebounceThreshold;
     mDebounceThresholdClick = config.DebounceThresholdClick;
 
@@ -164,7 +165,7 @@ void mtsDigitalInput1394::PollState(void)
                 mDebounceCounter += mBoard->GetTimestamp() * mBoard->GetFPGAClockPeriod();
             } else {
                 // click if button is now released and counter is short enough
-                if ((mDebounceThresholdClick != mDebounceThreshold) // click is activated 
+                if ((mDebounceThresholdClick != mDebounceThreshold) // click is activated
                     && !value // input is "released"
                     && (mDebounceCounter >  mDebounceThresholdClick) // pressed long enough
                     ) {

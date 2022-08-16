@@ -377,6 +377,12 @@ class {
         visibility public;
     }
     member {
+        name SkipFirstRun;
+        type bool;
+        visibility public;
+        default false;
+    }
+    member {
         name DebounceThreshold;
         type double;
         visibility public;
