@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -38,11 +38,13 @@ namespace sawRobotIO1394 {
     }
 
     void CISST_EXPORT osaXML1394ConfigurePort(const std::string & filename,
-                                              osaPort1394Configuration & config);
+                                              osaPort1394Configuration & config,
+                                              const bool & calibrationMode);
 
     bool CISST_EXPORT osaXML1394ConfigureRobot(cmnXMLPath & xmlConfig,
                                                const int robotIndex,
-                                               osaRobot1394Configuration & robot);
+                                               osaRobot1394Configuration & robot,
+                                               const bool & calibrationMode);
 
     bool CISST_EXPORT osaXML1394ConfigureCoupling(cmnXMLPath & xmlConfig,
                                                   const int robotIndex,

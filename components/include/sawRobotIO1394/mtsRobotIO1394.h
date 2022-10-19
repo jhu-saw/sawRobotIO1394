@@ -44,6 +44,7 @@ protected:
 
     double mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
     bool mSkipConfigurationCheck = false;
+    bool mCalibrationMode = false;
     std::string mSaveConfigurationJSON = "";
 
     std::map<int, AmpIO*> mBoards;
@@ -79,6 +80,7 @@ public:
     void Init(const std::string & port);
 
     void SkipConfigurationCheck(const bool skip); // must be called before Configure
+    void SetCalibrationMode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
     void SaveConfigurationJSON(const std::string & filename); // must be called before Configure
     void Configure(const std::string & filename);
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);

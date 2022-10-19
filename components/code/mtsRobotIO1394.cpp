@@ -227,6 +227,11 @@ void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
     mSkipConfigurationCheck = skip;
 }
 
+void mtsRobotIO1394::SetCalibrationMode(const bool & mode)
+{
+    mCalibrationMode = mode;
+}
+
 void mtsRobotIO1394::SaveConfigurationJSON(const std::string & filename)
 {
     mSaveConfigurationJSON = filename;
@@ -237,7 +242,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     CMN_LOG_CLASS_INIT_VERBOSE << "Configure: configuring from " << filename << std::endl;
 
     osaPort1394Configuration config;
-    osaXML1394ConfigurePort(filename, config);
+    osaXML1394ConfigurePort(filename, config, mCalibrationMode);
 
     // Add all the robots
     for (const auto & configRobot : config.Robots) {

@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -81,7 +81,7 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
 {
     mPort->Read();
     // get time and plot 0 value
-    mElapsedTime += mRobot->ActuatorTimeStamp()[mActuatorIndex];
+    mElapsedTime += mRobot->ActuatorTimestamp()[mActuatorIndex];
     mZeroVelocity->AppendPoint(vct2(mElapsedTime, 0.005)); // slight offset to avoid overlap
 
     // encoder dt
@@ -90,7 +90,7 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     // encoder velocity dx / dt
     mEncoderDx.ForceAssign(mRobot->ActuatorJointState().Position());
     mEncoderDx.Subtract(mPreviousEncoderPosition);
-    mEncoderDx.ElementwiseDivide(mRobot->ActuatorTimeStamp());
+    mEncoderDx.ElementwiseDivide(mRobot->ActuatorTimestamp());
     mEncoderDxSignal->AppendPoint((vct2(mElapsedTime,
                                         mEncoderDx[mActuatorIndex])));
 
@@ -107,7 +107,7 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     // pot velocity dx / dt
     mPotDx.ForceAssign(mRobot->PotPosition());
     mPotDx.Subtract(mPreviousPotPosition);
-    mPotDx.ElementwiseDivide(mRobot->ActuatorTimeStamp());
+    mPotDx.ElementwiseDivide(mRobot->ActuatorTimestamp());
     mPotDxSignal->AppendPoint((vct2(mElapsedTime,
                                     mPotDx[mActuatorIndex])));
 

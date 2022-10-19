@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-07
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -62,6 +62,9 @@ int main(int argc, char ** argv)
     options.AddOptionOneValue("i", "io-period",
                               "IO read/write period interval in seconds (default is 1 ms, 0.001)",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &periodInSeconds);
+    options.AddOptionNoValue("C", "calibration-mode",
+                             "run in calibration mode, doesn't require lookup table for pots/encoder on Si arms",
+                             cmnCommandLineOptions::OPTIONAL_OPTION);
 
     std::string errorMessage;
     if (!options.Parse(argc, argv, errorMessage)) {
@@ -81,6 +84,8 @@ int main(int argc, char ** argv)
     if (options.IsSet("firewire-protocol")) {
         robotIO->SetProtocol(protocol);
     }
+    robotIO->SetCalibrationMode(options.IsSet("calibration-mode"));
+
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
 
     componentManager->AddComponent(robotIO);

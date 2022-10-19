@@ -208,8 +208,8 @@ namespace sawRobotIO1394 {
         const vctDoubleVec & BrakeCurrentFeedback(void) const;
         const vctIntVec & PotBits(void) const;
         const vctDoubleVec & PotPosition(void) const;
-        const vctDoubleVec & ActuatorTimeStamp(void) const;
-        const vctDoubleVec & BrakeTimeStamp(void) const;
+        const vctDoubleVec & ActuatorTimestamp(void) const;
+        const vctDoubleVec & BrakeTimestamp(void) const;
         const vctDoubleVec & ActuatorEncoderAcceleration(void) const;
         const vctDoubleVec & EncoderAcceleration(void) const;
         const prmStateJoint & ActuatorJointState(void) const;

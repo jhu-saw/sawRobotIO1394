@@ -897,7 +897,7 @@ void mtsRobot1394::PollState(void)
 
         if (!board || (axis < 0)) continue; // We probably don't need this check any more
 
-        mActuatorTimestamp[i] = board->GetTimestamp() * 1.0 / 49125000.0;
+        mActuatorTimestamp[i] = board->GetTimestampSeconds();
         mDigitalInputs[i] = board->GetDigitalInput();
 
         // vectors of bits
@@ -932,7 +932,7 @@ void mtsRobot1394::PollState(void)
 
         if (!board || (axis < 0)) continue; // We probably don't need this check any more
 
-        mBrakeTimestamp[i] = board->GetTimestamp() * 1.0 / 49125000.0;
+        mBrakeTimestamp[i] = board->GetTimestampSeconds();
         mBrakeCurrentBitsFeedback[i] = board->GetMotorCurrent(axis);
         mBrakeAmpEnable[i] = board->GetAmpEnable(axis);
         mBrakeAmpStatus[i] = board->GetAmpStatus(axis);
@@ -1165,7 +1165,7 @@ void mtsRobot1394::CheckState(void)
             } else if (!mBrakeTimestamp.empty()) {
                 time = *(mBrakeTimestamp.begin());
             }
-            mTimeLastTemperatureWarning+= time;
+            mTimeLastTemperatureWarning += time;
         } else {
             // reset time so next time we hit a warning it displays immediately
             mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
@@ -1679,11 +1679,11 @@ const vctDoubleVec & mtsRobot1394::PotPosition(void) const {
     return mPotPosition.Position();
 }
 
-const vctDoubleVec & mtsRobot1394::ActuatorTimeStamp(void) const {
+const vctDoubleVec & mtsRobot1394::ActuatorTimestamp(void) const {
     return mActuatorTimestamp;
 }
 
-const vctDoubleVec & mtsRobot1394::BrakeTimeStamp(void) const {
+const vctDoubleVec & mtsRobot1394::BrakeTimestamp(void) const {
     return mBrakeTimestamp;
 }
 

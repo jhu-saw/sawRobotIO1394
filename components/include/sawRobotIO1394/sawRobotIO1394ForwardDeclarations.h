@@ -36,12 +36,12 @@ namespace sawRobotIO1394 {
     const double MaximumTimeToPower = 3.0 * cmn_s;
 
     const double TimingMaxRatio = 2.0;
-    const double TimeBetweenTimingWarnings = 60.0 * cmn_s;
+    const double TimeBetweenTimingWarnings = 120.0 * cmn_s;
 
     //! Temperature thresholds
     const double TemperatureWarningThreshold = 60.0;
     const double TemperatureErrorThreshold = 65.0;
-    const double TimeBetweenTemperatureWarnings = 60.0 * cmn_s;
+    const double TimeBetweenTemperatureWarnings = 120.0 * cmn_s;
 
 } // namespace sawRobotIO1394
 

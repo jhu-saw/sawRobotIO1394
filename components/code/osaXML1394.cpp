@@ -24,7 +24,9 @@ http://www.cisst.org/cisst/license.txt.
 
 namespace sawRobotIO1394 {
 
-    void osaXML1394ConfigurePort(const std::string & filename, osaPort1394Configuration & config)
+    void osaXML1394ConfigurePort(const std::string & filename,
+                                 osaPort1394Configuration & config,
+                                 const bool & calibrationMode)
     {
         cmnXMLPath xmlConfig;
         xmlConfig.SetInputSource(filename);
@@ -65,7 +67,7 @@ namespace sawRobotIO1394 {
             osaRobot1394Configuration robot;
 
             // Store the robot in the config if it's succesfully parsed
-            if (osaXML1394ConfigureRobot(xmlConfig, i + 1, robot)) {
+            if (osaXML1394ConfigureRobot(xmlConfig, i + 1, robot, calibrationMode)) {
                 config.Robots.push_back(robot);
             } else {
                 CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure robot from file \""
@@ -135,7 +137,8 @@ namespace sawRobotIO1394 {
 
     bool osaXML1394ConfigureRobot(cmnXMLPath & xmlConfig,
                                   const int robotIndex,
-                                  osaRobot1394Configuration & robot)
+                                  osaRobot1394Configuration & robot,
+                                  const bool & calibrationMode)
     {
         bool good = true;
         std::string unit;
@@ -380,52 +383,54 @@ namespace sawRobotIO1394 {
         }
 
         // if potType is not set, check if a LookupTable is available (digital pots on Si arms)
-        std::string potentiometerLookupTable;
-        vctDoubleMat lookupTable;
-        sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
-        if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
-            // load the file
-            if (!cmnPath::Exists(potentiometerLookupTable)) {
-                CMN_LOG_INIT_ERROR << "Unable to find the potentiometer lookup table file \""
-                                   << potentiometerLookupTable << "\" for "
-                                   << robot.Name << std::endl;
-                return false;
-            }
-            try {
-                std::ifstream jsonStream;
-                Json::Value jsonValue;
-                Json::Reader jsonReader;
-
-                jsonStream.open(potentiometerLookupTable.c_str());
-                if (!jsonReader.parse(jsonStream, jsonValue)) {
-                    CMN_LOG_INIT_ERROR << "Error found while parsing \""
-                                       << potentiometerLookupTable << "\":"
-                                       << jsonReader.getFormattedErrorMessages();
+        if (!calibrationMode) {
+            std::string potentiometerLookupTable;
+            vctDoubleMat lookupTable;
+            sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
+            if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
+                // load the file
+                if (!cmnPath::Exists(potentiometerLookupTable)) {
+                    CMN_LOG_INIT_ERROR << "Unable to find the potentiometer lookup table file \""
+                                       << potentiometerLookupTable << "\" for "
+                                       << robot.Name << std::endl;
                     return false;
                 }
-                cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue);
-                // make sure the table size makes sense
-                if ((lookupTable.rows() != robot.Actuators.size())
-                    || (lookupTable.cols() == 0)) {
-                    CMN_LOG_INIT_ERROR << "Size of lookup table for " << robot.Name
-                                       << " from " << potentiometerLookupTable
-                                       << " doesn't match the number of actuators, found "
-                                       << lookupTable.rows() << " but was expecting " << robot.Actuators.size()
+                try {
+                    std::ifstream jsonStream;
+                    Json::Value jsonValue;
+                    Json::Reader jsonReader;
+
+                    jsonStream.open(potentiometerLookupTable.c_str());
+                    if (!jsonReader.parse(jsonStream, jsonValue)) {
+                        CMN_LOG_INIT_ERROR << "Error found while parsing \""
+                                           << potentiometerLookupTable << "\":"
+                                           << jsonReader.getFormattedErrorMessages();
+                        return false;
+                    }
+                    cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue);
+                    // make sure the table size makes sense
+                    if ((lookupTable.rows() != robot.Actuators.size())
+                        || (lookupTable.cols() == 0)) {
+                        CMN_LOG_INIT_ERROR << "Size of lookup table for " << robot.Name
+                                           << " from " << potentiometerLookupTable
+                                           << " doesn't match the number of actuators, found "
+                                           << lookupTable.rows() << " but was expecting " << robot.Actuators.size()
+                                           << std::endl;
+                        return false;
+                    }
+                    // set actuator type for all actuators
+                    for (size_t index = 0;
+                         index < robot.Actuators.size();
+                         ++index) {
+                        robot.Actuators.at(index).Pot.Type = 2;
+                        robot.Actuators.at(index).Pot.LookupTable = lookupTable.Row(index);
+                    }
+                } catch (...) {
+                    CMN_LOG_INIT_ERROR << "Error found while parsing \""
+                                       << potentiometerLookupTable << "\", make sure the file is in JSON format."
                                        << std::endl;
                     return false;
                 }
-                // set actuator type for all actuators
-                for (size_t index = 0;
-                     index < robot.Actuators.size();
-                     ++index) {
-                    robot.Actuators.at(index).Pot.Type = 2;
-                    robot.Actuators.at(index).Pot.LookupTable = lookupTable.Row(index);
-                }
-            } catch (...) {
-                CMN_LOG_INIT_ERROR << "Error found while parsing \""
-                                   << potentiometerLookupTable << "\", make sure the file is in JSON format."
-                                   << std::endl;
-                return false;
             }
         }
 
