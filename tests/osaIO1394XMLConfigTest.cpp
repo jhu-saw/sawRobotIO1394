@@ -81,7 +81,7 @@ void osaIO1394XMLConfigTest::TestConfigure(void)
     CPPUNIT_ASSERT(xml_path.length() > 0);
 
     sawRobotIO1394::osaPort1394Configuration config;
-    sawRobotIO1394::osaXML1394ConfigurePort(xml_path, config);
+    sawRobotIO1394::osaXML1394ConfigurePort(xml_path, config, false /* calibration mode */);
 
     CPPUNIT_ASSERT(config.Robots.size() == 1);
     CPPUNIT_ASSERT(config.DigitalInputs.size() == 12);
