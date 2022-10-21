@@ -149,11 +149,11 @@ void mtsRobot1394::AdvanceWriteStateTable(void) {
     mStateTableWrite->Advance();
 }
 
-void mtsRobot1394::GetNumberOfActuators(int & numberOfActuators) const {
+void mtsRobot1394::GetNumberOfActuators(size_t & numberOfActuators) const {
     numberOfActuators = this->NumberOfActuators();
 }
 
-void mtsRobot1394::GetNumberOfJoints(int & numberOfJoints) const {
+void mtsRobot1394::GetNumberOfJoints(size_t & numberOfJoints) const {
     numberOfJoints = this->NumberOfJoints();
 }
 

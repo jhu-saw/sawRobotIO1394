@@ -71,8 +71,8 @@ namespace sawRobotIO1394 {
         bool CheckConfiguration(void);
 
         // Wrapper of osa methods to match command signatures
-        void GetNumberOfActuators(int & num_actuators) const;
-        void GetNumberOfJoints(int & num_joints) const;
+        void GetNumberOfActuators(size_t & num_actuators) const;
+        void GetNumberOfJoints(size_t & num_joints) const;
         void GetSerialNumber(int & serialNumber) const;
         void servo_jf(const prmForceTorqueJointSet & jointTorques);
         void SetSomeEncoderPosition(const prmMaskedDoubleVec & values);

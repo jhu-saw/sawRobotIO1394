@@ -97,23 +97,23 @@ public:
     void Startup(void);
     void Run(void);
     void Cleanup(void);
-    void GetNumberOfDigitalInputs(int & placeHolder) const;
+    void GetNumberOfDigitalInputs(size_t & placeHolder) const;
     sawRobotIO1394::mtsDigitalInput1394 * DigitalInput(const size_t index);
     const sawRobotIO1394::mtsDigitalInput1394* DigitalInput(const size_t index) const;
-    void GetNumberOfDigitalOutputs(int & placeHolder) const;
+    void GetNumberOfDigitalOutputs(size_t & placeHolder) const;
 
     // public so these can be used outside cisstMultiTask
     bool IsOK(void) const;
     void Read(void);
     void Write(void);
-    void GetNumberOfRobots(int & placeHolder) const;
+    void GetNumberOfRobots(size_t & placeHolder) const;
     sawRobotIO1394::mtsRobot1394 * Robot(const size_t index);
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
 
     static std::string DefaultPort(void);
 
 protected:
-    void GetNumberOfBoards(int & placeHolder) const;
+    void GetNumberOfBoards(size_t & placeHolder) const;
     void GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const;
     void GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const;
 

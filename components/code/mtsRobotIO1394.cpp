@@ -541,7 +541,7 @@ void mtsRobotIO1394::Cleanup(void)
     Write();
 }
 
-void mtsRobotIO1394::GetNumberOfDigitalInputs(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfDigitalInputs(size_t & placeHolder) const
 {
     placeHolder = mDigitalInputs.size();
 }
@@ -556,17 +556,17 @@ const mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index) con
     return mDigitalInputs.at(index);
 }
 
-void mtsRobotIO1394::GetNumberOfDigitalOutputs(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfDigitalOutputs(size_t & placeHolder) const
 {
     placeHolder = mDigitalOutputs.size();
 }
 
-void mtsRobotIO1394::GetNumberOfBoards(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfBoards(size_t & placeHolder) const
 {
     placeHolder = mBoards.size();
 }
 
-void mtsRobotIO1394::GetNumberOfRobots(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfRobots(size_t & placeHolder) const
 {
     placeHolder = mRobots.size();
 }
