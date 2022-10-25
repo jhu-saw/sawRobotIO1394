@@ -70,6 +70,9 @@ int main(int argc, char ** argv)
     options.AddOptionOneValue("i", "io-period",
                               "IO read/write period interval in seconds (default is 1 ms, 0.001)",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &periodInSeconds);
+    options.AddOptionNoValue("C", "calibration-mode",
+                             "run in calibration mode, doesn't require lookup table for pots/encoder on Si arms",
+                             cmnCommandLineOptions::OPTIONAL_OPTION);
     options.AddOptionOneValue("p", "ros-period",
                               "period in seconds to read all tool positions (default 0.002, 2 ms, 500Hz).  There is no point to have a period higher than the device",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &rosPeriod);
@@ -100,6 +103,7 @@ int main(int argc, char ** argv)
     if (options.IsSet("firewire-protocol")) {
         robotIO->SetProtocol(protocol);
     }
+    robotIO->SetCalibrationMode(options.IsSet("calibration-mode"));
     componentManager->AddComponent(robotIO);
 
     // create a Qt application

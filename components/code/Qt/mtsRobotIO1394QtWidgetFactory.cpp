@@ -5,7 +5,7 @@
   Author(s):  Kwang Young Lee
   Created on: 2013-04-11
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -100,7 +100,7 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
     Configuration.GetNumbersOfActuators(NumberOfActuatorsPerRobot);
     Configuration.GetNumbersOfBrakes(NumberOfBrakesPerRobot);
 
-    for (int i = 0; i < NumberOfRobots; ++i) {
+    for (size_t i = 0; i < NumberOfRobots; ++i) {
         tmpRobotName = RobotNames[i];
         newComponentName = tmpRobotName.append(suffix);
         tmpRobotName = RobotNames[i];
@@ -134,14 +134,14 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
         }
 
         // add all the interfaces
-        for (int i = 0; i < NumberOfDigitalInputs; ++i) {
+        for (size_t i = 0; i < NumberOfDigitalInputs; ++i) {
             mButtonsWidget->AddEventButton(DigitalInputNames[i]);
         }
 
         componentManager->AddComponent(mButtonsWidget);
 
         // connect all the interfaces
-        for (int i = 0; i < NumberOfDigitalInputs; ++i) {
+        for (size_t i = 0; i < NumberOfDigitalInputs; ++i) {
             componentManager->Connect(mButtonsWidget->GetName(), DigitalInputNames[i],
                                       NameOfRobotIO1394, DigitalInputNames[i]);
         }
