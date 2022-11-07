@@ -582,9 +582,18 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
     // Initialize property vectors to the appropriate sizes
     mConfigurationJoint.Type().SetSize(mNumberOfJoints);
+    mMeasuredJS.Name().SetSize(mNumberOfJoints);
+    for (size_t index = 0; index < mNumberOfJoints; ++index) {
+        mMeasuredJS.Name().at(index) = "joint_" + std::to_string(index);
+    }
     mMeasuredJS.Position().SetSize(mNumberOfJoints);
     mMeasuredJS.Velocity().SetSize(mNumberOfJoints);
     mMeasuredJS.Effort().SetSize(mNumberOfJoints);
+
+    mActuatorMeasuredJS.Name().SetSize(mNumberOfActuators);
+    for (size_t index = 0; index < mNumberOfActuators; ++index) {
+        mActuatorMeasuredJS.Name().at(index) = "actuator_" + std::to_string(index);
+    }
     mActuatorMeasuredJS.Position().SetSize(mNumberOfActuators);
     mActuatorMeasuredJS.Velocity().SetSize(mNumberOfActuators);
     mActuatorMeasuredJS.Effort().SetSize(mNumberOfActuators);
