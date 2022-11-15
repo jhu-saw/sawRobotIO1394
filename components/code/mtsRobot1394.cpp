@@ -153,10 +153,6 @@ void mtsRobot1394::GetNumberOfActuators(size_t & numberOfActuators) const {
     numberOfActuators = this->NumberOfActuators();
 }
 
-void mtsRobot1394::GetNumberOfJoints(size_t & numberOfJoints) const {
-    numberOfJoints = this->NumberOfJoints();
-}
-
 void mtsRobot1394::GetSerialNumber(int & serialNumber) const {
     serialNumber = this->SerialNumber();
 }
@@ -171,7 +167,7 @@ void mtsRobot1394::UsePotsForSafetyCheck(const bool & usePotsForSafetyCheck)
 }
 
 void mtsRobot1394::servo_jf(const prmForceTorqueJointSet & efforts) {
-    this->SetJointEffort(efforts.ForceTorque());
+    this->SetActuatorEffort(efforts.ForceTorque());
 }
 
 void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
@@ -179,135 +175,6 @@ void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
         if (values.Mask().at(index)) {
             this->SetSingleEncoderPosition(index, values.Data().at(index));
         }
-    }
-}
-
-void mtsRobot1394::SetCoupling(const prmActuatorJointCoupling & coupling)
-{
-    // check sizes
-    if ((coupling.ActuatorToJointPosition().rows() != mNumberOfJoints) ||
-        (coupling.ActuatorToJointPosition().cols() != mNumberOfActuators)) {
-        cmnThrow("SetCoupling: invalid size for ActuatorToJointPosition");
-    }
-    mConfiguration.Coupling.ActuatorToJointPosition()
-        .ForceAssign(coupling.ActuatorToJointPosition());
-
-    // if we get an empty matrix, compute the inverse
-    if (coupling.JointToActuatorPosition().size() == 0) {
-        mConfiguration.Coupling.JointToActuatorPosition()
-            .ForceAssign(coupling.ActuatorToJointPosition());
-        nmrInverse(mConfiguration.Coupling.JointToActuatorPosition());
-    } else {
-        if ((coupling.JointToActuatorPosition().rows() != mNumberOfActuators) ||
-            (coupling.JointToActuatorPosition().cols() != mNumberOfJoints)) {
-            cmnThrow("SetCoupling: invalid size for JointToActuatorPosition");
-        }
-        mConfiguration.Coupling.JointToActuatorPosition()
-            .ForceAssign(coupling.JointToActuatorPosition());
-    }
-
-    // if we get an empty matrix, compute the transpose
-    if (coupling.ActuatorToJointEffort().size() == 0) {
-        mConfiguration.Coupling.ActuatorToJointEffort()
-            .ForceAssign(mConfiguration.Coupling.JointToActuatorPosition().Transpose());
-    } else {
-        if ((coupling.ActuatorToJointEffort().rows() != mNumberOfJoints) ||
-            (coupling.ActuatorToJointEffort().cols() != mNumberOfActuators)) {
-            cmnThrow("SetCoupling: invalid size for ActuatorToJointEffort");
-        }
-        mConfiguration.Coupling.ActuatorToJointEffort()
-            .ForceAssign(coupling.ActuatorToJointEffort());
-    }
-
-    // if we get an empty matrix, compute the transpose
-    if (coupling.JointToActuatorEffort().size() == 0) {
-        mConfiguration.Coupling.JointToActuatorEffort()
-            .ForceAssign(mConfiguration.Coupling.ActuatorToJointEffort());
-        nmrInverse(mConfiguration.Coupling.JointToActuatorEffort());
-    } else {
-        if ((coupling.JointToActuatorEffort().rows() != mNumberOfActuators) ||
-            (coupling.JointToActuatorEffort().cols() != mNumberOfJoints)) {
-            cmnThrow("SetCoupling: invalid size for JointToActuatorEffort");
-        }
-        mConfiguration.Coupling.JointToActuatorEffort()
-            .ForceAssign(coupling.JointToActuatorEffort());
-    }
-
-    // assign values
-    mConfiguration.HasActuatorToJointCoupling = true;
-
-    // check for identity using inverse
-    const vctDoubleMat identity = vctDoubleMat::Eye(mNumberOfActuators);
-    vctDoubleMat product;
-    product.SetSize(mNumberOfActuators, mNumberOfActuators);
-    product.ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
-                      mConfiguration.Coupling.JointToActuatorPosition());
-    if (!product.AlmostEqual(identity, 0.001)) {
-        cmnThrow("SetCoupling: product of position coupling matrices not identity");
-    }
-    product.ProductOf(mConfiguration.Coupling.ActuatorToJointEffort(),
-                      mConfiguration.Coupling.JointToActuatorEffort());
-    if (!product.AlmostEqual(identity, 0.001)) {
-        cmnThrow("ConfigureCoupling: product of torque coupling matrices not identity");
-    }
-
-    // start state table and get new data
-    StartReadStateTable();
-    {
-        PollValidity();
-        PollState();
-        ConvertState();
-    }
-    // check state comes after state table advance, it tends to throw
-    // events and exceptions so we need to make some data is available
-    // for consumers
-    CheckState();
-    AdvanceReadStateTable();
-    // finally let users the coupling has changed
-    EventTriggers.Coupling(coupling);
-}
-
-void mtsRobot1394::ActuatorToJointPosition(const vctDoubleVec & actuators,
-                                           vctDoubleVec & joints) const
-{
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        joints.ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
-                         actuators);
-    } else {
-        joints.Assign(actuators);
-    }
-}
-
-void mtsRobot1394::JointToActuatorPosition(const vctDoubleVec & joints,
-                                           vctDoubleVec & actuators) const
-{
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        actuators.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
-                            joints);
-    } else {
-        actuators.Assign(joints);
-    }
-}
-
-void mtsRobot1394::ActuatorToJointEffort(const vctDoubleVec & actuators,
-                                           vctDoubleVec & joints) const
-{
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        joints.ProductOf(mConfiguration.Coupling.ActuatorToJointEffort(),
-                         actuators);
-    } else {
-        joints.Assign(actuators);
-    }
-}
-
-void mtsRobot1394::JointToActuatorEffort(const vctDoubleVec & joints,
-                                           vctDoubleVec & actuators) const
-{
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        actuators.ProductOf(mConfiguration.Coupling.JointToActuatorEffort(),
-                            joints);
-    } else {
-        actuators.Assign(joints);
     }
 }
 
@@ -337,23 +204,18 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
     CalibrateEncoderOffsets.SamplesFromPotsRequested = std::abs(numberOfSamples);
 }
 
-void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
-                                   mtsInterfaceProvided * actuatorInterface)
+void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
+
 {
     mInterface = robotInterface;
     robotInterface->AddMessageEvents();
 
     robotInterface->AddCommandRead(&mtsRobot1394::GetNumberOfActuators, this,
                                    "GetNumberOfActuators");
-    robotInterface->AddCommandRead(&mtsRobot1394::GetNumberOfJoints, this,
-                                   "GetNumberOfJoints");
     robotInterface->AddCommandRead(&mtsRobot1394::GetSerialNumber, this,
                                    "GetSerialNumber");
     robotInterface->AddCommandReadState(*mStateTableRead, this->mValid,
                                         "IsValid");
-
-    robotInterface->AddCommandWrite(&mtsRobot1394::SetCoupling, this,
-                                    "SetCoupling");
 
     // safety relays
     robotInterface->AddCommandReadState(*mStateTableRead, mSafetyRelay,
@@ -443,8 +305,6 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
 
     robotInterface->AddCommandWrite(&mtsRobot1394::servo_jf, this,
                                     "servo_jf", mTorqueJoint);
-    robotInterface->AddCommandRead(&mtsRobot1394::GetJointEffortCommandLimits, this,
-                                   "GetTorqueJointMax", mJointEffortCommandLimits);
 
     robotInterface->AddCommandWrite(&mtsRobot1394::SetActuatorCurrentBits, this,
                                     "SetActuatorCurrentRaw", mActuatorCurrentBitsCommand);
@@ -478,15 +338,6 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
                                             "DriveNmToAmps", mActuatorEffortCommand, mActuatorCurrentCommand);
     robotInterface->AddCommandQualifiedRead(&mtsRobot1394::PotBitsToVoltage, this,
                                             "AnalogInBitsToVolts", mPotBits, mPotVoltage);
-    // coupling conversion methods
-    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorToJointPosition, this,
-                                            "ActuatorToJointPosition", vctDoubleVec(), vctDoubleVec());
-    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::JointToActuatorPosition, this,
-                                            "JointToActuatorPosition", vctDoubleVec(), vctDoubleVec());
-    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorToJointEffort, this,
-                                            "ActuatorToJointEffort", vctDoubleVec(), vctDoubleVec());
-    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::JointToActuatorEffort, this,
-                                            "JointToActuatorEffort", vctDoubleVec(), vctDoubleVec());
 
     //
     robotInterface->AddCommandWrite(&mtsRobot1394::CalibrateEncoderOffsetsFromPots,
@@ -499,30 +350,16 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface,
     robotInterface->AddEventWrite(EventTriggers.PowerFault, "PowerFault", false);
     robotInterface->AddEventWrite(EventTriggers.WatchdogTimeoutStatus, "WatchdogTimeoutStatus", false);
     robotInterface->AddEventWrite(EventTriggers.WatchdogPeriod, "WatchdogPeriod", sawRobotIO1394::WatchdogTimeout);
-    robotInterface->AddEventWrite(EventTriggers.Coupling, "Coupling", prmActuatorJointCoupling());
     robotInterface->AddEventWrite(EventTriggers.BiasEncoder, "BiasEncoder", 0);
     robotInterface->AddEventWrite(EventTriggers.UsePotsForSafetyCheck, "UsePotsForSafetyCheck", false);
 
-    // fine tune power, board vs. axis
-    actuatorInterface->AddCommandWrite(&mtsRobot1394::WriteSafetyRelay, this,
-                                      "WriteSafetyRelay");
-    actuatorInterface->AddCommandWrite(&mtsRobot1394::WritePowerEnable, this,
-                                       "WritePowerEnable");
-    actuatorInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorAmpEnable, this,
-                                                                 "SetAmpEnable", mActuatorAmpEnable); // vector[bool]
-    actuatorInterface->AddCommandWrite(&mtsRobot1394::SetSomeEncoderPosition, this,
-                                       "SetSomeEncoderPosition");
-
-    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorAmpEnable,
-                                           "GetAmpEnable"); // vector[bool]
-    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorAmpStatus,
-                                           "GetAmpStatus"); // vector[bool]
-    actuatorInterface->AddCommandReadState(*mStateTableRead, mActuatorMeasuredJS,
-                                           "measured_js");
-
-    actuatorInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorCurrentToBits, this,
-                                               "DriveAmpsToBits", mActuatorCurrentFeedback, mActuatorCurrentBitsFeedback);
-    actuatorInterface->AddCommandQualifiedRead(&mtsRobot1394::PotVoltageToPosition, this,
+    // from old actuator interface
+    // todo: are these used anywhere?
+    robotInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorAmpEnable, this,
+                                                              "SetAmpEnable", mActuatorAmpEnable); // vector[bool]
+    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorCurrentToBits, this,
+                                            "DriveAmpsToBits", mActuatorCurrentFeedback, mActuatorCurrentBitsFeedback);
+    robotInterface->AddCommandQualifiedRead(&mtsRobot1394::PotVoltageToPosition, this,
                                                "AnalogInVoltsToPosSI", mPotVoltage, mPotPosition.Position());
 }
 
@@ -545,9 +382,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     //  info
     mName = config.Name;
     mNumberOfActuators = config.NumberOfActuators;
-    mNumberOfJoints = config.NumberOfJoints;
     mSerialNumber = config.SerialNumber;
-    mPotLocation = config.PotLocation;
     mHasEncoderPreload = config.HasEncoderPreload;
 
     // Low-level API
@@ -581,14 +416,14 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mActuatorCurrentFeedback.SetSize(mNumberOfActuators);
 
     // Initialize property vectors to the appropriate sizes
-    mConfigurationJoint.Type().SetSize(mNumberOfJoints);
-    mMeasuredJS.Name().SetSize(mNumberOfJoints);
-    for (size_t index = 0; index < mNumberOfJoints; ++index) {
-        mMeasuredJS.Name().at(index) = "joint_" + std::to_string(index);
+    mConfigurationJoint.Type().SetSize(mNumberOfActuators);
+    mMeasuredJS.Name().SetSize(mNumberOfActuators);
+    for (size_t index = 0; index < mNumberOfActuators; ++index) {
+        mMeasuredJS.Name().at(index) = "actuator_" + std::to_string(index);
     }
-    mMeasuredJS.Position().SetSize(mNumberOfJoints);
-    mMeasuredJS.Velocity().SetSize(mNumberOfJoints);
-    mMeasuredJS.Effort().SetSize(mNumberOfJoints);
+    mMeasuredJS.Position().SetSize(mNumberOfActuators);
+    mMeasuredJS.Velocity().SetSize(mNumberOfActuators);
+    mMeasuredJS.Effort().SetSize(mNumberOfActuators);
 
     mActuatorMeasuredJS.Name().SetSize(mNumberOfActuators);
     for (size_t index = 0; index < mNumberOfActuators; ++index) {
@@ -604,28 +439,16 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mActuatorBitsToCurrentScales.SetSize(mNumberOfActuators);
     mActuatorBitsToCurrentOffsets.SetSize(mNumberOfActuators);
     mActuatorEffortCommandLimits.SetSize(mNumberOfActuators);
-    mJointEffortCommandLimits.SetSize(mNumberOfJoints);
     mActuatorCurrentCommandLimits.SetSize(mNumberOfActuators);
     mActuatorCurrentFeedbackLimits.SetSize(mNumberOfActuators);
-    if (mPotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
-        mPotToleranceLatency.SetSize(mNumberOfActuators);
-        mPotToleranceDistance.SetSize(mNumberOfActuators);
-        for (size_t i = 0; i < mNumberOfActuators; ++i) {
-            mPotToleranceLatency.at(i) = config.PotTolerances.at(i).Latency;
-            mPotToleranceDistance.at(i) = config.PotTolerances.at(i).Distance;
-        }
-        mPotErrorDuration.SetSize(mNumberOfActuators);
-        mPotValid.SetSize(mNumberOfActuators);
-    } else if (mPotLocation == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
-        mPotToleranceLatency.SetSize(mNumberOfJoints);
-        mPotToleranceDistance.SetSize(mNumberOfJoints);
-        for (size_t i = 0; i < mNumberOfJoints; ++i) {
-            mPotToleranceLatency.at(i) = config.PotTolerances.at(i).Latency;
-            mPotToleranceDistance.at(i) = config.PotTolerances.at(i).Distance;
-        }
-        mPotErrorDuration.SetSize(mNumberOfJoints);
-        mPotValid.SetSize(mNumberOfJoints);
+    mPotToleranceLatency.SetSize(mNumberOfActuators);
+    mPotToleranceDistance.SetSize(mNumberOfActuators);
+    for (size_t i = 0; i < mNumberOfActuators; ++i) {
+        mPotToleranceLatency.at(i) = config.PotTolerances.at(i).Latency;
+        mPotToleranceDistance.at(i) = config.PotTolerances.at(i).Distance;
     }
+    mPotErrorDuration.SetSize(mNumberOfActuators);
+    mPotValid.SetSize(mNumberOfActuators);
     mPotErrorDuration.SetAll(0.0);
     mPotValid.SetAll(true);
     mUsePotsForSafetyCheck = false;
@@ -756,14 +579,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
             currentBrake++;
         }
-    }
-
-    // Compute effort command limits
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        mJointEffortCommandLimits.ProductOf(mConfiguration.Coupling.ActuatorToJointEffort(),
-                                            mActuatorEffortCommandLimits);
-    } else {
-        mJointEffortCommandLimits.Assign(mActuatorEffortCommandLimits);
     }
 }
 
@@ -955,45 +770,26 @@ void mtsRobot1394::PollState(void)
 
 void mtsRobot1394::ConvertState(void)
 {
+    // todo: remove actuator measured since we don't have coupling anymore
     // Perform read conversions
     EncoderBitsToPosition(mEncoderPositionBits,
                           mActuatorMeasuredJS.Position());
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        mMeasuredJS.Position().ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
-                                         mActuatorMeasuredJS.Position());
-    } else {
-        mMeasuredJS.Position().Assign(mActuatorMeasuredJS.Position());
-    }
+    mMeasuredJS.Position().Assign(mActuatorMeasuredJS.Position());
 
     // Velocity from counts/sec to SI units
     mActuatorMeasuredJS.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        mMeasuredJS.Velocity().ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
-                                         mActuatorMeasuredJS.Velocity());
-    } else {
-        mMeasuredJS.Velocity().Assign(mActuatorMeasuredJS.Velocity());
-    }
+    mMeasuredJS.Velocity().Assign(mActuatorMeasuredJS.Velocity());
 
     // Acceleration from counts/sec**2 to SI units
     mActuatorEncoderAcceleration.ElementwiseProductOf(mBitsToPositionScales, mEncoderAccelerationCountsPerSecSec);
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        mEncoderAcceleration.ProductOf(mConfiguration.Coupling.ActuatorToJointPosition(),
-                                       mActuatorEncoderAcceleration);
-    } else {
-        mEncoderAcceleration.Assign(mActuatorEncoderAcceleration);
-    }
+    mEncoderAcceleration.Assign(mActuatorEncoderAcceleration);
 
     // Effort computation
     ActuatorBitsToCurrent(mActuatorCurrentBitsFeedback,
                           mActuatorCurrentFeedback);
     ActuatorCurrentToEffort(mActuatorCurrentFeedback,
                             mActuatorMeasuredJS.Effort());
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        mMeasuredJS.Effort().ProductOf(mConfiguration.Coupling.ActuatorToJointEffort(),
-                                       mActuatorMeasuredJS.Effort());
-    } else {
-        mMeasuredJS.Effort().Assign(mActuatorMeasuredJS.Effort());
-    }
+    mMeasuredJS.Effort().Assign(mActuatorMeasuredJS.Effort());
 
     BrakeBitsToCurrent(mBrakeCurrentBitsFeedback, mBrakeCurrentFeedback);
 
@@ -1201,96 +997,83 @@ void mtsRobot1394::CheckState(void)
 
     // Check if encoders and potentiometers agree
     if (mUsePotsForSafetyCheck) {
-        switch (mPotLocation) {
-        case osaPot1394Location::POTENTIOMETER_UNDEFINED:
-            break;
-        case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
-        case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
-            {
-                vctDynamicVectorRef<double> encoderRef;
-                if (mPotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
-                    encoderRef.SetRef(mActuatorMeasuredJS.Position());
-                } else {
-                    encoderRef.SetRef(mMeasuredJS.Position());
-                }
-                bool statusChanged = false;
-                bool error = false;
-                vctDoubleVec::const_iterator pot = mPotPosition.Position().begin();
-                vctDynamicVectorRef<double>::const_iterator enc = encoderRef.begin();
-                const vctDoubleVec::const_iterator potEnd = mPotPosition.Position().end();
-                vctDoubleVec::const_iterator potLatency = mPotToleranceLatency.begin();
-                vctDoubleVec::const_iterator potError = mPotToleranceDistance.begin();
-                vctDoubleVec::const_iterator potTimestamp = mActuatorTimestamp.begin(); // this is a bit approximative when there's coupling
-                vctDoubleVec::iterator potDuration = mPotErrorDuration.begin();
-                vctBoolVec::iterator potValid = mPotValid.begin();
+        vctDynamicVectorRef<double> encoderRef;
+        // todo: multiply pots by PotCoupling so everything is in actuator space
+        encoderRef.SetRef(mActuatorMeasuredJS.Position());
 
-                for (;
-                     pot != potEnd;
-                     ++pot,
-                         ++enc,
-                         ++potLatency,
-                         ++potError,
-                         ++potTimestamp,
-                         ++potDuration,
-                         ++potValid) {
-                    // if tolerance set to 0, disable check for that joint
-                    if (*potError == 0.0) {
-                        *potValid = true;
-                    } else {
-                        // check for error
-                        double delta = std::abs(*pot - *enc);
-                        if (delta > *potError) {
-                            *potDuration += *potTimestamp;
-                            // check how long have we been off
-                            if (*potDuration > *potLatency) {
-                                // now we have a problem,
-                                this->PowerOffSequence(false); // don't open safety relays
-                                // maybe it's not new, used for reporting
-                                if (*potValid) {
-                                    // this is new
-                                    statusChanged = true;
-                                    error = true;
-                                    *potValid = false;
-                                }
-                            }
-                        } else {
-                            // back to normal, reset status if needed
-                            *potDuration = 0.0;
-                            if (! *potValid) {
-                                statusChanged = true;
-                                *potValid = true;
-                            }
+        bool statusChanged = false;
+        bool error = false;
+        vctDoubleVec::const_iterator pot = mPotPosition.Position().begin();
+        vctDynamicVectorRef<double>::const_iterator enc = encoderRef.begin();
+        const vctDoubleVec::const_iterator potEnd = mPotPosition.Position().end();
+        vctDoubleVec::const_iterator potLatency = mPotToleranceLatency.begin();
+        vctDoubleVec::const_iterator potError = mPotToleranceDistance.begin();
+        vctDoubleVec::const_iterator potTimestamp = mActuatorTimestamp.begin(); // this is a bit approximative when there's coupling
+        vctDoubleVec::iterator potDuration = mPotErrorDuration.begin();
+        vctBoolVec::iterator potValid = mPotValid.begin();
+
+        for (;
+             pot != potEnd;
+             ++pot,
+                 ++enc,
+                 ++potLatency,
+                 ++potError,
+                 ++potTimestamp,
+                 ++potDuration,
+                 ++potValid) {
+            // if tolerance set to 0, disable check for that joint
+            if (*potError == 0.0) {
+                *potValid = true;
+            } else {
+                // check for error
+                double delta = std::abs(*pot - *enc);
+                if (delta > *potError) {
+                    *potDuration += *potTimestamp;
+                    // check how long have we been off
+                    if (*potDuration > *potLatency) {
+                        // now we have a problem,
+                        this->PowerOffSequence(false); // don't open safety relays
+                        // maybe it's not new, used for reporting
+                        if (*potValid) {
+                            // this is new
+                            statusChanged = true;
+                            error = true;
+                            *potValid = false;
                         }
                     }
-                }
-                // if status has changed
-                if (statusChanged) {
-                    if (error) {
-                        std::string errorMessage = "IO: " + this->Name() + ": inconsistency between encoders and potentiometers";
-                        std::string warningMessage = errorMessage + "\nencoders:\n";
-                        warningMessage.append(encoderRef.ToString());
-                        warningMessage.append("\npotentiomers:\n");
-                        warningMessage.append(mPotPosition.Position().ToString());
-                        warningMessage.append("\ntolerance distance:\n");
-                        warningMessage.append(mPotToleranceDistance.ToString());
-                        warningMessage.append("\nvalid pots:\n");
-                        warningMessage.append(mPotValid.ToString());
-                        warningMessage.append("\ntolerance latency:\n");
-                        warningMessage.append(mPotToleranceLatency.ToString());
-                        warningMessage.append("\nerror duration:\n");
-                        warningMessage.append(mPotErrorDuration.ToString());
-                        mInterface->SendWarning(warningMessage);
-                        cmnThrow(errorMessage);
-                    } else {
-                        CMN_LOG_CLASS_RUN_VERBOSE << "IO: " << this->Name()
-                                                  << ": check between encoders and potentiomenters, recovery.  Valid pots:" << std::endl
-                                                  << mPotValid << std::endl;
+                } else {
+                    // back to normal, reset status if needed
+                    *potDuration = 0.0;
+                    if (! *potValid) {
+                        statusChanged = true;
+                        *potValid = true;
                     }
                 }
             }
-            break;
-        default:
-            break;
+        }
+        // if status has changed
+        if (statusChanged) {
+            if (error) {
+                std::string errorMessage = "IO: " + this->Name() + ": inconsistency between encoders and potentiometers";
+                std::string warningMessage = errorMessage + "\nencoders:\n";
+                warningMessage.append(encoderRef.ToString());
+                warningMessage.append("\npotentiomers:\n");
+                warningMessage.append(mPotPosition.Position().ToString());
+                warningMessage.append("\ntolerance distance:\n");
+                warningMessage.append(mPotToleranceDistance.ToString());
+                warningMessage.append("\nvalid pots:\n");
+                warningMessage.append(mPotValid.ToString());
+                warningMessage.append("\ntolerance latency:\n");
+                warningMessage.append(mPotToleranceLatency.ToString());
+                warningMessage.append("\nerror duration:\n");
+                warningMessage.append(mPotErrorDuration.ToString());
+                mInterface->SendWarning(warningMessage);
+                cmnThrow(errorMessage);
+            } else {
+                CMN_LOG_CLASS_RUN_VERBOSE << "IO: " << this->Name()
+                                          << ": check between encoders and potentiomenters, recovery.  Valid pots:" << std::endl
+                                          << mPotValid << std::endl;
+            }
         }
     }
 
@@ -1383,23 +1166,9 @@ void mtsRobot1394::CheckState(void)
 
             // determine where pots are
             vctDoubleVec actuatorPosition(mNumberOfActuators);
-            switch (mPotLocation) {
-            case osaPot1394Location::POTENTIOMETER_UNDEFINED:
-                cmnThrow("mtsRobot1394::CheckState: can't set encoder offset, potentiometer's position undefined");
-                break;
-            case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
-                if (mConfiguration.HasActuatorToJointCoupling) {
-                    actuatorPosition.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
-                                               potentiometers);
-                } else {
-                    actuatorPosition.Assign(potentiometers);
-                }
-                SetEncoderPosition(actuatorPosition);
-                break;
-            case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
-                SetEncoderPosition(potentiometers);
-                break;
-            }
+            // todo: what to do when pots are on joints?
+            SetEncoderPosition(potentiometers);
+
             // samples from pots not needed anymore
             CalibrateEncoderOffsets.SamplesFromPots = 0;
             // one cycle to write encoder preload, one to get encoder
@@ -1546,17 +1315,6 @@ void mtsRobot1394::ClipBrakeCurrent(vctDoubleVec & currents)
     currents.ElementwiseClipIn(mBrakeCurrentCommandLimits);
 }
 
-void mtsRobot1394::SetJointEffort(const vctDoubleVec & efforts)
-{
-    vctDoubleVec actuatorEfforts(mNumberOfActuators);
-    if (mConfiguration.HasActuatorToJointCoupling) {
-        actuatorEfforts.ProductOf(mConfiguration.Coupling.JointToActuatorEffort(), efforts);
-    } else {
-        actuatorEfforts.Assign(efforts);
-    }
-    this->SetActuatorEffort(actuatorEfforts);
-}
-
 void mtsRobot1394::SetActuatorEffort(const vctDoubleVec & efforts)
 {
     // Convert efforts to bits and set the command
@@ -1644,23 +1402,8 @@ void mtsRobot1394::BrakeEngage(void)
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
 {
     vctDoubleVec actuatorPosition(mNumberOfActuators);
-    switch (mPotLocation) {
-    case osaPot1394Location::POTENTIOMETER_UNDEFINED:
-        cmnThrow("mtsRobot1394::CalibrateEncoderOffsetsFromPots: can't set encoder offset, potentiometer's position undefined");
-        break;
-    case osaPot1394Location::POTENTIOMETER_ON_JOINTS:
-        if (mConfiguration.HasActuatorToJointCoupling) {
-            actuatorPosition.ProductOf(mConfiguration.Coupling.JointToActuatorPosition(),
-                                       mPotPosition.Position());
-        } else {
-            actuatorPosition.Assign(mPotPosition.Position());
-        }
-        SetEncoderPosition(actuatorPosition);
-        break;
-    case osaPot1394Location::POTENTIOMETER_ON_ACTUATORS:
-        SetEncoderPosition(mPotPosition.Position());
-        break;
-    };
+    // todo: use PotCoupling
+    SetEncoderPosition(mPotPosition.Position());
     CalibrateEncoderOffsets.Performed = true;
 }
 
@@ -1708,20 +1451,12 @@ const prmStateJoint & mtsRobot1394::ActuatorJointState(void) const {
     return mActuatorMeasuredJS;
 }
 
-const prmStateJoint & mtsRobot1394::JointState(void) const {
-    return mMeasuredJS;
-}
-
 osaRobot1394Configuration mtsRobot1394::GetConfiguration(void) const {
     return mConfiguration;
 }
 
 std::string mtsRobot1394::Name(void) const {
     return mName;
-}
-
-size_t mtsRobot1394::NumberOfJoints(void) const {
-    return mNumberOfJoints;
 }
 
 size_t mtsRobot1394::NumberOfActuators(void) const {
@@ -1757,11 +1492,6 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
     // same here, pots are not always on joints
     mPotPosition.Name().SetSize(mNumberOfActuators);
     mPotPosition.Name() = jointConfig.Name();
-}
-
-void mtsRobot1394::GetJointEffortCommandLimits(vctDoubleVec & limits) const
-{
-    limits = mJointEffortCommandLimits;
 }
 
 void mtsRobot1394::GetActuatorEffortCommandLimits(vctDoubleVec & limits) const

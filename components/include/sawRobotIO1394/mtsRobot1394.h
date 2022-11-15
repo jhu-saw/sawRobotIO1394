@@ -61,8 +61,7 @@ namespace sawRobotIO1394 {
         bool SetupStateTables(const size_t stateTableSize,
                               mtsStateTable * & stateTableRead,
                               mtsStateTable * & stateTableWrite);
-        void SetupInterfaces(mtsInterfaceProvided * robotInterface,
-                             mtsInterfaceProvided * actuatorInterface);
+        void SetupInterfaces(mtsInterfaceProvided * robotInterface);
 
         void StartReadStateTable(void);
         void AdvanceReadStateTable(void);
@@ -72,19 +71,11 @@ namespace sawRobotIO1394 {
 
         // Wrapper of osa methods to match command signatures
         void GetNumberOfActuators(size_t & num_actuators) const;
-        void GetNumberOfJoints(size_t & num_joints) const;
         void GetSerialNumber(int & serialNumber) const;
         void servo_jf(const prmForceTorqueJointSet & jointTorques);
         void SetSomeEncoderPosition(const prmMaskedDoubleVec & values);
-        void SetCoupling(const prmActuatorJointCoupling & coupling);
         void ActuatorToJointPosition(const vctDoubleVec & actuators,
                                      vctDoubleVec & joints) const;
-        void JointToActuatorPosition(const vctDoubleVec & joints,
-                                     vctDoubleVec & actuators) const;
-        void ActuatorToJointEffort(const vctDoubleVec & actuators,
-                                   vctDoubleVec & joints) const;
-        void JointToActuatorEffort(const vctDoubleVec & joints,
-                                   vctDoubleVec & actuators) const;
 
         /*! \name Bias Calibration */
         void CalibrateEncoderOffsetsFromPots(const int & numberOfSamples);
@@ -136,7 +127,6 @@ namespace sawRobotIO1394 {
         void UsePotsForSafetyCheck(const bool & usePotsForSafetyCheck);
 
         //! Actuator Control
-        void SetJointEffort(const vctDoubleVec & efforts);
         void SetActuatorEffort(const vctDoubleVec & efforts);
         void SetActuatorCurrent(const vctDoubleVec & currents);
         void SetActuatorCurrentBits(const vctIntVec & bits);
@@ -213,20 +203,17 @@ namespace sawRobotIO1394 {
         const vctDoubleVec & ActuatorEncoderAcceleration(void) const;
         const vctDoubleVec & EncoderAcceleration(void) const;
         const prmStateJoint & ActuatorJointState(void) const;
-        const prmStateJoint & JointState(void) const;
         /**}**/
 
         /** \name Parameter Accessors
          *\{**/
         osaRobot1394Configuration GetConfiguration(void) const;
         std::string Name(void) const;
-        size_t NumberOfJoints(void) const;
         size_t NumberOfActuators(void) const;
         size_t SerialNumber(void) const;
         size_t NumberOfBrakes(void) const;
         void configuration_js(prmConfigurationJoint & jointConfig) const;
         void configure_js(const prmConfigurationJoint & jointConfig);
-        void GetJointEffortCommandLimits(vctDoubleVec & limits) const;
         void GetActuatorEffortCommandLimits(vctDoubleVec & limits) const;
         void GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const;
         /**}**/
@@ -274,7 +261,6 @@ namespace sawRobotIO1394 {
         osaRobot1394Configuration mConfiguration;
         std::string mName;
         size_t mNumberOfActuators;
-        size_t mNumberOfJoints;
         size_t mNumberOfBrakes;
         size_t mSerialNumber;
         bool mHasEncoderPreload;
@@ -302,7 +288,6 @@ namespace sawRobotIO1394 {
             mSensorToPositionOffsets;
 
         vctDoubleVec
-            mJointEffortCommandLimits,
             mActuatorEffortCommandLimits,
             mActuatorCurrentCommandLimits,
             mBrakeCurrentCommandLimits,
@@ -312,7 +297,6 @@ namespace sawRobotIO1394 {
 
         //! Robot type
         prmConfigurationJoint mConfigurationJoint;
-        osaPot1394Location::Type mPotLocation;
         int mPotType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
         bool mUsePotsForSafetyCheck;
 
@@ -413,7 +397,6 @@ namespace sawRobotIO1394 {
             mtsFunctionWrite PowerFault;
             mtsFunctionWrite WatchdogTimeoutStatus;
             mtsFunctionWrite WatchdogPeriod;
-            mtsFunctionWrite Coupling;
             mtsFunctionWrite BiasEncoder;
             mtsFunctionWrite UsePotsForSafetyCheck;
         } EventTriggers;

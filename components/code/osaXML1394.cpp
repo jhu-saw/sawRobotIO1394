@@ -434,78 +434,52 @@ namespace sawRobotIO1394 {
             }
         }
 
-        // look for potentiometers position, if any
-        std::string potentiometerPosition;
-        robot.PotLocation = osaPot1394Location::POTENTIOMETER_UNDEFINED;
-        sprintf(path,"Robot[%d]/Potentiometers/@Position", robotIndex);
-        if (xmlConfig.GetXMLValue(context, path, potentiometerPosition)) {
-            if (potentiometerPosition == "Actuators") {
-                robot.PotLocation = osaPot1394Location::POTENTIOMETER_ON_ACTUATORS;
-            } else if (potentiometerPosition == "Joints") {
-                robot.PotLocation = osaPot1394Location::POTENTIOMETER_ON_JOINTS;
-            } else {
-                CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers Position=\"\"> value, must be either \"Joints\" or \"Actuators\" for robot number "
-                                   << robotIndex << std::endl;
-            }
-        } else {
-            CMN_LOG_INIT_VERBOSE << "Configure: no <Potentiometers Position=\"\"> found." << std::endl;
-        }
-
         // load pot tolerances
-        if ((robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS)
-            || robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_JOINTS) {
-            int numberOfPots = 0;
-            if (robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS) {
-                numberOfPots = robot.NumberOfActuators;
+        for (int potIndex = 0; potIndex < robot.NumberOfActuators; ++potIndex) {
+            osaPotTolerance1394Configuration pot;
+            int xmlPotIndex = potIndex + 1;
+            // check that axis index is valid
+            int axis = -12345;
+            sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Axis", robotIndex, xmlPotIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, axis, false);
+            // if set to -12345, no value found and disables check
+            if (axis == -12345) {
+                pot.Latency = 0.0;
+                pot.Distance = 0.0;
             } else {
-                numberOfPots = robot.NumberOfJoints;
-            }
-            for (int potIndex = 0; potIndex < numberOfPots; ++potIndex) {
-                osaPotTolerance1394Configuration pot;
-                int xmlPotIndex = potIndex + 1;
-                // check that axis index is valid
-                int axis = -12345;
-                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Axis", robotIndex, xmlPotIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, axis, false);
-                // if set to -12345, no value found and disables check
-                if (axis == -12345) {
-                    pot.Latency = 0.0;
-                    pot.Distance = 0.0;
+                // still make sure tolerances are provided in order
+                if (axis != potIndex) {
+                    CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Axis=\"\"> must be provided in order, for tolerance "
+                                       << potIndex << " Axis should match but found " << axis << " for robot "
+                                       << robotIndex << "(" << robot.Name << ")" << std::endl;
+                    good = false;
+                }
+                pot.AxisID = axis;
+                // get data
+                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Distance", robotIndex, xmlPotIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, pot.Distance);
+                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Latency", robotIndex, xmlPotIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, pot.Latency);
+                // convert to proper units
+                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Unit", robotIndex, xmlPotIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, unit);
+                if (osaUnitIsDistance(unit)) {
+                    pot.Distance *= osaUnitToSIFactor(unit);
                 } else {
-                    // still make sure tolerances are provided in order
-                    if (axis != potIndex) {
-                        CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Axis=\"\"> must be provided in order, for tolerance "
-                                           << potIndex << " Axis should match but found " << axis << " for robot "
-                                           << robotIndex << "(" << robot.Name << ")" << std::endl;
-                        good = false;
-                    }
-                    pot.AxisID = axis;
-                    // get data
-                    sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Distance", robotIndex, xmlPotIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, pot.Distance);
-                    sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Latency", robotIndex, xmlPotIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, pot.Latency);
-                    // convert to proper units
-                    sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Unit", robotIndex, xmlPotIndex);
-                    good &= osaXML1394GetValue(xmlConfig, context, path, unit);
-                    if (osaUnitIsDistance(unit)) {
-                        pot.Distance *= osaUnitToSIFactor(unit);
-                    } else {
-                        CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Unit=\"\"> must be rad, deg, mm, m but found \""
-                                           << unit << "\" for Axis " << axis << " for robot "
-                                           << robotIndex << "(" << robot.Name << ")" << std::endl;
-                        good = false;
-                    }
+                    CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Unit=\"\"> must be rad, deg, mm, m but found \""
+                                       << unit << "\" for Axis " << axis << " for robot "
+                                       << robotIndex << "(" << robot.Name << ")" << std::endl;
+                    good = false;
                 }
-                robot.PotTolerances.push_back(pot);
-                // send warning just to make sure user understands safety check is effectively disabled for this axis
-                if ((pot.Distance == 0.0) || (pot.Latency == 0.0)) {
-                    CMN_LOG_INIT_WARNING << "Configure: potentiometer to encoder latency ("
-                                         << pot.Latency << ") and/or distance ("
-                                         << pot.Distance << ") set to zero, safety check is DISABLED for Axis "
-                                         << axis << " for robot "
-                                         << robotIndex << " (" << robot.Name << ")" << std::endl;
-                }
+            }
+            robot.PotTolerances.push_back(pot);
+            // send warning just to make sure user understands safety check is effectively disabled for this axis
+            if ((pot.Distance == 0.0) || (pot.Latency == 0.0)) {
+                CMN_LOG_INIT_WARNING << "Configure: potentiometer to encoder latency ("
+                                     << pot.Latency << ") and/or distance ("
+                                     << pot.Distance << ") set to zero, safety check is DISABLED for Axis "
+                                     << axis << " for robot "
+                                     << robotIndex << " (" << robot.Name << ")" << std::endl;
             }
         }
 
@@ -522,67 +496,13 @@ namespace sawRobotIO1394 {
     {
         char path[64];
         const char * context = "Config";
-        //The Coupling Value must be equal to 1 for this configuration to work.
         int coupling = 0;
-        sprintf(path, "Robot[%i]/Coupling/@Value", robotIndex);
+        sprintf(path, "Robot[%i]/PotCoupling/@Value", robotIndex);
         xmlConfig.GetXMLValue(context, path, coupling);
-        robot.HasActuatorToJointCoupling = (coupling == 1);
-
-        if (robot.HasActuatorToJointCoupling) {
-            bool parse_success = true;
-            parse_success &= osaXML1394ConfigureCouplingMatrix(xmlConfig, robotIndex, "ActuatorToJointPosition",
-                                                               robot.NumberOfJoints, robot.NumberOfActuators,
-                                                               robot.Coupling.ActuatorToJointPosition());
-
-            parse_success &= osaXML1394ConfigureCouplingMatrix(xmlConfig, robotIndex, "JointToActuatorPosition",
-                                                               robot.NumberOfActuators, robot.NumberOfJoints,
-                                                               robot.Coupling.JointToActuatorPosition());
-            if (robot.Coupling.JointToActuatorPosition().size() == 0) {
-                robot.Coupling.JointToActuatorPosition()
-                    .ForceAssign(robot.Coupling.ActuatorToJointPosition());
-                nmrInverse(robot.Coupling.JointToActuatorPosition());
-            }
-
-            parse_success &= osaXML1394ConfigureCouplingMatrix(xmlConfig, robotIndex, "ActuatorToJointTorque",
-                                                               robot.NumberOfJoints, robot.NumberOfActuators,
-                                                               robot.Coupling.ActuatorToJointEffort());
-            if (robot.Coupling.ActuatorToJointEffort().size() == 0) {
-                robot.Coupling.ActuatorToJointEffort()
-                    .ForceAssign(robot.Coupling.JointToActuatorPosition().Transpose());
-            }
-
-            parse_success &= osaXML1394ConfigureCouplingMatrix(xmlConfig, robotIndex, "JointToActuatorTorque",
-                                                               robot.NumberOfActuators, robot.NumberOfJoints,
-                                                               robot.Coupling.JointToActuatorEffort());
-            if (robot.Coupling.JointToActuatorEffort().size() == 0) {
-                robot.Coupling.JointToActuatorEffort()
-                    .ForceAssign(robot.Coupling.ActuatorToJointEffort());
-                nmrInverse(robot.Coupling.JointToActuatorEffort());
-            }
-
-            if (!parse_success) {
-                return false;
-            }
-
-            // make sure the coupling matrices make sense
-            vctDoubleMat product, identity;
-            identity.ForceAssign(vctDoubleMat::Eye(robot.NumberOfActuators));
-            product.SetSize(robot.NumberOfActuators, robot.NumberOfActuators);
-
-            product.ProductOf(robot.Coupling.ActuatorToJointPosition(),
-                              robot.Coupling.JointToActuatorPosition());
-
-            if (!product.AlmostEqual(identity, 0.001)) {
-                CMN_LOG_INIT_ERROR << "ConfigureCoupling: product of position coupling matrices not identity:"
-                                   << std::endl << product << std::endl;
-                return false;
-            }
-
-            product.ProductOf(robot.Coupling.ActuatorToJointEffort(),
-                              robot.Coupling.JointToActuatorEffort());
-            if (!product.AlmostEqual(identity, 0.001)) {
-                CMN_LOG_INIT_ERROR << "ConfigureCoupling: product of torque coupling matrices not identity:"
-                                   << std::endl << product << std::endl;
+        if (coupling == 1) {
+            if (!osaXML1394ConfigureCouplingMatrix(xmlConfig, robotIndex, "JointToActuatorPosition",
+                                                   robot.NumberOfActuators, robot.NumberOfJoints,
+                                                   robot.PotCoupling.JointToActuatorPosition())) {
                 return false;
             }
         } // has actuator coupling
