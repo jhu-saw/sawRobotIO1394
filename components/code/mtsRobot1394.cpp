@@ -18,8 +18,6 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <cmath>
 
-#include <cisstNumerical/nmrInverse.h>
-
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
 
