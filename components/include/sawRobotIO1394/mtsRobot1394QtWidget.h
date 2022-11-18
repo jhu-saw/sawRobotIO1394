@@ -114,7 +114,7 @@ protected:
 
         mtsFunctionRead measured_js;
         mtsFunctionRead GetAnalogInputVolts;
-        mtsFunctionRead GetAnalogInputPosSI;
+        mtsFunctionRead pot_measured_js;
         mtsFunctionRead GetActuatorRequestedCurrent;
         mtsFunctionRead GetActuatorFeedbackCurrent;
         mtsFunctionRead GetActuatorCurrentMax;
@@ -135,16 +135,12 @@ protected:
 
         mtsFunctionWrite BiasEncoder;
         mtsFunctionWrite UsePotsForSafetyCheck;
-    } Robot;
 
-    struct ActuatorStruct {
         mtsFunctionWrite WritePowerEnable;
-        mtsFunctionWrite SetAmpEnable;
-        mtsFunctionRead GetAmpEnable;
-        mtsFunctionRead GetAmpStatus;
-        mtsFunctionRead measured_js;
-    } Actuators;
-
+        mtsFunctionWrite SetActuatorAmpEnable;
+        mtsFunctionRead GetActuatorAmpEnable;
+        mtsFunctionRead GetActuatorAmpStatus;
+    } Robot;
 
 private:
     mtsIntervalStatistics IntervalStatistics;
@@ -154,7 +150,7 @@ private:
     size_t NumberOfBrakes;
 
     vctDoubleVec UnitFactor;
-    prmStateJoint StateJoint, ActuatorStateJoint;
+    prmStateJoint ActuatorStateJoint;
     vctDoubleVec PotentiometersVolts;
     prmStateJoint PotentiometersPosition;
     vctDoubleVec ActuatorFeedbackCurrent;
@@ -204,7 +200,6 @@ private:
     vctQtWidgetDynamicVectorDoubleWrite * QVWActuatorCurrentSpinBox;
     vctQtWidgetDynamicVectorDoubleWrite * QVWActuatorCurrentSlider;
     vctQtWidgetDynamicVectorDoubleRead * QVRActuatorCurrentFeedback;
-    vctQtWidgetDynamicVectorDoubleRead * QVRJointPosition;
     vctQtWidgetDynamicVectorDoubleRead * QVRActuatorPosition;
     vctQtWidgetDynamicVectorDoubleRead * QVRActuatorVelocity;
     vctQtWidgetDynamicVectorDoubleRead * QVRPotVolts;

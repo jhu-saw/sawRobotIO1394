@@ -298,6 +298,7 @@ namespace sawRobotIO1394 {
         //! Robot type
         prmConfigurationJoint mConfigurationJoint;
         int mPotType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
+        vctDoubleMat mPotCoupling;
         bool mUsePotsForSafetyCheck;
 
         //! State Members
@@ -384,10 +385,7 @@ namespace sawRobotIO1394 {
         double mPoweringStartTime;
 
         prmForceTorqueJointSet mTorqueJoint;
-        prmStateJoint
-            mActuatorMeasuredJS,
-            mMeasuredJS,
-            mPotPosition;
+        prmStateJoint m_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
 
         // Functions for events
         struct {
@@ -408,8 +406,8 @@ namespace sawRobotIO1394 {
             int PostCalibrationCounter = -1; // -1: nothing to do, 0: emit event, anything else: decrement
         } CalibrateEncoderOffsets;
 
-        mtsStateTable::Accessor<prmStateJoint> * mPotPositionAccessor;
-        mtsStateTable::Accessor<prmStateJoint> * mActuatorStateJointAccessor;
+        mtsStateTable::Accessor<prmStateJoint> * m_pot_measured_js_accessor;
+        mtsStateTable::Accessor<prmStateJoint> * m_measured_js_accessor;
 
     public:
         mtsInterfaceProvided * mInterface;

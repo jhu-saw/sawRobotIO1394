@@ -98,12 +98,12 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(mEncoderPositionBits, "PositionEncoderRaw");
     mStateTableRead->AddData(mPotBits, "AnalogInRaw");
     mStateTableRead->AddData(mPotVoltage, "AnalogInVolts");
-    mStateTableRead->AddData(mPotPosition, "AnalogInPosSI");
+    mStateTableRead->AddData(m_raw_pot_measured_js, "raw_pot_measured_js"); // wherever pots are mounted
+    mStateTableRead->AddData(m_pot_measured_js, "pot_measured_js"); // in actuator space
     mStateTableRead->AddData(mActuatorCurrentBitsFeedback, "ActuatorFeedbackCurrentRaw");
     mStateTableRead->AddData(mActuatorCurrentFeedback, "ActuatorFeedbackCurrent");
 
-    mStateTableRead->AddData(mMeasuredJS, "measured_js");
-    mStateTableRead->AddData(mActuatorMeasuredJS, "actuator_measured_js");
+    mStateTableRead->AddData(m_measured_js, "measured_js");
     mStateTableRead->AddData(mEncoderAcceleration, "measured_ja");
     mStateTableRead->AddData(mActuatorEncoderAcceleration, "actuator_measured_ja");
 
@@ -117,15 +117,15 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(mBrakeCurrentFeedback, "BrakeFeedbackCurrent");
     mStateTableRead->AddData(mBrakeTemperature, "BrakeTemperature");
 
-    mtsStateTable::AccessorBase * accessorBase;
-    accessorBase = mStateTableRead->GetAccessorByInstance(mPotPosition);
-    CMN_ASSERT(accessorBase);
-    mPotPositionAccessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>* >(accessorBase);
-    CMN_ASSERT(mPotPositionAccessor);
-    accessorBase = mStateTableRead->GetAccessorByInstance(mActuatorMeasuredJS);
-    CMN_ASSERT(accessorBase);
-    mActuatorStateJointAccessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>*>(accessorBase);
-    CMN_ASSERT(mActuatorStateJointAccessor);
+    mtsStateTable::AccessorBase * accessor_base;
+    accessor_base = mStateTableRead->GetAccessorByInstance(m_pot_measured_js);
+    CMN_ASSERT(accessor_base);
+    m_pot_measured_js_accessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>* >(accessor_base);
+    CMN_ASSERT(m_pot_measured_js_accessor);
+    accessor_base = mStateTableRead->GetAccessorByInstance(m_measured_js);
+    CMN_ASSERT(accessor_base);
+    m_measured_js_accessor = dynamic_cast<mtsStateTable::Accessor<prmStateJoint>*>(accessor_base);
+    CMN_ASSERT(m_measured_js_accessor);
 
     // return pointers to state tables
     stateTableRead = mStateTableRead;
@@ -268,17 +268,17 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
     robotInterface->AddCommandReadState(*mStateTableRead, mActuatorEncoderAcceleration,
                                         "GetActuatorAcceleration"); // vector[double]
 
-    robotInterface->AddCommandReadState(*mStateTableRead, this->mMeasuredJS,
+    robotInterface->AddCommandReadState(*mStateTableRead, m_measured_js,
                                         "measured_js");
-    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorMeasuredJS,
-                                        "actuator_measured_js");
 
     robotInterface->AddCommandReadState(*mStateTableRead, mPotBits,
                                         "GetAnalogInputRaw");
     robotInterface->AddCommandReadState(*mStateTableRead, mPotVoltage,
                                         "GetAnalogInputVolts");
-    robotInterface->AddCommandReadState(*mStateTableRead, mPotPosition,
-                                        "GetAnalogInputPosSI");
+    robotInterface->AddCommandReadState(*mStateTableRead, m_raw_pot_measured_js,
+                                        "raw_pot/measured_js");
+    robotInterface->AddCommandReadState(*mStateTableRead, m_pot_measured_js,
+                                        "pot/measured_js");
 
     robotInterface->AddCommandReadState(*mStateTableRead, mActuatorCurrentBitsFeedback,
                                         "GetActuatorFeedbackCurrentRaw");
@@ -356,11 +356,11 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
     // from old actuator interface
     // todo: are these used anywhere?
     robotInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetActuatorAmpEnable, this,
-                                                              "SetAmpEnable", mActuatorAmpEnable); // vector[bool]
+                                                              "SetActuatorAmpEnable", mActuatorAmpEnable); // vector[bool]
     robotInterface->AddCommandQualifiedRead(&mtsRobot1394::ActuatorCurrentToBits, this,
                                             "DriveAmpsToBits", mActuatorCurrentFeedback, mActuatorCurrentBitsFeedback);
     robotInterface->AddCommandQualifiedRead(&mtsRobot1394::PotVoltageToPosition, this,
-                                               "AnalogInVoltsToPosSI", mPotVoltage, mPotPosition.Position());
+                                            "AnalogInVoltsToPosSI", mPotVoltage, m_raw_pot_measured_js.Position());
 }
 
 bool mtsRobot1394::CheckConfiguration(void)
@@ -406,7 +406,8 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
     mActuatorTimestamp.SetSize(mNumberOfActuators);
     mPotVoltage.SetSize(mNumberOfActuators);
-    mPotPosition.Position().SetSize(mNumberOfActuators);
+    m_raw_pot_measured_js.Position().SetSize(mNumberOfActuators);
+    m_pot_measured_js.Position().SetSize(mNumberOfActuators);
     mEncoderVelocityPredictedCountsPerSec.SetSize(mNumberOfActuators);
     mEncoderAccelerationCountsPerSecSec.SetSize(mNumberOfActuators);
     mActuatorEncoderAcceleration.SetSize(mNumberOfActuators);
@@ -417,21 +418,19 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
     // Initialize property vectors to the appropriate sizes
     mConfigurationJoint.Type().SetSize(mNumberOfActuators);
-    mMeasuredJS.Name().SetSize(mNumberOfActuators);
-    for (size_t index = 0; index < mNumberOfActuators; ++index) {
-        mMeasuredJS.Name().at(index) = "actuator_" + std::to_string(index);
-    }
-    mMeasuredJS.Position().SetSize(mNumberOfActuators);
-    mMeasuredJS.Velocity().SetSize(mNumberOfActuators);
-    mMeasuredJS.Effort().SetSize(mNumberOfActuators);
+    m_measured_js.Position().SetSize(mNumberOfActuators);
+    m_measured_js.Velocity().SetSize(mNumberOfActuators);
+    m_measured_js.Effort().SetSize(mNumberOfActuators);
 
-    mActuatorMeasuredJS.Name().SetSize(mNumberOfActuators);
+    // names
+    m_measured_js.Name().SetSize(mNumberOfActuators);
     for (size_t index = 0; index < mNumberOfActuators; ++index) {
-        mActuatorMeasuredJS.Name().at(index) = "actuator_" + std::to_string(index);
+        m_measured_js.Name().at(index) = "actuator_" + std::to_string(index);
     }
-    mActuatorMeasuredJS.Position().SetSize(mNumberOfActuators);
-    mActuatorMeasuredJS.Velocity().SetSize(mNumberOfActuators);
-    mActuatorMeasuredJS.Effort().SetSize(mNumberOfActuators);
+    m_pot_measured_js.Name().ForceAssign(m_measured_js.Name());
+    // these names might be confusing since we name the pots based on
+    // actuator names
+    m_raw_pot_measured_js.Name().ForceAssign(m_measured_js.Name());
 
     mEffortToCurrentScales.SetSize(mNumberOfActuators);
     mActuatorCurrentToBitsScales.SetSize(mNumberOfActuators);
@@ -447,6 +446,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         mPotToleranceLatency.at(i) = config.PotTolerances.at(i).Latency;
         mPotToleranceDistance.at(i) = config.PotTolerances.at(i).Distance;
     }
+    mPotCoupling.ForceAssign(config.PotCoupling.JointToActuatorPosition());
     mPotErrorDuration.SetSize(mNumberOfActuators);
     mPotValid.SetSize(mNumberOfActuators);
     mPotErrorDuration.SetAll(0.0);
@@ -517,7 +517,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         }
 
         // Initialize state vectors
-        mActuatorMeasuredJS.Position().at(i) = 0.0;
+        m_measured_js.Position().at(i) = 0.0;
         mActuatorCurrentCommand.at(i) = 0.0;
         mActuatorCurrentFeedback.at(i) = 0.0;
 
@@ -770,15 +770,12 @@ void mtsRobot1394::PollState(void)
 
 void mtsRobot1394::ConvertState(void)
 {
-    // todo: remove actuator measured since we don't have coupling anymore
     // Perform read conversions
     EncoderBitsToPosition(mEncoderPositionBits,
-                          mActuatorMeasuredJS.Position());
-    mMeasuredJS.Position().Assign(mActuatorMeasuredJS.Position());
+                          m_measured_js.Position());
 
     // Velocity from counts/sec to SI units
-    mActuatorMeasuredJS.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
-    mMeasuredJS.Velocity().Assign(mActuatorMeasuredJS.Velocity());
+    m_measured_js.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
 
     // Acceleration from counts/sec**2 to SI units
     mActuatorEncoderAcceleration.ElementwiseProductOf(mBitsToPositionScales, mEncoderAccelerationCountsPerSecSec);
@@ -788,22 +785,21 @@ void mtsRobot1394::ConvertState(void)
     ActuatorBitsToCurrent(mActuatorCurrentBitsFeedback,
                           mActuatorCurrentFeedback);
     ActuatorCurrentToEffort(mActuatorCurrentFeedback,
-                            mActuatorMeasuredJS.Effort());
-    mMeasuredJS.Effort().Assign(mActuatorMeasuredJS.Effort());
+                            m_measured_js.Effort());
 
     BrakeBitsToCurrent(mBrakeCurrentBitsFeedback, mBrakeCurrentFeedback);
 
     // Pots
     if (mPotType == 1) {
         PotBitsToVoltage(mPotBits, mPotVoltage);
-        PotVoltageToPosition(mPotVoltage, mPotPosition.Position());
+        PotVoltageToPosition(mPotVoltage, m_raw_pot_measured_js.Position());
     } else if (mPotType == 2) {
         // dummy voltages
         mPotVoltage.Assign(mPotBits);
         auto raw = mPotBits.begin();
         const auto end = mPotBits.end();
         auto table = mPotLookupTable.begin();
-        auto si = mPotPosition.Position().begin();
+        auto si = m_raw_pot_measured_js.Position().begin();
         for (; raw != end;
              ++raw,
                  ++table,
@@ -812,14 +808,21 @@ void mtsRobot1394::ConvertState(void)
             *si = (*table).at(*raw);
         }
     }
+
+    // Pots, convert to actuator space if the coupling matrix is defined
+    if (mPotCoupling.size() != 0) {
+        m_pot_measured_js.Position().ProductOf(mPotCoupling, m_raw_pot_measured_js.Position());
+    } else {
+        m_pot_measured_js.Position().Assign(m_raw_pot_measured_js.Position());
+    }
 }
 
 void mtsRobot1394::CheckState(void)
 {
     // set data as invalid by default
-    mMeasuredJS.SetValid(false);
-    mActuatorMeasuredJS.SetValid(false);
-    mPotPosition.SetValid(false);
+    m_measured_js.SetValid(false);
+    m_raw_pot_measured_js.SetValid(false);
+    m_pot_measured_js.SetValid(false);
 
     // If we had a read error, all checks are pretty much useless
     if (mInvalidReadCounter > 0) {
@@ -999,13 +1002,13 @@ void mtsRobot1394::CheckState(void)
     if (mUsePotsForSafetyCheck) {
         vctDynamicVectorRef<double> encoderRef;
         // todo: multiply pots by PotCoupling so everything is in actuator space
-        encoderRef.SetRef(mActuatorMeasuredJS.Position());
+        encoderRef.SetRef(m_measured_js.Position());
 
         bool statusChanged = false;
         bool error = false;
-        vctDoubleVec::const_iterator pot = mPotPosition.Position().begin();
+        vctDoubleVec::const_iterator pot = m_pot_measured_js.Position().begin();
         vctDynamicVectorRef<double>::const_iterator enc = encoderRef.begin();
-        const vctDoubleVec::const_iterator potEnd = mPotPosition.Position().end();
+        const vctDoubleVec::const_iterator potEnd = m_pot_measured_js.Position().end();
         vctDoubleVec::const_iterator potLatency = mPotToleranceLatency.begin();
         vctDoubleVec::const_iterator potError = mPotToleranceDistance.begin();
         vctDoubleVec::const_iterator potTimestamp = mActuatorTimestamp.begin(); // this is a bit approximative when there's coupling
@@ -1058,7 +1061,7 @@ void mtsRobot1394::CheckState(void)
                 std::string warningMessage = errorMessage + "\nencoders:\n";
                 warningMessage.append(encoderRef.ToString());
                 warningMessage.append("\npotentiomers:\n");
-                warningMessage.append(mPotPosition.Position().ToString());
+                warningMessage.append(m_pot_measured_js.Position().ToString());
                 warningMessage.append("\ntolerance distance:\n");
                 warningMessage.append(mPotToleranceDistance.ToString());
                 warningMessage.append("\nvalid pots:\n");
@@ -1094,9 +1097,9 @@ void mtsRobot1394::CheckState(void)
         }
     }
 
-    mActuatorMeasuredJS.SetValid(true);
-    mMeasuredJS.SetValid(true);
-    mPotPosition.SetValid(true);
+    m_measured_js.SetValid(true);
+    m_raw_pot_measured_js.SetValid(true);
+    m_pot_measured_js.SetValid(true);
 
     if (mPreviousFullyPowered != mFullyPowered) {
         EventTriggers.FullyPowered(mFullyPowered);
@@ -1144,8 +1147,8 @@ void mtsRobot1394::CheckState(void)
             mtsStateIndex index = mStateTableRead->GetIndexReader();
             bool validIndex = true;
             while (validIndex && (nbElements < CalibrateEncoderOffsets.SamplesFromPotsRequested)) {
-                mPotPositionAccessor->Get(index, newPot);
-                mActuatorStateJointAccessor->Get(index, newEnc);
+                m_pot_measured_js_accessor->Get(index, newPot);
+                m_measured_js_accessor->Get(index, newEnc);
                 if (nbElements == 0) {
                     // find reference encoder value
                     encoderRef.Assign(newEnc.Position());
@@ -1166,7 +1169,6 @@ void mtsRobot1394::CheckState(void)
 
             // determine where pots are
             vctDoubleVec actuatorPosition(mNumberOfActuators);
-            // todo: what to do when pots are on joints?
             SetEncoderPosition(potentiometers);
 
             // samples from pots not needed anymore
@@ -1402,8 +1404,7 @@ void mtsRobot1394::BrakeEngage(void)
 void mtsRobot1394::CalibrateEncoderOffsetsFromPots(void)
 {
     vctDoubleVec actuatorPosition(mNumberOfActuators);
-    // todo: use PotCoupling
-    SetEncoderPosition(mPotPosition.Position());
+    SetEncoderPosition(m_pot_measured_js.Position());
     CalibrateEncoderOffsets.Performed = true;
 }
 
@@ -1428,7 +1429,7 @@ const vctIntVec & mtsRobot1394::PotBits(void) const {
 }
 
 const vctDoubleVec & mtsRobot1394::PotPosition(void) const {
-    return mPotPosition.Position();
+    return m_pot_measured_js.Position();
 }
 
 const vctDoubleVec & mtsRobot1394::ActuatorTimestamp(void) const {
@@ -1448,7 +1449,7 @@ const vctDoubleVec & mtsRobot1394::EncoderAcceleration(void) const {
 }
 
 const prmStateJoint & mtsRobot1394::ActuatorJointState(void) const {
-    return mActuatorMeasuredJS;
+    return m_measured_js;
 }
 
 osaRobot1394Configuration mtsRobot1394::GetConfiguration(void) const {
@@ -1484,14 +1485,14 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
     // match.
     mConfigurationJoint.Name().SetSize(mNumberOfActuators);
     mConfigurationJoint.Name().Assign(jointConfig.Name());
-    mMeasuredJS.Name().SetSize(mNumberOfActuators);
-    mMeasuredJS.Name() = jointConfig.Name();
-    // these are a bit abusive as actuator and joints should have different names
-    mActuatorMeasuredJS.Name().SetSize(mNumberOfActuators);
-    mActuatorMeasuredJS.Name() = jointConfig.Name();
-    // same here, pots are not always on joints
-    mPotPosition.Name().SetSize(mNumberOfActuators);
-    mPotPosition.Name() = jointConfig.Name();
+    m_measured_js.Name().SetSize(mNumberOfActuators);
+    m_measured_js.Name() = jointConfig.Name();
+    m_pot_measured_js.Name().SetSize(mNumberOfActuators);
+    m_pot_measured_js.Name() = jointConfig.Name();
+    // these names might be confusing since we name the pots based on
+    // actuator names
+    m_raw_pot_measured_js.Name().SetSize(mNumberOfActuators);
+    m_raw_pot_measured_js.Name() = jointConfig.Name();
 }
 
 void mtsRobot1394::GetActuatorEffortCommandLimits(vctDoubleVec & limits) const

@@ -51,7 +51,6 @@ namespace sawRobotIO1394 {
                                                   osaRobot1394Configuration & robot);
 
     bool CISST_EXPORT osaXML1394ConfigureCouplingMatrix(cmnXMLPath & xmlConfig,
-                                                        const int robotIndex,
                                                         const char * couplingString,
                                                         int numRows,
                                                         int numCols,

@@ -153,9 +153,6 @@ namespace sawRobotIO1394 {
         sprintf(path, "Robot[%d]/@NumOfActuator", robotIndex);
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.NumberOfActuators);
 
-        sprintf(path, "Robot[%d]/@NumOfJoint", robotIndex);
-        good &= osaXML1394GetValue(xmlConfig, context, path, robot.NumberOfJoints);
-
         std::string type;
         sprintf(path, "Robot[%d]/@Type", robotIndex);
         if (xmlConfig.GetXMLValue(context, path, type)) {
@@ -483,7 +480,7 @@ namespace sawRobotIO1394 {
             }
         }
 
-        // Configure Coupling
+        // Configure potentiometer coupling
         if (!osaXML1394ConfigureCoupling(xmlConfig, robotIndex, robot)) {
             return false;
         }
@@ -496,12 +493,12 @@ namespace sawRobotIO1394 {
     {
         char path[64];
         const char * context = "Config";
-        int coupling = 0;
-        sprintf(path, "Robot[%i]/PotCoupling/@Value", robotIndex);
-        xmlConfig.GetXMLValue(context, path, coupling);
-        if (coupling == 1) {
-            if (!osaXML1394ConfigureCouplingMatrix(xmlConfig, robotIndex, "JointToActuatorPosition",
-                                                   robot.NumberOfActuators, robot.NumberOfJoints,
+        int coupling;
+        sprintf(path, "Robot[%i]/Potentiometers/JointToActuatorPosition", robotIndex);
+        xmlConfig.GetXMLValue(context, path, coupling, -1);
+        if (coupling != -1) {
+            if (!osaXML1394ConfigureCouplingMatrix(xmlConfig, path,
+                                                   robot.NumberOfActuators, robot.NumberOfActuators,
                                                    robot.PotCoupling.JointToActuatorPosition())) {
                 return false;
             }
@@ -510,7 +507,6 @@ namespace sawRobotIO1394 {
     }
 
     bool osaXML1394ConfigureCouplingMatrix(cmnXMLPath & xmlConfig,
-                                           const int robotIndex,
                                            const char * couplingString,
                                            int numRows,
                                            int numCols,
@@ -518,12 +514,8 @@ namespace sawRobotIO1394 {
     {
         std::string context = "Config";
 
-        // Construct XPath for matrix
-        std::ostringstream matrixPath;
-        matrixPath << "Robot[" << robotIndex << "]/Coupling/" << couplingString;
-
         // if it doesn't exist, parsing is fine, matrix is set to size 0, 0
-        if (!xmlConfig.Exists(context + '/'+ matrixPath.str())) {
+        if (!xmlConfig.Exists(context + '/'+ couplingString)) {
             resultMatrix.SetSize(0.0, 0.0, 0.0);
             return true;
         }
@@ -532,7 +524,7 @@ namespace sawRobotIO1394 {
         for (int i = 0; i < numRows; i++) {
             // Construct XPath for matrix row
             std::ostringstream rowPath;
-            rowPath << matrixPath.str() << "/Row[" << i + 1 << "]/@Val";
+            rowPath << couplingString << "/Row[" << i + 1 << "]/@Val";
 
             // Get the matrix row text
             std::string rowAsString = "";

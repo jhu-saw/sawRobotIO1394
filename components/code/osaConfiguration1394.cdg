@@ -269,12 +269,6 @@ class {
         visibility public;
     }
     member {
-        name NumberOfJoints;
-        type int;
-        default 0;
-        visibility public;
-    }
-    member {
         name SerialNumber;
         type int;
         visibility public;
@@ -298,13 +292,13 @@ class {
         visibility public;
     }
     member {
-        name PotTolerances;
-        type std::vector<osaPotTolerance1394Configuration>;
+        name Actuators;
+        type std::vector<osaActuator1394Configuration>;
         visibility public;
     }
     member {
-        name Actuators;
-        type std::vector<osaActuator1394Configuration>;
+        name PotTolerances;
+        type std::vector<osaPotTolerance1394Configuration>;
         visibility public;
     }
     member {
