@@ -73,10 +73,10 @@ int main(int argc, char ** argv)
     options.AddOptionNoValue("C", "calibration-mode",
                              "run in calibration mode, doesn't require lookup table for pots/encoder on Si arms",
                              cmnCommandLineOptions::OPTIONAL_OPTION);
-    options.AddOptionOneValue("p", "ros-period",
+    options.AddOptionOneValue("P", "ros-period",
                               "period in seconds to read all tool positions (default 0.002, 2 ms, 500Hz).  There is no point to have a period higher than the device",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &rosPeriod);
-    options.AddOptionOneValue("P", "tf-ros-period",
+    options.AddOptionOneValue("T", "tf-ros-period",
                               "period in seconds to read all components and broadcast tf2 (default 0.02, 20 ms, 50Hz).  There is no point to have a period higher than the arm component's period",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &tfPeriod);
     options.AddOptionMultipleValues("m", "component-manager",
