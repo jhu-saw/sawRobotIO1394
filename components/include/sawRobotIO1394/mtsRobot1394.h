@@ -334,8 +334,8 @@ namespace sawRobotIO1394 {
 
         vctIntVec
             mPotBits,
-            mEncoderPositionBits;
-            // mEncoderPositionBitsPrev,
+            mEncoderPositionBits,
+            mPreviousEncoderPositionBits;
             // mEncoderDPositionBits;
 
         vctIntVec
@@ -348,9 +348,11 @@ namespace sawRobotIO1394 {
             mActuatorTimestamp,
             mBrakeTimestamp,
             mPotVoltage,
+            mActuatorTimestampChange, // software velocity: cumulated time since last encoder changed
+            mVelocitySlopeToZero,     // software velocity: slope used to reduced velocity to zero when no encoder count change
             mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
-            mEncoderAccelerationCountsPerSecSec, // acceleration based on FPGA measurement (firmware rev 6)
-            mEncoderAcceleration,                // acceleration in SI units (firmware rev 6)
+            mEncoderAccelerationCountsPerSecSec,   // acceleration based on FPGA measurement (firmware rev 6)
+            mEncoderAcceleration,                  // acceleration in SI units (firmware rev 6)
             mActuatorEncoderAcceleration,
             mActuatorCurrentCommand,
             mBrakeCurrentCommand,
@@ -385,7 +387,7 @@ namespace sawRobotIO1394 {
         double mPoweringStartTime;
 
         prmForceTorqueJointSet mTorqueJoint;
-        prmStateJoint m_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
+        prmStateJoint m_measured_js, m_software_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
 
         // Functions for events
         struct {

@@ -104,6 +104,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(m_measured_js, "measured_js");
     mStateTableRead->AddData(mEncoderAcceleration, "measured_ja");
     mStateTableRead->AddData(mActuatorEncoderAcceleration, "actuator_measured_ja");
+    mStateTableRead->AddData(m_software_measured_js, "software_measured_js");
 
     mStateTableWrite->AddData(mActuatorCurrentBitsCommand, "ActuatorControlCurrentRaw");
     mStateTableWrite->AddData(mActuatorCurrentCommand, "ActuatorControlCurrent");
@@ -268,7 +269,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
     robotInterface->AddCommandReadState(*mStateTableRead, m_measured_js,
                                         "measured_js");
-
+    robotInterface->AddCommandReadState(*mStateTableRead, m_software_measured_js,
+                                        "software/measured_js");
     robotInterface->AddCommandReadState(*mStateTableRead, mPotBits,
                                         "GetAnalogInputRaw");
     robotInterface->AddCommandReadState(*mStateTableRead, mPotVoltage,
@@ -410,6 +412,15 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mEncoderAccelerationCountsPerSecSec.SetSize(mNumberOfActuators);
     mActuatorEncoderAcceleration.SetSize(mNumberOfActuators);
     mEncoderAcceleration.SetSize(mNumberOfActuators);
+
+    // software velocity variables
+    m_software_measured_js.Velocity().SetSize(mNumberOfActuators);
+    mPreviousEncoderPositionBits.SetSize(mNumberOfActuators);
+    mActuatorTimestampChange.SetSize(mNumberOfActuators);
+    mActuatorTimestampChange.SetAll(0.0);
+    mVelocitySlopeToZero.SetSize(mNumberOfActuators);
+    mVelocitySlopeToZero.SetAll(0.0);
+
     mActuatorCurrentCommand.SetSize(mNumberOfActuators);
     mActuatorEffortCommand.SetSize(mNumberOfActuators);
     mActuatorCurrentFeedback.SetSize(mNumberOfActuators);
@@ -425,6 +436,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     for (size_t index = 0; index < mNumberOfActuators; ++index) {
         m_measured_js.Name().at(index) = "actuator_" + std::to_string(index);
     }
+    m_software_measured_js.Name().ForceAssign(m_measured_js.Name());
     m_pot_measured_js.Name().ForceAssign(m_measured_js.Name());
     // these names might be confusing since we name the pots based on
     // actuator names
@@ -787,6 +799,67 @@ void mtsRobot1394::ConvertState(void)
 
     BrakeBitsToCurrent(mBrakeCurrentBitsFeedback, mBrakeCurrentFeedback);
 
+    // Software based velocity estimation
+    const double timeToZeroVelocity = 1.0 * cmn_s;
+    const vctIntVec::const_iterator end = mEncoderPositionBits.end();
+    vctIntVec::const_iterator currentEncoder, previousEncoder;
+    vctDoubleVec::const_iterator currentTimestamp, bitsToPos;
+    vctDoubleVec::const_iterator encoderVelocity;
+    vctDoubleVec::iterator lastChangeTimestamp, slope, velocity;
+    size_t index = 0;
+    for (currentEncoder = mEncoderPositionBits.begin(),
+             previousEncoder = mPreviousEncoderPositionBits.begin(),
+             currentTimestamp = mActuatorTimestamp.begin(),
+             bitsToPos = mBitsToPositionScales.begin(),
+             lastChangeTimestamp = mActuatorTimestampChange.begin(),
+             slope = mVelocitySlopeToZero.begin(),
+             velocity = m_software_measured_js.Velocity().begin();
+         // end
+         currentEncoder != end;
+         // increment
+         ++currentEncoder,
+             ++previousEncoder,
+             ++currentTimestamp,
+             ++bitsToPos,
+             ++lastChangeTimestamp,
+             ++slope,
+             ++velocity,
+             ++index) {
+        // first see if there has been any change
+        const int difference = (*currentEncoder) - (*previousEncoder);
+        if (difference == 0) {
+            if (*lastChangeTimestamp < timeToZeroVelocity) {
+                *velocity -= (*slope) * (*currentTimestamp);
+            } else {
+                *velocity = 0.0;
+            }
+            *lastChangeTimestamp += (*currentTimestamp);
+        } else {
+            *lastChangeTimestamp += (*currentTimestamp);
+            // if we only have one bit change compute velocity since last change
+            if ((difference == 1) || (difference == -1)) {
+                *velocity = (difference / (*lastChangeTimestamp))
+                    * (*bitsToPos);
+            } else {
+                if (difference > 1) {
+                    // we know all but 1 bit difference happened in last Dt, other bit change happened between now and last change
+                    *velocity = ((difference - 1.0) / (*currentTimestamp) + 1.0 / (*lastChangeTimestamp))
+                        * (*bitsToPos);
+                } else {
+                    *velocity = ((difference + 1.0) / (*currentTimestamp) - 1.0 / (*lastChangeTimestamp))
+                        * (*bitsToPos);
+                }
+            }
+            // keep record of this change
+            *lastChangeTimestamp = 0.0;
+            *slope = (*velocity) / (timeToZeroVelocity);
+        }
+    }
+    // Finally save previous encoder bits position and populate position/effort
+    mPreviousEncoderPositionBits.Assign(mEncoderPositionBits);
+    m_software_measured_js.Position().ForceAssign(m_measured_js.Position());
+    m_software_measured_js.Effort().ForceAssign(m_measured_js.Effort());
+
     // Pots
     if (mPotType == 1) {
         PotBitsToVoltage(mPotBits, mPotVoltage);
@@ -819,6 +892,7 @@ void mtsRobot1394::CheckState(void)
 {
     // set data as invalid by default
     m_measured_js.SetValid(false);
+    m_software_measured_js.SetValid(false);
     m_raw_pot_measured_js.SetValid(false);
     m_pot_measured_js.SetValid(false);
 
@@ -1096,6 +1170,7 @@ void mtsRobot1394::CheckState(void)
     }
 
     m_measured_js.SetValid(true);
+    m_software_measured_js.SetValid(true);
     m_raw_pot_measured_js.SetValid(true);
     m_pot_measured_js.SetValid(true);
 
@@ -1288,6 +1363,10 @@ void mtsRobot1394::SetEncoderPositionBits(const vctIntVec & bits)
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->WriteEncoderPreload(mActuatorInfo[i].Axis, bits[i]);
     }
+    // initialize software based velocity variables
+    mPreviousEncoderPositionBits.Assign(bits);
+    mActuatorTimestampChange.SetAll(0.0);
+    mVelocitySlopeToZero.SetAll(0.0);
 }
 
 void mtsRobot1394::SetSingleEncoderPosition(const int index, const double pos)
@@ -1298,6 +1377,10 @@ void mtsRobot1394::SetSingleEncoderPosition(const int index, const double pos)
 void mtsRobot1394::SetSingleEncoderPositionBits(const int index, const int bits)
 {
     mActuatorInfo[index].Board->WriteEncoderPreload(mActuatorInfo[index].Axis, bits);
+    // initialize software based velocity variables
+    mPreviousEncoderPositionBits.Element(index) = bits;
+    mActuatorTimestampChange.Element(index) = 0.0;
+    mVelocitySlopeToZero.Element(index) = 0.0;
 }
 
 void mtsRobot1394::ClipActuatorEffort(vctDoubleVec & efforts)
@@ -1483,14 +1566,13 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
     // match.
     mConfigurationJoint.Name().SetSize(mNumberOfActuators);
     mConfigurationJoint.Name().Assign(jointConfig.Name());
-    m_measured_js.Name().SetSize(mNumberOfActuators);
-    m_measured_js.Name() = jointConfig.Name();
-    m_pot_measured_js.Name().SetSize(mNumberOfActuators);
-    m_pot_measured_js.Name() = jointConfig.Name();
+    // now that we know sizes match, just use ForceAssign
+    m_measured_js.Name().ForceAssign(jointConfig.Name());
+    m_software_measured_js.Name().ForceAssign(jointConfig.Name());
+    m_pot_measured_js.Name().ForceAssign(jointConfig.Name());
     // these names might be confusing since we name the pots based on
     // actuator names
-    m_raw_pot_measured_js.Name().SetSize(mNumberOfActuators);
-    m_raw_pot_measured_js.Name() = jointConfig.Name();
+    m_raw_pot_measured_js.Name().ForceAssign(jointConfig.Name());
 }
 
 void mtsRobot1394::GetActuatorEffortCommandLimits(vctDoubleVec & limits) const
