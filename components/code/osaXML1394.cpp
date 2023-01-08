@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -570,7 +570,7 @@ namespace sawRobotIO1394 {
         int pressed_value = 0;
         sprintf(path, "DigitalIn[%i]/@Pressed", inputIndex);
         xmlConfig.GetXMLValue(context, path, pressed_value);
-        digitalInput.PressedValue = bool(pressed_value);
+        digitalInput.PressedValue = static_cast<bool>(pressed_value);
 
         std::string trigger_modes;
         sprintf(path, "DigitalIn[%i]/@Trigger", inputIndex);

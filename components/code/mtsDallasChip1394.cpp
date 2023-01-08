@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2019-05-23
 
-  (C) Copyright 2019-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2019-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -24,12 +24,6 @@ http://www.cisst.org/cisst/license.txt.
 
 #include "BasePort.h"
 #include "AmpIO.h"
-
-#define DALLAS_START_READ     0x80
-#define DALLAS_MODEL_OFFSET   0xa4
-#define DALLAS_VERSION_OFFSET 0xa8
-#define DALLAS_NAME_OFFSET    0x160
-#define DALLAS_NAME_END       0x17c
 
 using namespace sawRobotIO1394;
 
