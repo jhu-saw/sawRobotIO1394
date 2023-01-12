@@ -627,7 +627,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     for (auto board = mUniqueBoards.begin();
          board != mUniqueBoards.end();
          ++board, ++boardCounter) {
-        AmpIO_UInt32 fversion = board->second->GetFirmwareVersion();
+        uint32_t fversion = board->second->GetFirmwareVersion();
         if (fversion == 0) {
             CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
                                      << ", unable to get firmware version for board: " << boardCounter
@@ -954,7 +954,7 @@ void mtsRobot1394::CheckState(void)
     // check safety amp disable
     bool newSafetyAmpDisabled = false;
     for (auto & board : mUniqueBoards) {
-        AmpIO_UInt32 safetyAmpDisable = board.second->GetSafetyAmpDisable();
+        uint32_t safetyAmpDisable = board.second->GetSafetyAmpDisable();
         if (safetyAmpDisable) {
             newSafetyAmpDisabled = true;
         }

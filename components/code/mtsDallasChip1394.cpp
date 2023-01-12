@@ -120,8 +120,8 @@ void mtsDallasChip1394::TriggerToolTypeEvent(const unsigned int & model,
 
 void mtsDallasChip1394::TriggerRead(void)
 {
-    AmpIO_UInt32 model;
-    AmpIO_UInt8 version;
+    uint32_t model;
+    uint8_t version;
     std::string name;
     AmpIO::DallasStatus status
         = mBoard->DallasReadTool(model, version, name);

@@ -30,8 +30,8 @@ namespace sawRobotIO1394 {
         mtsDigitalInput1394Data():
             DigitalInputBits(0x0)
         {};
-        AmpIO_UInt32 BitMask;       // BitMask for this input. From DigitalInput Stream.
-        AmpIO_UInt32 DigitalInputBits; // BitMask for this input. From DigitalInput Stream.
+        uint32_t BitMask;       // BitMask for this input. From DigitalInput Stream.
+        uint32_t DigitalInputBits; // BitMask for this input. From DigitalInput Stream.
     };
 }
 
