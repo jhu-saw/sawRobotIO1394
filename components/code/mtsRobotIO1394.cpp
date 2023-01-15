@@ -350,18 +350,8 @@ bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
     robotInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
                                         "period_statistics");
 
-    // Create actuator interface
-    std::string actuatorInterfaceName = robot->Name();
-    actuatorInterfaceName.append("Actuators");
-    mtsInterfaceProvided * actuatorInterface = this->AddInterfaceProvided(actuatorInterfaceName);
-    if (!actuatorInterface) {
-        CMN_LOG_CLASS_INIT_ERROR << "SetupRobot: failed to create robot actuator interface \""
-                                 << actuatorInterfaceName << "\", do we have multiple robots with the same name?" << std::endl;
-        return false;
-    }
-
     // Setup the MTS interfaces
-    robot->SetupInterfaces(robotInterface, actuatorInterface);
+    robot->SetupInterfaces(robotInterface);
 
     return true;
 }
@@ -771,8 +761,8 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
         }
     }
 
-    const AmpIO_UInt32 currentFirmwareRevision = 8;
-    const AmpIO_UInt32 lowestFirmwareSupported = 6;
+    const uint32_t currentFirmwareRevision = 8;
+    const uint32_t lowestFirmwareSupported = 6;
 
     std::stringstream message;
     bool fatal = false;

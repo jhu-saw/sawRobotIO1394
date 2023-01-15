@@ -57,22 +57,6 @@ namespace sawRobotIO1394 {
 } // inline-header
 
 class {
-    name osaPot1394Location;
-    enum {
-        name Type;
-        enum-value {
-            name POTENTIOMETER_UNDEFINED;
-        }
-        enum-value {
-            name POTENTIOMETER_ON_ACTUATORS;
-        }
-        enum-value {
-            name POTENTIOMETER_ON_JOINTS;
-        }
-    }
-}
-
-class {
     name osaLinearFunction;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
@@ -285,12 +269,6 @@ class {
         visibility public;
     }
     member {
-        name NumberOfJoints;
-        type int;
-        default 0;
-        visibility public;
-    }
-    member {
         name SerialNumber;
         type int;
         visibility public;
@@ -308,26 +286,9 @@ class {
         visibility public;
     }
     member {
-        name HasActuatorToJointCoupling;
-        type bool;
-        default false;
-        visibility public;
-    }
-    member {
         name HasEncoderPreload;
         type bool;
         default false;
-        visibility public;
-    }
-    member {
-        name PotLocation;
-        type osaPot1394Location::Type;
-        default osaPot1394Location::POTENTIOMETER_UNDEFINED;
-        visibility public;
-    }
-    member {
-        name PotTolerances;
-        type std::vector<osaPotTolerance1394Configuration>;
         visibility public;
     }
     member {
@@ -336,9 +297,15 @@ class {
         visibility public;
     }
     member {
-        name Coupling;
+        name PotTolerances;
+        type std::vector<osaPotTolerance1394Configuration>;
+        visibility public;
+    }
+    member {
+        name PotCoupling;
         type prmActuatorJointCoupling;
         visibility public;
+        description Matrix to convert potentiometer to actuators.  E.g. on dVRK MTMsm the potentiometers are mounted on the joints;
     }
 }
 

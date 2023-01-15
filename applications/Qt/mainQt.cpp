@@ -66,10 +66,7 @@ int main(int argc, char ** argv)
                              "run in calibration mode, doesn't require lookup table for pots/encoder on Si arms",
                              cmnCommandLineOptions::OPTIONAL_OPTION);
 
-    std::string errorMessage;
-    if (!options.Parse(argc, argv, errorMessage)) {
-        std::cerr << "Error: " << errorMessage << std::endl;
-        options.PrintUsage(std::cerr);
+    if (!options.Parse(argc, argv, std::cerr)) {
         return -1;
     }
 

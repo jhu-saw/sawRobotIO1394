@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2021 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2022 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -20,7 +20,6 @@ set (REQUIRED_CISST_LIBRARIES
      cisstCommon
      cisstCommonXML
      cisstVector
-     cisstNumerical
      cisstOSAbstraction
      cisstMultiTask
      cisstParameterTypes)

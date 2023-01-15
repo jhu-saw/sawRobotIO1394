@@ -76,13 +76,6 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
         return;
     }
 
-    std::string suffix = " IO";
-    std::string actuatorInterfaceSuffix = "Actuators";
-    std::string newComponentName;
-    std::string newInterfaceActuatorName;
-
-    std::string tmpRobotName;
-
     // robots, one component per robot with 2 interfaces to be connected
     Configuration.GetName(NameOfRobotIO1394);
     Configuration.GetNumberOfRobots(NumberOfRobots);
@@ -101,20 +94,13 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
     Configuration.GetNumbersOfBrakes(NumberOfBrakesPerRobot);
 
     for (size_t i = 0; i < NumberOfRobots; ++i) {
-        tmpRobotName = RobotNames[i];
-        newComponentName = tmpRobotName.append(suffix);
-        tmpRobotName = RobotNames[i];
-        newInterfaceActuatorName = tmpRobotName.append(actuatorInterfaceSuffix);
-        tmpRobotName = RobotNames[i];
-
+        std::string newComponentName = RobotNames[i] + " IO";
         mtsRobot1394QtWidget * robotWidget =
                 new mtsRobot1394QtWidget(newComponentName, NumberOfActuatorsPerRobot[i], NumberOfBrakesPerRobot[i]);
         mWidgets.push_back(robotWidget);
         robotWidget->Configure();
         componentManager->AddComponent(robotWidget);
-        componentManager->Connect(newComponentName, "Robot", NameOfRobotIO1394, tmpRobotName);
-        componentManager->Connect(newComponentName, "RobotActuators", NameOfRobotIO1394, newInterfaceActuatorName);
-
+        componentManager->Connect(newComponentName, "Robot", NameOfRobotIO1394, RobotNames[i]);
         robotWidget->Create();
     }
 
