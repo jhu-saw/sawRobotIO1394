@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<Config Version="4">
+<Config Version="5">
 
   <!-- Definition of da Vinci left PSM -->
   <!-- This one is MODIFIED!!! -->
@@ -16,9 +16,6 @@
         </Drive>
         <Encoder>
             <BitsToPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaT Scale="1" Offset="0"/>
-            <CountsPerTurn Value="-4000.00"/>
         </Encoder>
         <AnalogIn>
             <BitsToVolts Scale="0.0000686656" Offset="0"/>
@@ -35,9 +32,6 @@
         </Drive>
         <Encoder>
             <BitsToPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaT Scale="1" Offset="0"/>
-            <CountsPerTurn Value="-4000.00"/>
         </Encoder>
         <AnalogIn>
             <BitsToVolts Scale="0.0000686656" Offset="0"/>
@@ -54,9 +48,6 @@
         </Drive>
         <Encoder>
             <BitsToPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaT Scale="1" Offset="0"/>
-            <CountsPerTurn Value="-4000.00"/>
         </Encoder>
         <AnalogIn>
             <BitsToVolts Scale="0.0000686656" Offset="0"/>
@@ -72,9 +63,6 @@
         </Drive>
         <Encoder>
             <BitsToPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaPosSI Scale="-3000.00" Offset="0"/>
-            <BitsToDeltaT Scale="1" Offset="0"/>
-            <CountsPerTurn Value="-4000.00"/>
         </Encoder>
         <AnalogIn>
             <BitsToVolts Scale="0.0000686656" Offset="0"/>
@@ -82,16 +70,14 @@
         </AnalogIn>
     </Actuator>
 
-    <Potentiometers Position="Actuators"/>
-
-    <Coupling Value="1">
-        <ActuatorToJointPosition>
+    <Potentiometers>
+        <JointToActuatorPosition>>
             <Row Val="0 1 0 0"/>
             <Row Val="1 0 0 0"/>
             <Row Val="0 0 1 1"/>
             <Row Val="0 0 0 1"/>
-        </ActuatorToJointPosition>
-    </Coupling>
+        </JointToActuatorPosition>>
+    </Potentiometers>>
 
   </Robot>
 
