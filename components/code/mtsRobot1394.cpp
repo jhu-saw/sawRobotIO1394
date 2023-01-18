@@ -27,6 +27,7 @@ http://www.cisst.org/cisst/license.txt.
 #endif
 
 #include <AmpIO.h>
+#include <BasePort.h>
 
 #include <sawRobotIO1394/mtsRobot1394.h>
 
@@ -635,7 +636,14 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                                      << ".  Make sure the controller is powered and connected" << std::endl;
             exit(EXIT_FAILURE);
         }
-        std::string serialQLA = board->second->GetQLASerialNumber();
+        std::string serialQLA;
+        if (board->second->GetHardwareVersion() == DQLA_String) {
+            serialQLA = board->second->GetQLASerialNumber(1) +
+                ", " +  board->second->GetQLASerialNumber(2);
+        }
+        else {
+            serialQLA = board->second->GetQLASerialNumber();
+        }
         if (serialQLA.empty()) {
             serialQLA = "unknown";
         }
