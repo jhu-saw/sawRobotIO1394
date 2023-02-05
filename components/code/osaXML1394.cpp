@@ -30,6 +30,12 @@ namespace sawRobotIO1394 {
         cmnXMLPath xmlConfig;
         xmlConfig.SetInputSource(filename);
 
+        // save the path to the config file so we can load other files
+        // in same directory
+        cmnPath configPath(cmnPath::GetWorkingDirectory());
+        std::string configDir = filename.substr(0, filename.find_last_of('/'));
+        configPath.Add(configDir, cmnPath::HEAD);
+
         // get an check version number
         int version;
         bool versionFound = osaXML1394GetValue(xmlConfig, "Config", "@Version", version);
@@ -66,7 +72,7 @@ namespace sawRobotIO1394 {
             osaRobot1394Configuration robot;
 
             // Store the robot in the config if it's succesfully parsed
-            if (osaXML1394ConfigureRobot(xmlConfig, i + 1, robot, calibrationMode)) {
+            if (osaXML1394ConfigureRobot(xmlConfig, i + 1, robot, configPath, calibrationMode)) {
                 config.Robots.push_back(robot);
             } else {
                 CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure robot from file \""
@@ -137,6 +143,7 @@ namespace sawRobotIO1394 {
     bool osaXML1394ConfigureRobot(cmnXMLPath & xmlConfig,
                                   const int robotIndex,
                                   osaRobot1394Configuration & robot,
+                                  const cmnPath & configPath,
                                   const bool & calibrationMode)
     {
         bool good = true;
@@ -385,10 +392,11 @@ namespace sawRobotIO1394 {
             sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
             if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
                 // load the file
-                if (!cmnPath::Exists(potentiometerLookupTable)) {
+                std::string filename = configPath.Find(potentiometerLookupTable);
+                if (filename == "") {
                     CMN_LOG_INIT_ERROR << "Unable to find the potentiometer lookup table file \""
                                        << potentiometerLookupTable << "\" for "
-                                       << robot.Name << std::endl;
+                                       << robot.Name << " in path " << configPath << std::endl;
                     return false;
                 }
                 try {
@@ -396,10 +404,10 @@ namespace sawRobotIO1394 {
                     Json::Value jsonValue;
                     Json::Reader jsonReader;
 
-                    jsonStream.open(potentiometerLookupTable.c_str());
+                    jsonStream.open(filename.c_str());
                     if (!jsonReader.parse(jsonStream, jsonValue)) {
                         CMN_LOG_INIT_ERROR << "Error found while parsing \""
-                                           << potentiometerLookupTable << "\":"
+                                           << filename << "\":"
                                            << jsonReader.getFormattedErrorMessages();
                         return false;
                     }
