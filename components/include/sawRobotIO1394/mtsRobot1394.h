@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -247,6 +247,16 @@ namespace sawRobotIO1394 {
         void PotVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const;
         /**}**/
 
+        /*! Utility functions to define an missing potentiometer value
+          for Si arms.  The "missing" value is an arbitraly high
+          value, not likely to be ever reported as an absolute SI
+          position.  It's the value used in the pot to position lookup
+          table for unreachable pot indices. */
+        //@{
+        static double GetMissingPotValue(void);
+        static bool IsMissingPotValue(const double & potValue);
+        //@}
+        
     protected:
         void ClipActuatorEffort(vctDoubleVec & efforts);
         void ClipActuatorCurrent(vctDoubleVec & currents);
@@ -369,6 +379,8 @@ namespace sawRobotIO1394 {
             mBrakeReleasedCurrent,
             mBrakeEngagedCurrent;
 
+        double mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
+        
         vctDynamicVector<vctDoubleVec> mPotLookupTable;
 
         size_t
@@ -380,7 +392,7 @@ namespace sawRobotIO1394 {
 
         double
             mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
-
+        
         mtsStateTable * mStateTableRead;
         mtsStateTable * mStateTableWrite;
         bool mUserExpectsPower;

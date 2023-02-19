@@ -1079,6 +1079,35 @@ void mtsRobot1394::CheckState(void)
         mBrakeReleasing = !allReleased;
     }
 
+    
+    // For dRAC based arms, make sure the pots value are meaningfull
+    if (mConfiguration.ControllerType == "dRA1") {
+        bool foundMissingPot = false;
+        for (const auto & potValue : m_pot_measured_js.Position()) {
+            if (mtsRobot1394::IsMissingPotValue(potValue)) {
+                foundMissingPot = true;
+            }
+        }
+        if (foundMissingPot) {
+            this->PowerOffSequence();
+            // send error message without flooding the UI
+            if (mTimeLastPotentiometerMissingError >= sawRobotIO1394::TimeBetweenPotentiometerMissingErrors) {
+                mInterface->SendError("IO: " + this->Name() + " detected an unknow pot position, make sure you're using the correct lookup configuration file or recalibrate your potentiometers");
+                mTimeLastPotentiometerMissingError = 0.0;
+            }
+            double time = 0.0;
+            if (!mActuatorTimestamp.empty()) {
+                time = *(mActuatorTimestamp.begin());
+            } else if (!mBrakeTimestamp.empty()) {
+                time = *(mBrakeTimestamp.begin());
+            }
+            mTimeLastPotentiometerMissingError += time;
+        } else {
+            // reset time so next time we hit a warning it displays immediately
+            mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
+        }
+    }
+    
     // Check if encoders and potentiometers agree
     if (mUsePotsForSafetyCheck) {
         vctDynamicVectorRef<double> encoderRef;
@@ -1719,4 +1748,17 @@ void mtsRobot1394::PotVoltageToPosition(const vctDoubleVec & voltages, vctDouble
 {
     pos.ElementwiseProductOf(voltages, mSensorToPositionScales);
     pos.SumOf(pos, mSensorToPositionOffsets);
+}
+
+
+double mtsRobot1394::GetMissingPotValue(void)
+{
+    return 31.4159; // 31 meters or 5 full rotations
+}
+
+
+bool mtsRobot1394::IsMissingPotValue(const double & potValue)
+{
+    // add a fat margin for floating point precision
+    return (potValue > (mtsRobot1394::GetMissingPotValue() - 0.4159));
 }
