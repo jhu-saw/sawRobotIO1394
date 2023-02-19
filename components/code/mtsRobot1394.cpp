@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -366,7 +366,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
 bool mtsRobot1394::CheckConfiguration(void)
 {
-    if ((NumberOfActuators() > 2)
+    if ((mConfiguration.ControllerType != "dRA1")
+        && (NumberOfActuators() > 2)
         && mActuatorCurrentToBitsOffsets.Equal(mActuatorCurrentToBitsOffsets[0])) {
         CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: all currents to bits offsets are equal, please calibrate the current offsets for arm: "
                                  << this->Name() << std::endl;

@@ -156,6 +156,16 @@ namespace sawRobotIO1394 {
         sprintf(path, "Robot[%d]/@Name", robotIndex);
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.Name);
 
+        sprintf(path, "Robot[%d]/@ControllerType", robotIndex);
+        good &= osaXML1394GetValue(xmlConfig, context, path, robot.ControllerType);
+        if ((robot.ControllerType != "QLA1")
+            && (robot.ControllerType != "DQLA")
+            && (robot.ControllerType != "dRA1")) {
+            CMN_LOG_INIT_ERROR << "osaXML1394ConfigureRobot: ControllerType must be \"QLA1\", \"DQLA\" or \"dRA1\" not "
+                               << robot.ControllerType << std::endl;
+            good = false;
+        }
+
         sprintf(path, "Robot[%d]/@NumOfActuator", robotIndex);
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.NumberOfActuators);
 
@@ -367,8 +377,9 @@ namespace sawRobotIO1394 {
             robot.Actuators.push_back(actuator);
         }
 
-        // verify that all amps offsets are different from each other
-        if (robot.Actuators.size() > 2) {
+        // verify that all amps offsets are different from each other - except for dRA1!
+        if ((robot.ControllerType != "dRA1")
+            && (robot.Actuators.size() > 2)) {
             bool allEqual = true;
             const double defaultOffset = robot.Actuators[0].Drive.CurrentToBits.Offset;
             for (size_t index = 1;
