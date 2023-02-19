@@ -366,7 +366,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
 bool mtsRobot1394::CheckConfiguration(void)
 {
-    if ((mConfiguration.ControllerType != "dRA1")
+    if ((mControllerType != sawRobotIO1394::CONTROLLER_dRA1)
         && (NumberOfActuators() > 2)
         && mActuatorCurrentToBitsOffsets.Equal(mActuatorCurrentToBitsOffsets[0])) {
         CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: all currents to bits offsets are equal, please calibrate the current offsets for arm: "
@@ -386,6 +386,18 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mNumberOfActuators = config.NumberOfActuators;
     mSerialNumber = config.SerialNumber;
     mHasEncoderPreload = config.HasEncoderPreload;
+    if (mConfiguration.ControllerType == "QLA1") {
+        mControllerType = sawRobotIO1394::CONTROLLER_QLA1;
+    } else if (mConfiguration.ControllerType == "DQLA") {
+        mControllerType = sawRobotIO1394::CONTROLLER_DQLA;
+    } else if (mConfiguration.ControllerType == "dRA1") {
+        mControllerType = sawRobotIO1394::CONTROLLER_dRA1;
+    } else {
+        CMN_LOG_INIT_ERROR << "osaRobot1394::Configure: " << this->mName
+                           << ", unknowm controller type: "
+                           << mConfiguration.ControllerType << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     // Low-level API
     mActuatorInfo.resize(mNumberOfActuators);
@@ -1079,9 +1091,9 @@ void mtsRobot1394::CheckState(void)
         mBrakeReleasing = !allReleased;
     }
 
-    
+
     // For dRAC based arms, make sure the pots value are meaningfull
-    if (mConfiguration.ControllerType == "dRA1") {
+    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1) {
         bool foundMissingPot = false;
         for (const auto & potValue : m_pot_measured_js.Position()) {
             if (mtsRobot1394::IsMissingPotValue(potValue)) {
@@ -1107,7 +1119,7 @@ void mtsRobot1394::CheckState(void)
             mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
         }
     }
-    
+
     // Check if encoders and potentiometers agree
     if (mUsePotsForSafetyCheck) {
         vctDynamicVectorRef<double> encoderRef;
