@@ -402,6 +402,24 @@ namespace sawRobotIO1394 {
             vctDoubleMat lookupTable;
             sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
             if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
+                // make sure the filename has the serial number in it
+                // to prevent mismatch
+                if (robot.SerialNumber == 0) {
+                    CMN_LOG_INIT_ERROR << "The robot serial number must be defined to use a potentiometer lookup table for "
+                                       << robot.Name << std::endl;
+                    return false;
+                }
+                const std::string::size_type serialNumberFound
+                    = potentiometerLookupTable.find(std::to_string(robot.SerialNumber));
+                if (serialNumberFound == std::string::npos) {
+                    CMN_LOG_INIT_ERROR << "The potentiometer lookup table file name \""
+                                       << potentiometerLookupTable << "\" for "
+                                       << robot.Name << " doesn't contain the serial number ("
+                                       << robot.SerialNumber << ").  You're likely using the wrong lookup file"
+                                       << std::endl;
+                    return false;
+
+                }
                 // load the file
                 std::string filename = configPath.Find(potentiometerLookupTable);
                 if (filename == "") {
@@ -440,6 +458,10 @@ namespace sawRobotIO1394 {
                         robot.Actuators.at(index).Pot.Type = 2;
                         robot.Actuators.at(index).Pot.LookupTable = lookupTable.Row(index);
                     }
+                    // for logs
+                    CMN_LOG_INIT_VERBOSE << "Loaded potentiometer lookup table from file \""
+                                         << filename << "\" for arm " << robot.Name
+                                         << " (" << robot.SerialNumber << ")" << std::endl;
                 } catch (...) {
                     CMN_LOG_INIT_ERROR << "Error found while parsing \""
                                        << potentiometerLookupTable << "\", make sure the file is in JSON format."
