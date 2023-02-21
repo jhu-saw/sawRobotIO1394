@@ -62,7 +62,7 @@ namespace sawRobotIO1394 {
                               mtsStateTable * & stateTableRead,
                               mtsStateTable * & stateTableWrite);
         void SetupInterfaces(mtsInterfaceProvided * robotInterface);
-
+        void Startup(void);
         void StartReadStateTable(void);
         void AdvanceReadStateTable(void);
         void StartWriteStateTable(void);

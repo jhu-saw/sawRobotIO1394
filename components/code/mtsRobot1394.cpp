@@ -133,79 +133,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     return true;
 }
 
-void mtsRobot1394::StartReadStateTable(void) {
-    mStateTableRead->Start();
-}
-
-void mtsRobot1394::AdvanceReadStateTable(void) {
-    mStateTableRead->Advance();
-}
-
-void mtsRobot1394::StartWriteStateTable(void) {
-    mStateTableWrite->Start();
-}
-
-void mtsRobot1394::AdvanceWriteStateTable(void) {
-    mStateTableWrite->Advance();
-}
-
-void mtsRobot1394::GetNumberOfActuators(size_t & numberOfActuators) const {
-    numberOfActuators = this->NumberOfActuators();
-}
-
-void mtsRobot1394::GetSerialNumber(int & serialNumber) const {
-    serialNumber = this->SerialNumber();
-}
-
-void mtsRobot1394::UsePotsForSafetyCheck(const bool & usePotsForSafetyCheck)
-{
-    mUsePotsForSafetyCheck = usePotsForSafetyCheck;
-    mPotErrorDuration.SetAll(0.0);
-    mPotValid.SetAll(true);
-    // trigger mts event
-    EventTriggers.UsePotsForSafetyCheck(usePotsForSafetyCheck);
-}
-
-void mtsRobot1394::servo_jf(const prmForceTorqueJointSet & efforts) {
-    this->SetActuatorEffort(efforts.ForceTorque());
-}
-
-void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
-    for (size_t index = 0; index < values.Mask().size(); ++index) {
-        if (values.Mask().at(index)) {
-            this->SetSingleEncoderPosition(index, values.Data().at(index));
-        }
-    }
-}
-
-void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
-{
-    // if the number of samples is negative, user wants to first check
-    // if the encoders are not already preloaded
-    if (numberOfSamples < 0) {
-        // get encoder preload values re. midrange
-        bool anyAtMidRange = false;
-        for (size_t i = 0; i < mNumberOfActuators; i++) {
-            bool thisAxis;
-            mActuatorInfo[i].Board->IsEncoderPreloadMidrange(mActuatorInfo[i].Axis, thisAxis);
-            if (thisAxis) {
-                anyAtMidRange = true;
-            }
-        }
-        // if none at midrange, assume encoder bias on pots is already done
-        if (!anyAtMidRange) {
-            CalibrateEncoderOffsets.SamplesFromPots = 0;
-            CalibrateEncoderOffsets.Performed = true;
-            EventTriggers.BiasEncoder(-1);
-            return;
-        }
-    }
-    CalibrateEncoderOffsets.SamplesFromPots = std::abs(numberOfSamples) + 1;
-    CalibrateEncoderOffsets.SamplesFromPotsRequested = std::abs(numberOfSamples);
-}
-
 void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
-
 {
     mInterface = robotInterface;
     robotInterface->AddMessageEvents();
@@ -362,6 +290,84 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
                                             "DriveAmpsToBits", mActuatorCurrentFeedback, mActuatorCurrentBitsFeedback);
     robotInterface->AddCommandQualifiedRead(&mtsRobot1394::PotVoltageToPosition, this,
                                             "AnalogInVoltsToPosSI", mPotVoltage, m_raw_pot_measured_js.Position());
+}
+
+void mtsRobot1394::Startup(void)
+{
+    if (mControllerType == CONTROLLER_dRA1) {
+        SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
+    }
+}
+
+void mtsRobot1394::StartReadStateTable(void) {
+    mStateTableRead->Start();
+}
+
+void mtsRobot1394::AdvanceReadStateTable(void) {
+    mStateTableRead->Advance();
+}
+
+void mtsRobot1394::StartWriteStateTable(void) {
+    mStateTableWrite->Start();
+}
+
+void mtsRobot1394::AdvanceWriteStateTable(void) {
+    mStateTableWrite->Advance();
+}
+
+void mtsRobot1394::GetNumberOfActuators(size_t & numberOfActuators) const {
+    numberOfActuators = this->NumberOfActuators();
+}
+
+void mtsRobot1394::GetSerialNumber(int & serialNumber) const {
+    serialNumber = this->SerialNumber();
+}
+
+void mtsRobot1394::UsePotsForSafetyCheck(const bool & usePotsForSafetyCheck)
+{
+    mUsePotsForSafetyCheck = usePotsForSafetyCheck;
+    mPotErrorDuration.SetAll(0.0);
+    mPotValid.SetAll(true);
+    // trigger mts event
+    EventTriggers.UsePotsForSafetyCheck(usePotsForSafetyCheck);
+}
+
+void mtsRobot1394::servo_jf(const prmForceTorqueJointSet & efforts) {
+    this->SetActuatorEffort(efforts.ForceTorque());
+}
+
+void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
+    for (size_t index = 0; index < values.Mask().size(); ++index) {
+        if (values.Mask().at(index)) {
+            this->SetSingleEncoderPosition(index, values.Data().at(index));
+        }
+    }
+}
+
+void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
+{
+    // if the number of samples is negative, user wants to first check
+    // if the encoders are not already preloaded
+    if (numberOfSamples < 0) {
+        // get encoder preload values re. midrange
+        bool anyAtMidRange = false;
+        for (size_t i = 0; i < mNumberOfActuators; i++) {
+            bool thisAxis;
+            mActuatorInfo[i].Board->IsEncoderPreloadMidrange(mActuatorInfo[i].Axis, thisAxis);
+            if (thisAxis) {
+                anyAtMidRange = true;
+            }
+        }
+        // if none at midrange, assume encoder bias on pots is already done
+        if (!anyAtMidRange) {
+            CalibrateEncoderOffsets.SamplesFromPots = 0;
+            CalibrateEncoderOffsets.Performed = true;
+            EventTriggers.BiasEncoder(-1);
+            return;
+        }
+    }
+    CalibrateEncoderOffsets.SamplesFromPots = std::abs(numberOfSamples) + 1;
+    CalibrateEncoderOffsets.SamplesFromPotsRequested = std::abs(numberOfSamples);
 }
 
 bool mtsRobot1394::CheckConfiguration(void)

@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -393,6 +393,11 @@ void mtsRobotIO1394::Startup(void)
 {
     // Use preferred watchdog timeout
     SetWatchdogPeriod(mWatchdogPeriod);
+
+    // Robot Startup
+    for (auto & robot : mRobots) {
+        robot->Startup();
+    }
 }
 
 void mtsRobotIO1394::PreRead(void)
