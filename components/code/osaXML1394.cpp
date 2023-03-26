@@ -418,7 +418,6 @@ namespace sawRobotIO1394 {
                                        << robot.SerialNumber << ").  You're likely using the wrong lookup file"
                                        << std::endl;
                     return false;
-
                 }
                 // load the file
                 std::string filename = configPath.Find(potentiometerLookupTable);
@@ -440,7 +439,15 @@ namespace sawRobotIO1394 {
                                            << jsonReader.getFormattedErrorMessages();
                         return false;
                     }
-                    cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue);
+                    // check the serial number in the file
+                    std::string inFileSerial = jsonValue["serial"].asString();
+                    if (inFileSerial != std::to_string(robot.SerialNumber)) {
+                        CMN_LOG_INIT_ERROR << "Serial number found lookup table file ("
+                                           << inFileSerial << ") doesn't match the arm one ("
+                                           << robot.SerialNumber << ")" << std::endl;
+                        return false;
+                    }
+                    cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue["lookup"]);
                     // make sure the table size makes sense
                     if ((lookupTable.rows() != robot.Actuators.size())
                         || (lookupTable.cols() == 0)) {
