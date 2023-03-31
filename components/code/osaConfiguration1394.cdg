@@ -114,9 +114,25 @@ class {
     name osaEncoder1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
+    enum {
+        name VelocitySourceType;
+        enum-value {
+            name FIRMWARE;
+            description firmware;
+        }
+        enum-value {
+            name SOFTWARE;
+            description software;
+        }
+    }
     member {
         name BitsToPosition;
         type osaLinearFunction;
+        visibility public;
+    }
+    member {
+        name VelocitySource;
+        type osaEncoder1394Configuration::VelocitySourceType;
         visibility public;
     }
 }

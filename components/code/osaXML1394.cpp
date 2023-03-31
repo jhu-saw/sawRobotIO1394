@@ -308,6 +308,18 @@ namespace sawRobotIO1394 {
             }
 
             // encoders
+            std::string velocitySource;
+            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/@VelocitySource", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, velocitySource, !robot.OnlyIO);
+            if (velocitySource == "FIRMWARE") {
+                actuator.Encoder.VelocitySource = osaEncoder1394Configuration::FIRMWARE;
+            } else if (velocitySource == "SOFTWARE") {
+                actuator.Encoder.VelocitySource = osaEncoder1394Configuration::SOFTWARE;
+            } else {
+                CMN_LOG_INIT_ERROR << "Configure: invalid value for \"" << path
+                                   << "\", must \"FIRMWARE\" or \"SOFTWARE\" but found \"" << velocitySource << "\"" << std::endl;
+                good = false;
+            }
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Scale", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.BitsToPosition.Scale, !robot.OnlyIO);
             if (robot.OnlyIO) {

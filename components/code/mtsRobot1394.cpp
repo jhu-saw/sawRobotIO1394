@@ -105,6 +105,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(m_measured_js, "measured_js");
     mStateTableRead->AddData(mEncoderAcceleration, "measured_ja");
     mStateTableRead->AddData(mActuatorEncoderAcceleration, "actuator_measured_ja");
+    mStateTableRead->AddData(m_firmware_measured_js, "firmware_measured_js");
     mStateTableRead->AddData(m_software_measured_js, "software_measured_js");
 
     mStateTableWrite->AddData(mActuatorCurrentBitsCommand, "ActuatorControlCurrentRaw");
@@ -198,6 +199,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
     robotInterface->AddCommandReadState(*mStateTableRead, m_measured_js,
                                         "measured_js");
+    robotInterface->AddCommandReadState(*mStateTableRead, m_firmware_measured_js,
+                                        "firmware/measured_js");
     robotInterface->AddCommandReadState(*mStateTableRead, m_software_measured_js,
                                         "software/measured_js");
     robotInterface->AddCommandReadState(*mStateTableRead, mPotBits,
@@ -434,6 +437,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mEncoderAcceleration.SetSize(mNumberOfActuators);
 
     // software velocity variables
+    m_firmware_measured_js.Velocity().SetSize(mNumberOfActuators);
     m_software_measured_js.Velocity().SetSize(mNumberOfActuators);
     mPreviousEncoderPositionBits.SetSize(mNumberOfActuators);
     mActuatorTimestampChange.SetSize(mNumberOfActuators);
@@ -456,6 +460,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     for (size_t index = 0; index < mNumberOfActuators; ++index) {
         m_measured_js.Name().at(index) = "actuator_" + std::to_string(index);
     }
+    m_firmware_measured_js.Name().ForceAssign(m_measured_js.Name());
     m_software_measured_js.Name().ForceAssign(m_measured_js.Name());
     m_pot_measured_js.Name().ForceAssign(m_measured_js.Name());
     // these names might be confusing since we name the pots based on
@@ -812,7 +817,7 @@ void mtsRobot1394::ConvertState(void)
                           m_measured_js.Position());
 
     // Velocity from counts/sec to SI units
-    m_measured_js.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
+    m_firmware_measured_js.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
 
     // Acceleration from counts/sec**2 to SI units
     mActuatorEncoderAcceleration.ElementwiseProductOf(mBitsToPositionScales, mEncoderAccelerationCountsPerSecSec);
@@ -884,8 +889,29 @@ void mtsRobot1394::ConvertState(void)
     }
     // Finally save previous encoder bits position and populate position/effort
     mPreviousEncoderPositionBits.Assign(mEncoderPositionBits);
+
+    // fill all measured_js
+    m_firmware_measured_js.Position().ForceAssign(m_measured_js.Position());
+    m_firmware_measured_js.Effort().ForceAssign(m_measured_js.Effort());
     m_software_measured_js.Position().ForceAssign(m_measured_js.Position());
     m_software_measured_js.Effort().ForceAssign(m_measured_js.Effort());
+    const auto end_v = m_measured_js.Velocity().end();
+    auto measured_v = m_measured_js.Velocity().begin();
+    auto firm_v = m_firmware_measured_js.Velocity().cbegin();
+    auto soft_v = m_software_measured_js.Velocity().cbegin();
+    auto act_conf = mConfiguration.Actuators.cbegin();
+    for (;
+         // end
+         measured_v != end_v;
+         // increment
+         ++measured_v, ++firm_v, ++soft_v, ++act_conf) {
+        // pick
+        if (act_conf->Encoder.VelocitySource == osaEncoder1394Configuration::FIRMWARE) {
+            *measured_v = *firm_v;
+        } else {
+            *measured_v = *soft_v;
+        }
+    }
 
     // Pots
     if (mPotType == 1) {
@@ -919,6 +945,7 @@ void mtsRobot1394::CheckState(void)
 {
     // set data as invalid by default
     m_measured_js.SetValid(false);
+    m_firmware_measured_js.SetValid(false);
     m_software_measured_js.SetValid(false);
     m_raw_pot_measured_js.SetValid(false);
     m_pot_measured_js.SetValid(false);
@@ -1226,6 +1253,7 @@ void mtsRobot1394::CheckState(void)
     }
 
     m_measured_js.SetValid(true);
+    m_firmware_measured_js.SetValid(true);
     m_software_measured_js.SetValid(true);
     m_raw_pot_measured_js.SetValid(true);
     m_pot_measured_js.SetValid(true);

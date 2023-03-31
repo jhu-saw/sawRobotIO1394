@@ -400,7 +400,7 @@ namespace sawRobotIO1394 {
         double mPoweringStartTime;
 
         prmForceTorqueJointSet mTorqueJoint;
-        prmStateJoint m_measured_js, m_software_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
+        prmStateJoint m_measured_js, m_firmware_measured_js, m_software_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
 
         // Functions for events
         struct {
