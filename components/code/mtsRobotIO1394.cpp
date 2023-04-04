@@ -247,7 +247,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     // Add all the robots
     for (const auto & configRobot : config.Robots) {
         // Create a new robot
-        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot);
+        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot, mCalibrationMode);
         // Check the configuration if needed
         if (!mSkipConfigurationCheck) {
             if (!robot->CheckConfiguration()) {

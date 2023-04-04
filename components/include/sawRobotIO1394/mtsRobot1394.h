@@ -53,7 +53,8 @@ namespace sawRobotIO1394 {
         //@}
 
         mtsRobot1394(const cmnGenericObject & owner,
-                     const osaRobot1394Configuration & config);
+                     const osaRobot1394Configuration & config,
+                     const bool calibrationMode = false);
         ~mtsRobot1394();
 
         void Configure(const osaRobot1394Configuration & config);
@@ -256,11 +257,13 @@ namespace sawRobotIO1394 {
         static double GetMissingPotValue(void);
         static bool IsMissingPotValue(const double & potValue);
         //@}
-        
+
     protected:
         void ClipActuatorEffort(vctDoubleVec & efforts);
         void ClipActuatorCurrent(vctDoubleVec & currents);
         void ClipBrakeCurrent(vctDoubleVec & currents);
+
+        bool mCalibrationMode;
 
         //! Board Objects
         std::vector<osaActuatorMapping> mActuatorInfo;
@@ -381,7 +384,7 @@ namespace sawRobotIO1394 {
             mBrakeEngagedCurrent;
 
         double mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
-        
+
         vctDynamicVector<vctDoubleVec> mPotLookupTable;
 
         size_t
@@ -393,7 +396,7 @@ namespace sawRobotIO1394 {
 
         double
             mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
-        
+
         mtsStateTable * mStateTableRead;
         mtsStateTable * mStateTableWrite;
         bool mUserExpectsPower;

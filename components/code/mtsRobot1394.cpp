@@ -34,8 +34,10 @@ http://www.cisst.org/cisst/license.txt.
 using namespace sawRobotIO1394;
 
 mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
-                           const osaRobot1394Configuration & config):
+                           const osaRobot1394Configuration & config,
+                           const bool calibrationMode):
     OwnerServices(owner.Services()),
+    mCalibrationMode(calibrationMode),
     // IO Structures
     mActuatorInfo(),
     mUniqueBoards(),
@@ -57,6 +59,7 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mStateTableRead(0),
     mStateTableWrite(0)
 {
+    this->mCalibrationMode = calibrationMode;
     this->Configure(config);
 }
 
@@ -298,7 +301,22 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 void mtsRobot1394::Startup(void)
 {
     if (mControllerType == CONTROLLER_dRA1) {
+        // do an encoder preload since we always use the lookup table
         SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
+        // check the serial number
+        std::string calFileName = mUniqueBoards.begin()->second->ReadRobotSerialNumber();
+        std::string expectedCalFileName =
+            static_cast<char>(std::tolower(this->Name().at(0)))
+            + std::to_string(this->SerialNumber()) + ".cal";
+        if (calFileName != expectedCalFileName) {
+            std::string message = "Arm was configured using the name \"" + this->Name()
+                + "\" and the serial number \"" + std::to_string(this->SerialNumber())
+                + "\". Therefore the original cal file should have been \""
+                + expectedCalFileName + "\" but we found \""
+                + calFileName + "\".  Make sure your serial numbers are correct!";
+            mInterface->SendError(message);
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
@@ -1126,7 +1144,7 @@ void mtsRobot1394::CheckState(void)
 
 
     // For dRAC based arms, make sure the pots value are meaningfull
-    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1) {
+    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1 && !mCalibrationMode) {
         bool foundMissingPot = false;
         for (const auto & potValue : m_pot_measured_js.Position()) {
             if (mtsRobot1394::IsMissingPotValue(potValue)) {
@@ -1405,6 +1423,10 @@ void mtsRobot1394::WritePowerEnable(const bool & power)
 
 void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 {
+    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1 && mCalibrationMode) {
+        mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
+        return;
+    }
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enable);
@@ -1413,6 +1435,10 @@ void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 
 void mtsRobot1394::SetActuatorAmpEnable(const vctBoolVec & enable)
 {
+    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1 && mCalibrationMode) {
+        mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
+        return;
+    }
     mSafetyAmpDisabled = false;
     for (size_t i = 0; i < mNumberOfActuators; i++) {
         mActuatorInfo[i].Board->SetAmpEnable(mActuatorInfo[i].Axis, enable[i]);
