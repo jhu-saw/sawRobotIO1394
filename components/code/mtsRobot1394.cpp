@@ -316,6 +316,9 @@ void mtsRobot1394::Startup(void)
                 + calFileName + "\".  Make sure your serial numbers are correct!";
             mInterface->SendError(message);
             exit(EXIT_FAILURE);
+        } else {
+            mInterface->SendStatus("IO: " + this->Name() + " arm correctly identified by serial number ("
+                                   + expectedCalFileName + ")");
         }
     }
 }
