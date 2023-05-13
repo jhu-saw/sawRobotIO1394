@@ -17,11 +17,7 @@ http://www.cisst.org/cisst/license.txt.
 */
 
 #include <cmath>
-
-#include <cisstCommon/cmnPortability.h>
-#if (CISST_OS == CISST_WINDOWS)
 #include <cctype>
-#endif
 
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
