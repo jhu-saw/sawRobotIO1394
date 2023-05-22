@@ -95,6 +95,7 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     mStateTableRead->AddData(mSafetyRelayStatus, "SafetyRelayStatus");
     mStateTableRead->AddData(mWatchdogTimeoutStatus, "WatchdogTimeoutStatus");
     mStateTableRead->AddData(mWatchdogPeriod, "WatchdogPeriod");
+    mStateTableRead->AddData(mActuatorTimestamp, "ActuatorTimestamp");
     mStateTableRead->AddData(mActuatorTemperature, "ActuatorTemperature");
     mStateTableRead->AddData(mActuatorAmpStatus, "ActuatorAmpStatus");
     mStateTableRead->AddData(mActuatorAmpEnable, "ActuatorAmpEnable");
@@ -188,6 +189,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
                                         "GetWatchdogTimeoutStatus"); // bool
     robotInterface->AddCommandReadState(*mStateTableRead, mWatchdogPeriod,
                                         "GetWatchdogPeriod"); // double
+    robotInterface->AddCommandReadState(*mStateTableRead, mActuatorTimestamp,
+                                        "GetActuatorTimestamp");
     robotInterface->AddCommandReadState(*mStateTableRead, mActuatorTemperature,
                                         "GetActuatorAmpTemperature"); // vector[double]
 
