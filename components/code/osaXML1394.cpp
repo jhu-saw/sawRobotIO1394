@@ -391,25 +391,6 @@ namespace sawRobotIO1394 {
             robot.Actuators.push_back(actuator);
         }
 
-        // verify that all amps offsets are different from each other - except for dRA1!
-        if ((robot.ControllerType != "dRA1")
-            && (robot.Actuators.size() > 2)) {
-            bool allEqual = true;
-            const double defaultOffset = robot.Actuators[0].Drive.CurrentToBits.Offset;
-            for (size_t index = 1;
-                 index < robot.Actuators.size();
-                 ++index) {
-                if (robot.Actuators[index].Drive.CurrentToBits.Offset != defaultOffset) {
-                    allEqual = false;
-                }
-            }
-            if (allEqual) {
-                CMN_LOG_INIT_ERROR << "All offsets equal, it is very unlikely that the current calibration has been performed for "
-                                   << robot.Name << std::endl;
-                return false;
-            }
-        }
-
         // if potType is not set, check if a LookupTable is available (digital pots on Si arms)
         if (!calibrationMode) {
             std::string potentiometerLookupTable;
