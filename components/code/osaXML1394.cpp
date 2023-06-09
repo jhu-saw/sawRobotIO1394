@@ -156,13 +156,14 @@ namespace sawRobotIO1394 {
         sprintf(path, "Robot[%d]/@Name", robotIndex);
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.Name);
 
-        sprintf(path, "Robot[%d]/@ControllerType", robotIndex);
-        good &= osaXML1394GetValue(xmlConfig, context, path, robot.ControllerType);
-        if ((robot.ControllerType != "QLA1")
-            && (robot.ControllerType != "DQLA")
-            && (robot.ControllerType != "dRA1")) {
-            CMN_LOG_INIT_ERROR << "osaXML1394ConfigureRobot: ControllerType must be \"QLA1\", \"DQLA\" or \"dRA1\" not "
-                               << robot.ControllerType << std::endl;
+        sprintf(path, "Robot[%d]/@HardwareVersion", robotIndex);
+        std::string hardwareVersionString;
+        good &= osaXML1394GetValue(xmlConfig, context, path, hardwareVersionString);
+        try {
+            robot.HardwareVersion = osa1394::HardwareTypeFromString(hardwareVersionString);
+        } catch (...) {
+            CMN_LOG_INIT_ERROR << "osaXML1394ConfigureRobot: HardwareVersion must be \"QLA1\", \"DQLA\" or \"dRA1\" not "
+                               << hardwareVersionString << std::endl;
             good = false;
         }
 

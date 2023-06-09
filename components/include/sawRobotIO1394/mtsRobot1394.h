@@ -309,7 +309,7 @@ namespace sawRobotIO1394 {
             mPotsToEncodersTolerance;       // maximum error between encoders and pots
 
         //! Robot type
-        sawRobotIO1394::ControllerType mControllerType = CONTROLLER_UNDEFINED;
+        osa1394::HardwareType mHardwareVersion;
         prmConfigurationJoint mConfigurationJoint;
         int mPotType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
         vctDoubleMat mPotCoupling;

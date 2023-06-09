@@ -304,7 +304,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
 void mtsRobot1394::Startup(void)
 {
-    if (mControllerType == CONTROLLER_dRA1) {
+    if (mHardwareVersion == osa1394::dRA1) {
         // do an encoder preload since we always use the lookup table
         SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
         // check the serial number
@@ -400,7 +400,7 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPots(const int & numberOfSamples)
 
 bool mtsRobot1394::CheckConfiguration(void)
 {
-    if ((mControllerType != sawRobotIO1394::CONTROLLER_dRA1)
+    if ((mHardwareVersion != osa1394::dRA1)
         && (NumberOfActuators() > 2)
         && mActuatorCurrentToBitsOffsets.Equal(mActuatorCurrentToBitsOffsets[0])) {
         CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: all currents to bits offsets are equal, please calibrate the current offsets for arm: "
@@ -420,18 +420,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mNumberOfActuators = config.NumberOfActuators;
     mSerialNumber = config.SerialNumber;
     mHasEncoderPreload = config.HasEncoderPreload;
-    if (mConfiguration.ControllerType == "QLA1") {
-        mControllerType = sawRobotIO1394::CONTROLLER_QLA1;
-    } else if (mConfiguration.ControllerType == "DQLA") {
-        mControllerType = sawRobotIO1394::CONTROLLER_DQLA;
-    } else if (mConfiguration.ControllerType == "dRA1") {
-        mControllerType = sawRobotIO1394::CONTROLLER_dRA1;
-    } else {
-        CMN_LOG_INIT_ERROR << "osaRobot1394::Configure: " << this->mName
-                           << ", unknowm controller type: "
-                           << mConfiguration.ControllerType << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    mHardwareVersion = config.HardwareVersion;
 
     // Low-level API
     mActuatorInfo.resize(mNumberOfActuators);
@@ -685,8 +674,20 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                                      << ".  Make sure the controller is powered and connected" << std::endl;
             exit(EXIT_FAILURE);
         }
+        // check the hardware version vs version specified in configuration file
+        const auto hardwareVersion = board->second->GetHardwareVersion();
+        if (!((hardwareVersion == QLA1_String && mHardwareVersion == osa1394::QLA1)
+              || (hardwareVersion == DQLA_String && mHardwareVersion == osa1394::DQLA)
+              || (hardwareVersion == dRA1_String && mHardwareVersion == osa1394::dRA1))) {
+            CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
+                                     << ", hardware version doesn't match value from configuration file for board: " << boardCounter
+                                     << ", Id: " << static_cast<int>(board->second->GetBoardId())
+                                     << ".  Hardware found: " << board->second->GetHardwareVersionString()
+                                     << ".  Configuration file value: " << osa1394::HardwareTypeToString(mHardwareVersion) << std::endl;
+            exit(EXIT_FAILURE);
+        }
         std::string serialQLA;
-        if (board->second->GetHardwareVersion() == DQLA_String) {
+        if (mHardwareVersion == osa1394::DQLA) {
             serialQLA = board->second->GetQLASerialNumber(1) +
                 ", " +  board->second->GetQLASerialNumber(2);
         }
@@ -1151,7 +1152,7 @@ void mtsRobot1394::CheckState(void)
 
 
     // For dRAC based arms, make sure the pots value are meaningfull
-    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1 && !mCalibrationMode) {
+    if (mHardwareVersion == osa1394::dRA1 && !mCalibrationMode) {
         bool foundMissingPot = false;
         for (const auto & potValue : m_pot_measured_js.Position()) {
             if (mtsRobot1394::IsMissingPotValue(potValue)) {
@@ -1430,7 +1431,7 @@ void mtsRobot1394::WritePowerEnable(const bool & power)
 
 void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 {
-    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1 && mCalibrationMode) {
+    if (mHardwareVersion == osa1394::dRA1 && mCalibrationMode) {
         mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
         return;
     }
@@ -1442,7 +1443,7 @@ void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 
 void mtsRobot1394::SetActuatorAmpEnable(const vctBoolVec & enable)
 {
-    if (mControllerType == sawRobotIO1394::CONTROLLER_dRA1 && mCalibrationMode) {
+    if (mHardwareVersion == osa1394::dRA1 && mCalibrationMode) {
         mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
         return;
     }

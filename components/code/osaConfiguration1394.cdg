@@ -270,17 +270,42 @@ class {
 }
 
 class {
+    name osa1394;
+    enum {
+        name HardwareType;
+        enum-value {
+            name HARDWARE_UNDEFINED;
+            description Undefined;
+        }
+        enum-value {
+            name QLA1;
+            description QLA1;
+        }
+        enum-value {
+            name DQLA;
+            description DQLA;
+        }
+        enum-value {
+            name dRA1;
+            description dRA1;
+        }
+    }
+}
+
+class {
     name osaRobot1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
+
     member {
         name Name;
         type std::string;
         visibility public;
     }
     member {
-        name ControllerType;
-        type std::string;
+        name HardwareVersion;
+        type osa1394::HardwareType;
+        default osa1394::HARDWARE_UNDEFINED;
         visibility public;
     }
     member {

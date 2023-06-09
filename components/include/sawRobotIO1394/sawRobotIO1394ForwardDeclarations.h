@@ -26,8 +26,6 @@ class BasePort;
 
 namespace sawRobotIO1394 {
 
-    typedef enum {CONTROLLER_QLA1, CONTROLLER_DQLA, CONTROLLER_dRA1, CONTROLLER_UNDEFINED} ControllerType;
-
     class mtsRobot1394;
     class mtsDigitalInput1394;
     class mtsDigitalOutput1394;
