@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2022 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2023 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -58,7 +58,7 @@ if (cisst_FOUND_AS_REQUIRED)
   set (sawRobotIO1394_LIBRARY_DIR "${LIBRARY_OUTPUT_PATH}" ${Amp1394_LIBRARY_DIR})
   set (sawRobotIO1394_LIBRARIES sawRobotIO1394 ${Amp1394_LIBRARIES})
 
-  include_directories (${sawRobotIO1394_INCLUDE_DIR})
+  include_directories (BEFORE ${sawRobotIO1394_INCLUDE_DIR})
   link_directories (${Amp1394_LIBRARY_DIR})
 
   if (CISST_HAS_QT)
