@@ -985,27 +985,39 @@ void mtsRobot1394::CheckState(void)
     bool currentSafetyViolation = false;
     // actuators
     {
-        const vctDoubleVec::const_iterator end = mActuatorCurrentFeedback.end();
-        vctDoubleVec::const_iterator feedback = mActuatorCurrentFeedback.begin();
-        vctDoubleVec::const_iterator limit = mActuatorCurrentFeedbackLimits.begin();
+        const auto end = mActuatorCurrentFeedback.cend();
+        auto feedback = mActuatorCurrentFeedback.cbegin();
+        auto limit = mActuatorCurrentFeedbackLimits.cbegin();
+        auto enabled = mActuatorAmpEnable.cbegin();
         size_t index = 0;
         for (; feedback < end;
              ++feedback,
                  ++limit,
+                 ++enabled,
                  ++index) {
-            if (fabs(*feedback) >= *limit) {
+            double actual_limit;
+            if (*enabled) {
+                actual_limit = *limit;
+            } else {
+                if (mCalibrationMode || !mPowerEnable) {
+                    actual_limit = 0.2; // noise + poor calibration
+                } else {
+                    actual_limit = 0.1; // 100 mA for noise in a2d
+                }
+            }
+            if (fabs(*feedback) >= actual_limit) {
                 CMN_LOG_CLASS_RUN_WARNING << "CheckState: " << this->mName << ", actuator " << index
                                           << " power: " << *feedback
-                                          << " > limit: " << *limit << std::endl;
+                                          << " > limit: " << actual_limit << std::endl;
                 currentSafetyViolation = true;
             }
         }
     }
     // brakes
     {
-        const vctDoubleVec::const_iterator end = mBrakeCurrentFeedback.end();
-        vctDoubleVec::const_iterator feedback = mBrakeCurrentFeedback.begin();
-        vctDoubleVec::const_iterator limit = mBrakeCurrentFeedbackLimits.begin();
+        const auto end = mBrakeCurrentFeedback.cend();
+        auto feedback = mBrakeCurrentFeedback.cbegin();
+        auto limit = mBrakeCurrentFeedbackLimits.cbegin();
         size_t index = 0;
         for (; feedback < end;
              ++feedback,
