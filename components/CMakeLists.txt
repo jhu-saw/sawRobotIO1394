@@ -48,7 +48,7 @@ if (cisst_FOUND_AS_REQUIRED)
   find_package (Amp1394 REQUIRED)
 
   # Allow c++ code to find local header files
-  include_directories (${sawRobotIO1394_SOURCE_DIR})
+  include_directories (BEFORE ${sawRobotIO1394_SOURCE_DIR})
 
   # create/configure file for find_package (sawRobotIO1394)
   set (sawRobotIO1394_INCLUDE_DIR "${sawRobotIO1394_SOURCE_DIR}/include"
