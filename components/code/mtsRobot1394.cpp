@@ -252,9 +252,9 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
     robotInterface->AddCommandRead(&mtsRobot1394::GetActuatorCurrentCommandLimits, this,
                                    "GetActuatorCurrentMax", mActuatorCurrentCommandLimits);
     robotInterface->AddCommandRead(&mtsRobot1394::configuration_js, this,
-                                   "configuration_js", mConfigurationJoint);
+                                   "configuration_js", m_configuration_js);
     robotInterface->AddCommandWrite(&mtsRobot1394::configure_js, this,
-                                    "configure_js", mConfigurationJoint);
+                                    "configure_js", m_configuration_js);
 
     robotInterface->AddCommandWrite(&mtsRobot1394::SetEncoderPositionBits, this,
                                     "SetEncoderPositionRaw");
@@ -464,7 +464,9 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mActuatorCurrentFeedback.SetSize(mNumberOfActuators);
 
     // Initialize property vectors to the appropriate sizes
-    mConfigurationJoint.Type().SetSize(mNumberOfActuators);
+    m_configuration_js.Type().SetSize(mNumberOfActuators);
+    m_configuration_js.EffortMin().SetSize(mNumberOfActuators);
+    m_configuration_js.EffortMax().SetSize(mNumberOfActuators);
     m_measured_js.Position().SetSize(mNumberOfActuators);
     m_measured_js.Velocity().SetSize(mNumberOfActuators);
     m_measured_js.Effort().SetSize(mNumberOfActuators);
@@ -486,7 +488,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mActuatorCurrentToBitsOffsets.SetSize(mNumberOfActuators);
     mActuatorBitsToCurrentScales.SetSize(mNumberOfActuators);
     mActuatorBitsToCurrentOffsets.SetSize(mNumberOfActuators);
-    mActuatorEffortCommandLimits.SetSize(mNumberOfActuators);
     mActuatorCurrentCommandLimits.SetSize(mNumberOfActuators);
     mActuatorCurrentFeedbackLimits.SetSize(mNumberOfActuators);
     mPotToleranceLatency.SetSize(mNumberOfActuators);
@@ -529,15 +530,16 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         const osaEncoder1394Configuration & encoder = actuator.Encoder;
         const osaPot1394Configuration & pot = actuator.Pot;
 
-        mConfigurationJoint.Type().at(i) = actuator.JointType;
+        m_configuration_js.Type().at(i) = actuator.JointType;
 
         mEffortToCurrentScales.at(i)        = drive.EffortToCurrent.Scale;
         mActuatorCurrentToBitsScales.at(i)  = drive.CurrentToBits.Scale;
         mActuatorCurrentToBitsOffsets.at(i) = drive.CurrentToBits.Offset;
         mActuatorBitsToCurrentScales.at(i)  = drive.BitsToCurrent.Scale;
         mActuatorBitsToCurrentOffsets.at(i) = drive.BitsToCurrent.Offset;
-        mActuatorEffortCommandLimits.at(i)  = drive.EffortCommandLimit;
         mActuatorCurrentCommandLimits.at(i) = drive.CurrentCommandLimit;
+        m_configuration_js.EffortMin().at(i) = -drive.CurrentCommandLimit / drive.EffortToCurrent.Scale;
+        m_configuration_js.EffortMax().at(i) =  drive.CurrentCommandLimit / drive.EffortToCurrent.Scale;
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
         mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
@@ -1515,7 +1517,7 @@ void mtsRobot1394::SetSingleEncoderPositionBits(const int index, const int bits)
 
 void mtsRobot1394::ClipActuatorEffort(vctDoubleVec & efforts)
 {
-    efforts.ElementwiseClipIn(mActuatorEffortCommandLimits);
+    efforts.ElementwiseClipIn(m_configuration_js.EffortMax());
 }
 
 void mtsRobot1394::ClipActuatorCurrent(vctDoubleVec & currents)
@@ -1685,17 +1687,17 @@ size_t mtsRobot1394::NumberOfBrakes(void) const {
 
 void mtsRobot1394::configuration_js(prmConfigurationJoint & jointConfig) const
 {
-    jointConfig = mConfigurationJoint;
+    jointConfig = m_configuration_js;
 }
 
 void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
 {
     // we assume the types are loaded from the XML config file, we
-    // need the names from above.  This is not very elegant.  We use
-    // SetSize followed by Assign as a way to enforce that sizes
+    // need the names from above (IO).  This is not very elegant.  We
+    // use SetSize followed by Assign as a way to enforce that sizes
     // match.
-    mConfigurationJoint.Name().SetSize(mNumberOfActuators);
-    mConfigurationJoint.Name().Assign(jointConfig.Name());
+    m_configuration_js.Name().SetSize(mNumberOfActuators);
+    m_configuration_js.Name().Assign(jointConfig.Name());
     // now that we know sizes match, just use ForceAssign
     m_measured_js.Name().ForceAssign(jointConfig.Name());
     m_software_measured_js.Name().ForceAssign(jointConfig.Name());
@@ -1703,11 +1705,6 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
     // these names might be confusing since we name the pots based on
     // actuator names
     m_raw_pot_measured_js.Name().ForceAssign(jointConfig.Name());
-}
-
-void mtsRobot1394::GetActuatorEffortCommandLimits(vctDoubleVec & limits) const
-{
-    limits = mActuatorEffortCommandLimits;
 }
 
 void mtsRobot1394::GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const

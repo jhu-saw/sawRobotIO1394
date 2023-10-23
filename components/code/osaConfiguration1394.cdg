@@ -99,13 +99,9 @@ class {
         visibility public;
     }
     member {
-        name EffortCommandLimit;
-        type double;
-        visibility public;
-    }
-    member {
         name CurrentCommandLimit;
         type double;
+        default 0.0;
         visibility public;
     }
 }
