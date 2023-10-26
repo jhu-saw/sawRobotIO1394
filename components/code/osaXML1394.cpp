@@ -23,6 +23,25 @@ http://www.cisst.org/cisst/license.txt.
 
 namespace sawRobotIO1394 {
 
+    bool osaXML1394CheckUnitVsType(const prmJointType & type, const std::string & unit,
+                                   const bool onlyIO, const std::string & path)
+    {
+        if (type == PRM_JOINT_REVOLUTE) {
+            if (!osaUnitIsDistanceRevolute(unit) && !onlyIO) {
+                CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                   << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
+                return false;
+            }
+        } else if (type == PRM_JOINT_PRISMATIC) {
+            if (!osaUnitIsDistancePrismatic(unit) && !onlyIO) {
+                CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
+                                   << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
+                return false;
+            }
+        }
+        return true;
+    }
+
     void osaXML1394ConfigurePort(const std::string & filename,
                                  osaPort1394Configuration & config,
                                  const bool & calibrationMode)
@@ -332,20 +351,19 @@ namespace sawRobotIO1394 {
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Unit", robotIndex, actuatorIndex);
             unit = "none";
             good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-            if (actuator.JointType == PRM_JOINT_REVOLUTE) {
-                if (!osaUnitIsDistanceRevolute(unit) && !robot.OnlyIO) {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                       << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
-                    good = false;
-                }
-            } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
-                if (!osaUnitIsDistancePrismatic(unit) && !robot.OnlyIO) {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                       << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
-                    good = false;
-                }
-            }
+            good &= osaXML1394CheckUnitVsType(actuator.JointType, unit, robot.OnlyIO, path);
             actuator.Encoder.BitsToPosition.Unit = unit;
+
+            // encoder soft limits
+            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/PositionLimitsSoft/@Lower", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.PositionLimitsSoft.Lower, !robot.OnlyIO);
+            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/PositionLimitsSoft/@Upper", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.PositionLimitsSoft.Upper, !robot.OnlyIO);
+            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/PositionLimitsSoft/@Unit", robotIndex, actuatorIndex);
+            unit = "none";
+            good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
+            good &= osaXML1394CheckUnitVsType(actuator.JointType, unit, robot.OnlyIO, path);
+            actuator.Encoder.PositionLimitsSoft.Unit = unit;
 
             // potentiometers
             // set default type to 0, i.e. not defined
@@ -373,19 +391,7 @@ namespace sawRobotIO1394 {
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
                 unit = "none";
                 good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-                if (actuator.JointType == PRM_JOINT_REVOLUTE) {
-                    if (!osaUnitIsDistanceRevolute(unit) && !robot.OnlyIO) {
-                        CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                           << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
-                        good = false;
-                    }
-                } else if (actuator.JointType == PRM_JOINT_PRISMATIC) {
-                    if (!osaUnitIsDistancePrismatic(unit) && !robot.OnlyIO) {
-                        CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                           << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
-                        good = false;
-                    }
-                }
+                good &= osaXML1394CheckUnitVsType(actuator.JointType, unit, robot.OnlyIO, path);
                 actuator.Pot.SensorToPosition.Unit = unit;
             }
             // Add the actuator

@@ -465,6 +465,8 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
     // Initialize property vectors to the appropriate sizes
     m_configuration_js.Type().SetSize(mNumberOfActuators);
+    m_configuration_js.PositionMin().SetSize(mNumberOfActuators);
+    m_configuration_js.PositionMax().SetSize(mNumberOfActuators);
     m_configuration_js.EffortMin().SetSize(mNumberOfActuators);
     m_configuration_js.EffortMax().SetSize(mNumberOfActuators);
     m_measured_js.Position().SetSize(mNumberOfActuators);
@@ -538,8 +540,13 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         mActuatorBitsToCurrentScales.at(i)  = drive.BitsToCurrent.Scale;
         mActuatorBitsToCurrentOffsets.at(i) = drive.BitsToCurrent.Offset;
         mActuatorCurrentCommandLimits.at(i) = drive.CurrentCommandLimit;
+        m_configuration_js.PositionMin().at(i) = encoder.PositionLimitsSoft.Lower
+            * osaUnitToSIFactor(encoder.PositionLimitsSoft.Unit);
+        m_configuration_js.PositionMax().at(i) = encoder.PositionLimitsSoft.Upper
+            * osaUnitToSIFactor(encoder.PositionLimitsSoft.Unit);
         m_configuration_js.EffortMin().at(i) = -drive.CurrentCommandLimit / drive.EffortToCurrent.Scale;
         m_configuration_js.EffortMax().at(i) =  drive.CurrentCommandLimit / drive.EffortToCurrent.Scale;
+
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
         mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
