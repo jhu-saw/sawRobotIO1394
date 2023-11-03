@@ -215,7 +215,6 @@ namespace sawRobotIO1394 {
         size_t NumberOfBrakes(void) const;
         void configuration_js(prmConfigurationJoint & jointConfig) const;
         void configure_js(const prmConfigurationJoint & jointConfig);
-        void GetActuatorEffortCommandLimits(vctDoubleVec & limits) const;
         void GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const;
         /**}**/
 
@@ -301,7 +300,6 @@ namespace sawRobotIO1394 {
             mSensorToPositionOffsets;
 
         vctDoubleVec
-            mActuatorEffortCommandLimits,
             mActuatorCurrentCommandLimits,
             mBrakeCurrentCommandLimits,
             mActuatorCurrentFeedbackLimits, // limit used to trigger error
@@ -310,7 +308,7 @@ namespace sawRobotIO1394 {
 
         //! Robot type
         osa1394::HardwareType mHardwareVersion;
-        prmConfigurationJoint mConfigurationJoint;
+        prmConfigurationJoint m_configuration_js;
         int mPotType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
         vctDoubleMat mPotCoupling;
         bool mUsePotsForSafetyCheck;

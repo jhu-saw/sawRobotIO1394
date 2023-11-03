@@ -80,6 +80,27 @@ class {
 }
 
 class {
+    name osaLimits;
+    namespace sawRobotIO1394;
+    attribute CISST_EXPORT;
+    member {
+        name Lower;
+        type double;
+        visibility public;
+    }
+    member {
+        name Upper;
+        type double;
+        visibility public;
+    }
+    member {
+        name Unit;
+        type std::string;
+        visibility public;
+    }
+}
+
+class {
     name osaDrive1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
@@ -99,13 +120,9 @@ class {
         visibility public;
     }
     member {
-        name EffortCommandLimit;
-        type double;
-        visibility public;
-    }
-    member {
         name CurrentCommandLimit;
         type double;
+        default 0.0;
         visibility public;
     }
 }
@@ -128,6 +145,11 @@ class {
     member {
         name BitsToPosition;
         type osaLinearFunction;
+        visibility public;
+    }
+    member {
+        name PositionLimitsSoft;
+        type osaLimits;
         visibility public;
     }
     member {
