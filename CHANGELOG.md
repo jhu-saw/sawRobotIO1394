@@ -1,6 +1,36 @@
 Change log
 ==========
 
+2.2.0 (2023-11-15)
+==================
+
+* API changes:
+  * XML file format changed to 5
+    * We strongly recommend to use the new configuration generator (`dvrk-config-generator.py`)
+    * Requires `HardwareVersion` (`QLA1`, `DQLA`, `dRA1`)
+    * Encoder `VelocitySource` (`SOFTWARE` or `FIRMWARE`)
+    * Added `PositionLimitsSoft`
+    * Removed coupling for all arms, added `JointToActuatorPosition` for MTM potentiometers
+    * Added potentiometers `LookupTable` for Si PSMs and ECM
+    * Removed effort limits since these can be computed from current limits
+  * Using CRTK naming convention when possible
+  * Use standard types as much as possible, i.e. from `stdint` instead of typedefs from AmpIO
+  * `GripperCalibration` program now replaces the existing XML file and creates a backup of old one
+* Deprecated features:
+  * None
+* New features:
+  * Support for Si PSMS and ECM, dRA1 based controllers
+  * Support for DQLA controllers for Classic arms
+  * Provides both software and firmware based velocity estimations
+  * CMake:
+    * Updated install targets and debian packages generation
+    * Works with ROS2/colcon
+  * ROS1: standalone ROS node for IO only
+* Bug fixes:
+  * Reduced default debounce time for some inputs
+  * Fixed event on first run
+  * Removed hard clock frequencies, now uses AmpIO method
+
 2.1.0 (2021-08-11)
 ==================
 
