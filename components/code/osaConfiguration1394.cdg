@@ -338,7 +338,7 @@ class {
     }
     member {
         name SerialNumber;
-        type int;
+        type std::string;
         visibility public;
     }
     member {

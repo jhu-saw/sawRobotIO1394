@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-16
 
-  (C) Copyright 2013-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -50,7 +50,7 @@ mtsRobot1394QtWidget::mtsRobot1394QtWidget(const std::string & componentName,
     DirectControl(false),
     PlotMode(false),
     TimerPeriodInMilliseconds(periodInSeconds * 1000), // Qt timers are in milliseconds
-    SerialNumber(0),
+    SerialNumber(""),
     NumberOfActuators(numberOfActuators),
     NumberOfBrakes(numberOfBrakes)
 {
@@ -61,7 +61,7 @@ mtsRobot1394QtWidget::mtsRobot1394QtWidget(const std::string & componentName,
 
 mtsRobot1394QtWidget::mtsRobot1394QtWidget(const mtsComponentConstructorNameAndUInt &arg):
     mtsComponent(arg.Name),
-    SerialNumber(0),
+    SerialNumber(""),
     NumberOfActuators(arg.Arg)
 {
     Init();
@@ -143,7 +143,7 @@ void mtsRobot1394QtWidget::Startup(void)
         CMN_LOG_CLASS_INIT_ERROR << "Startup: Robot interface isn't connected properly, unable to get serial number.  Function call returned: "
                                  << result << std::endl;
     }
-    QLSerialNumber->setText(QString::number(SerialNumber));
+    QLSerialNumber->setText(QString(SerialNumber.c_str()));
 
     if (!parent()) {
         show();

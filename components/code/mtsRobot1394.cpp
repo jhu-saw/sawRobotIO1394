@@ -311,10 +311,10 @@ void mtsRobot1394::Startup(void)
         std::string calFileName = mUniqueBoards.begin()->second->ReadRobotSerialNumber();
         std::string expectedCalFileName =
             static_cast<char>(std::tolower(this->Name().at(0)))
-            + std::to_string(this->SerialNumber()) + ".cal";
+            + this->SerialNumber() + ".cal";
         if (calFileName != expectedCalFileName) {
             std::string message = "Arm was configured using the name \"" + this->Name()
-                + "\" and the serial number \"" + std::to_string(this->SerialNumber())
+                + "\" and the serial number \"" + this->SerialNumber()
                 + "\". Therefore the original cal file should have been \""
                 + expectedCalFileName + "\" but we found \""
                 + calFileName + "\".  Make sure your serial numbers are correct!";
@@ -347,7 +347,7 @@ void mtsRobot1394::GetNumberOfActuators(size_t & numberOfActuators) const {
     numberOfActuators = this->NumberOfActuators();
 }
 
-void mtsRobot1394::GetSerialNumber(int & serialNumber) const {
+void mtsRobot1394::GetSerialNumber(std::string & serialNumber) const {
     serialNumber = this->SerialNumber();
 }
 
@@ -1684,7 +1684,7 @@ size_t mtsRobot1394::NumberOfActuators(void) const {
     return mNumberOfActuators;
 }
 
-size_t mtsRobot1394::SerialNumber(void) const {
+std::string mtsRobot1394::SerialNumber(void) const {
     return mSerialNumber;
 }
 

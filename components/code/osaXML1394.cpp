@@ -224,7 +224,7 @@ namespace sawRobotIO1394 {
         }
 
         sprintf(path, "Robot[%d]/@SN", robotIndex);
-        robot.SerialNumber = 0;
+        robot.SerialNumber = "";
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.SerialNumber, false); // not required
 
         for (int i = 0; i < robot.NumberOfActuators; i++) {
@@ -406,13 +406,13 @@ namespace sawRobotIO1394 {
             if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
                 // make sure the filename has the serial number in it
                 // to prevent mismatch
-                if (robot.SerialNumber == 0) {
+                if (robot.SerialNumber == "") {
                     CMN_LOG_INIT_ERROR << "The robot serial number must be defined to use a potentiometer lookup table for "
                                        << robot.Name << std::endl;
                     return false;
                 }
                 const std::string::size_type serialNumberFound
-                    = potentiometerLookupTable.find(std::to_string(robot.SerialNumber));
+                    = potentiometerLookupTable.find(robot.SerialNumber);
                 if (serialNumberFound == std::string::npos) {
                     CMN_LOG_INIT_ERROR << "The potentiometer lookup table file name \""
                                        << potentiometerLookupTable << "\" for "
@@ -443,7 +443,7 @@ namespace sawRobotIO1394 {
                     }
                     // check the serial number in the file
                     std::string inFileSerial = jsonValue["serial"].asString();
-                    if (inFileSerial != std::to_string(robot.SerialNumber)) {
+                    if (inFileSerial != robot.SerialNumber) {
                         CMN_LOG_INIT_ERROR << "Serial number found lookup table file ("
                                            << inFileSerial << ") doesn't match the arm one ("
                                            << robot.SerialNumber << ")" << std::endl;

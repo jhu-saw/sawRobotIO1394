@@ -72,7 +72,7 @@ namespace sawRobotIO1394 {
 
         // Wrapper of osa methods to match command signatures
         void GetNumberOfActuators(size_t & num_actuators) const;
-        void GetSerialNumber(int & serialNumber) const;
+        void GetSerialNumber(std::string & serialNumber) const;
         void servo_jf(const prmForceTorqueJointSet & jointTorques);
         void SetSomeEncoderPosition(const prmMaskedDoubleVec & values);
         void ActuatorToJointPosition(const vctDoubleVec & actuators,
@@ -211,7 +211,7 @@ namespace sawRobotIO1394 {
         osaRobot1394Configuration GetConfiguration(void) const;
         std::string Name(void) const;
         size_t NumberOfActuators(void) const;
-        size_t SerialNumber(void) const;
+        std::string SerialNumber(void) const;
         size_t NumberOfBrakes(void) const;
         void configuration_js(prmConfigurationJoint & jointConfig) const;
         void configure_js(const prmConfigurationJoint & jointConfig);
@@ -274,7 +274,7 @@ namespace sawRobotIO1394 {
         std::string mName;
         size_t mNumberOfActuators;
         size_t mNumberOfBrakes;
-        size_t mSerialNumber;
+        std::string mSerialNumber;
         bool mHasEncoderPreload;
 
         // state of brakes

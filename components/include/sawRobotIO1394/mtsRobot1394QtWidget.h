@@ -145,7 +145,7 @@ protected:
 private:
     mtsIntervalStatistics IntervalStatistics;
 
-    int SerialNumber;
+    std::string SerialNumber;
     size_t NumberOfActuators;
     size_t NumberOfBrakes;
 
