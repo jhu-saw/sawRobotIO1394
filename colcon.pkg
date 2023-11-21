@@ -1,0 +1,4 @@
+{
+  "name": "sawRobotIO1394All",
+  "dependencies": ["cisst"]
+}

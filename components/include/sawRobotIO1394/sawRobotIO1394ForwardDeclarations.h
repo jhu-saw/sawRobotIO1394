@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2016-08-26
 
-  (C) Copyright 2016-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2016-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -35,13 +35,15 @@ namespace sawRobotIO1394 {
 
     const double MaximumTimeToPower = 3.0 * cmn_s;
 
+    const double TimeBetweenPotentiometerMissingErrors = 5.0 * cmn_s;
+
     const double TimingMaxRatio = 2.0;
-    const double TimeBetweenTimingWarnings = 60.0 * cmn_s;
+    const double TimeBetweenTimingWarnings = 120.0 * cmn_s;
 
     //! Temperature thresholds
     const double TemperatureWarningThreshold = 60.0;
     const double TemperatureErrorThreshold = 65.0;
-    const double TimeBetweenTemperatureWarnings = 60.0 * cmn_s;
+    const double TimeBetweenTemperatureWarnings = 120.0 * cmn_s;
 
 } // namespace sawRobotIO1394
 

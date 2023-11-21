@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -86,7 +86,7 @@ int main(int argc, char * argv[])
     port->Configure(configFile);
 
     std::cout << "Creating robot ..." << std::endl;
-    int numberOfRobots;
+    size_t numberOfRobots;
     port->GetNumberOfRobots(numberOfRobots);
     if (numberOfRobots == 0) {
         std::cerr << "Error: the config file doesn't define a robot." << std::endl;

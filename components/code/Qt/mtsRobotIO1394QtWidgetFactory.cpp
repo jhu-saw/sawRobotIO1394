@@ -5,7 +5,7 @@
   Author(s):  Kwang Young Lee
   Created on: 2013-04-11
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -76,13 +76,6 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
         return;
     }
 
-    std::string suffix = " IO";
-    std::string actuatorInterfaceSuffix = "Actuators";
-    std::string newComponentName;
-    std::string newInterfaceActuatorName;
-
-    std::string tmpRobotName;
-
     // robots, one component per robot with 2 interfaces to be connected
     Configuration.GetName(NameOfRobotIO1394);
     Configuration.GetNumberOfRobots(NumberOfRobots);
@@ -100,21 +93,14 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
     Configuration.GetNumbersOfActuators(NumberOfActuatorsPerRobot);
     Configuration.GetNumbersOfBrakes(NumberOfBrakesPerRobot);
 
-    for (int i = 0; i < NumberOfRobots; ++i) {
-        tmpRobotName = RobotNames[i];
-        newComponentName = tmpRobotName.append(suffix);
-        tmpRobotName = RobotNames[i];
-        newInterfaceActuatorName = tmpRobotName.append(actuatorInterfaceSuffix);
-        tmpRobotName = RobotNames[i];
-
+    for (size_t i = 0; i < NumberOfRobots; ++i) {
+        std::string newComponentName = RobotNames[i] + " IO";
         mtsRobot1394QtWidget * robotWidget =
                 new mtsRobot1394QtWidget(newComponentName, NumberOfActuatorsPerRobot[i], NumberOfBrakesPerRobot[i]);
         mWidgets.push_back(robotWidget);
         robotWidget->Configure();
         componentManager->AddComponent(robotWidget);
-        componentManager->Connect(newComponentName, "Robot", NameOfRobotIO1394, tmpRobotName);
-        componentManager->Connect(newComponentName, "RobotActuators", NameOfRobotIO1394, newInterfaceActuatorName);
-
+        componentManager->Connect(newComponentName, "Robot", NameOfRobotIO1394, RobotNames[i]);
         robotWidget->Create();
     }
 
@@ -134,14 +120,14 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
         }
 
         // add all the interfaces
-        for (int i = 0; i < NumberOfDigitalInputs; ++i) {
+        for (size_t i = 0; i < NumberOfDigitalInputs; ++i) {
             mButtonsWidget->AddEventButton(DigitalInputNames[i]);
         }
 
         componentManager->AddComponent(mButtonsWidget);
 
         // connect all the interfaces
-        for (int i = 0; i < NumberOfDigitalInputs; ++i) {
+        for (size_t i = 0; i < NumberOfDigitalInputs; ++i) {
             componentManager->Connect(mButtonsWidget->GetName(), DigitalInputNames[i],
                                       NameOfRobotIO1394, DigitalInputNames[i]);
         }

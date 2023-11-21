@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package>
+  <name>robot_io</name>
+  <version>2.2.0</version>
+  <description>cisst/SAW RobotIO</description>
+
+  <maintainer email="anton.deguet@jhu.edu">Anton Deguet</maintainer>
+  <license>cisst</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>saw_robot_io_1394</build_depend>
+  <build_depend>cisst_ros_crtk</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>roslib</build_depend>
+
+  <run_depend>saw_robot_io_1394</run_depend>
+  <run_depend>cisst_ros_crtk</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>roslib</run_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+  </export>
+</package>

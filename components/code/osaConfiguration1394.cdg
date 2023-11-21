@@ -14,7 +14,7 @@ class AmpIO;
 
 namespace sawRobotIO1394 {
     const size_t MAX_BOARDS = 16;
-    const size_t MAX_AXES = 4;
+    const size_t MAX_AXES = 10;
 
     inline bool osaUnitIsDistance(const std::string & unit) {
         // make sure this is properly sorted?
@@ -44,7 +44,7 @@ namespace sawRobotIO1394 {
             { "mA",  1.000},
             { "mm",  cmn_mm},
             { "rad", 1.0},
-            { "none", 1.0}        
+            { "none", 1.0}
         };
         const auto factor = factors.find(unit);
         if (factor != factors.end()) {
@@ -55,22 +55,6 @@ namespace sawRobotIO1394 {
 } // namespace sawRobotIO1394
 
 } // inline-header
-
-class {
-    name osaPot1394Location;
-    enum {
-        name Type;
-        enum-value {
-            name POTENTIOMETER_UNDEFINED;
-        }
-        enum-value {
-            name POTENTIOMETER_ON_ACTUATORS;
-        }
-        enum-value {
-            name POTENTIOMETER_ON_JOINTS;
-        }
-    }
-}
 
 class {
     name osaLinearFunction;
@@ -86,6 +70,27 @@ class {
         name Offset;
         type double;
         default 0.0;
+        visibility public;
+    }
+    member {
+        name Unit;
+        type std::string;
+        visibility public;
+    }
+}
+
+class {
+    name osaLimits;
+    namespace sawRobotIO1394;
+    attribute CISST_EXPORT;
+    member {
+        name Lower;
+        type double;
+        visibility public;
+    }
+    member {
+        name Upper;
+        type double;
         visibility public;
     }
     member {
@@ -115,13 +120,9 @@ class {
         visibility public;
     }
     member {
-        name EffortCommandLimit;
-        type double;
-        visibility public;
-    }
-    member {
         name CurrentCommandLimit;
         type double;
+        default 0.0;
         visibility public;
     }
 }
@@ -130,9 +131,30 @@ class {
     name osaEncoder1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
+    enum {
+        name VelocitySourceType;
+        enum-value {
+            name FIRMWARE;
+            description firmware;
+        }
+        enum-value {
+            name SOFTWARE;
+            description software;
+        }
+    }
     member {
         name BitsToPosition;
         type osaLinearFunction;
+        visibility public;
+    }
+    member {
+        name PositionLimitsSoft;
+        type osaLimits;
+        visibility public;
+    }
+    member {
+        name VelocitySource;
+        type osaEncoder1394Configuration::VelocitySourceType;
         visibility public;
     }
 }
@@ -142,13 +164,24 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
+        name Type;
+        type int;
+        visibility public;
+        description  1 for analog pots, 2 for digital pots;
+    }
+    member {
         name BitsToVoltage;
         type osaLinearFunction;
         visibility public;
     }
     member {
-        name VoltageToPosition;
+        name SensorToPosition;
         type osaLinearFunction;
+        visibility public;
+    }
+    member {
+        name LookupTable;
+        type vctDoubleVec;
         visibility public;
     }
 }
@@ -259,22 +292,46 @@ class {
 }
 
 class {
+    name osa1394;
+    enum {
+        name HardwareType;
+        enum-value {
+            name HARDWARE_UNDEFINED;
+            description Undefined;
+        }
+        enum-value {
+            name QLA1;
+            description QLA1;
+        }
+        enum-value {
+            name DQLA;
+            description DQLA;
+        }
+        enum-value {
+            name dRA1;
+            description dRA1;
+        }
+    }
+}
+
+class {
     name osaRobot1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
+
     member {
         name Name;
         type std::string;
         visibility public;
     }
     member {
-        name NumberOfActuators;
-        type int;
-        default 0;
+        name HardwareVersion;
+        type osa1394::HardwareType;
+        default osa1394::HARDWARE_UNDEFINED;
         visibility public;
     }
     member {
-        name NumberOfJoints;
+        name NumberOfActuators;
         type int;
         default 0;
         visibility public;
@@ -297,20 +354,9 @@ class {
         visibility public;
     }
     member {
-        name HasActuatorToJointCoupling;
+        name HasEncoderPreload;
         type bool;
         default false;
-        visibility public;
-    }
-    member {
-        name PotLocation;
-        type osaPot1394Location::Type;
-        default osaPot1394Location::POTENTIOMETER_UNDEFINED;
-        visibility public;
-    }
-    member {
-        name PotTolerances;
-        type std::vector<osaPotTolerance1394Configuration>;
         visibility public;
     }
     member {
@@ -319,9 +365,15 @@ class {
         visibility public;
     }
     member {
-        name Coupling;
+        name PotTolerances;
+        type std::vector<osaPotTolerance1394Configuration>;
+        visibility public;
+    }
+    member {
+        name PotCoupling;
         type prmActuatorJointCoupling;
         visibility public;
+        description Matrix to convert potentiometer to actuators.  E.g. on dVRK MTMsm the potentiometers are mounted on the joints;
     }
 }
 
@@ -358,6 +410,12 @@ class {
         name PressedValue;
         type bool;
         visibility public;
+    }
+    member {
+        name SkipFirstRun;
+        type bool;
+        visibility public;
+        default false;
     }
     member {
         name DebounceThreshold;

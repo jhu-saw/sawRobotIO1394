@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2019-05-23
 
-  (C) Copyright 2019 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2019-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -75,13 +75,16 @@ namespace sawRobotIO1394 {
 
 
     protected:
+        void TriggerToolTypeEvent(const unsigned int & model,
+                                  const unsigned int & version,
+                                  const std::string & name);
         mtsInterfaceProvided * mInterface = nullptr;
         mtsFunctionWrite ToolTypeEvent;
         AmpIO * mBoard = nullptr;
         osaDallasChip1394Configuration mConfiguration;
         std::string mName;
         mtsStdString mToolType = ToolTypeUndefined;
-        int mStatus = 0; // 0: nothing to do, 1: sent ctrl, waiting for status, 2: reading data
+        bool mWaiting = false;
     };
 
 } // namespace sawRobotIO1394

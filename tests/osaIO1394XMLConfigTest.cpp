@@ -81,7 +81,7 @@ void osaIO1394XMLConfigTest::TestConfigure(void)
     CPPUNIT_ASSERT(xml_path.length() > 0);
 
     sawRobotIO1394::osaPort1394Configuration config;
-    sawRobotIO1394::osaXML1394ConfigurePort(xml_path, config);
+    sawRobotIO1394::osaXML1394ConfigurePort(xml_path, config, false /* calibration mode */);
 
     CPPUNIT_ASSERT(config.Robots.size() == 1);
     CPPUNIT_ASSERT(config.DigitalInputs.size() == 12);
@@ -91,25 +91,16 @@ void osaIO1394XMLConfigTest::TestConfigure(void)
     CPPUNIT_ASSERT(robot.Name == "Robot");
     CPPUNIT_ASSERT(robot.Actuators.size() == 4);
     CPPUNIT_ASSERT(robot.NumberOfActuators == 4);
-    CPPUNIT_ASSERT(robot.NumberOfJoints == 4);
-    CPPUNIT_ASSERT(robot.HasActuatorToJointCoupling == true);
-    CPPUNIT_ASSERT(robot.PotLocation == osaPot1394Location::POTENTIOMETER_ON_ACTUATORS);
 
-    CPPUNIT_ASSERT(robot.Coupling.ActuatorToJointPosition().rows() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.JointToActuatorPosition().rows() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.ActuatorToJointEffort().rows() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.JointToActuatorEffort().rows() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.ActuatorToJointPosition().cols() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.JointToActuatorPosition().cols() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.ActuatorToJointEffort().cols() == 4);
-    CPPUNIT_ASSERT(robot.Coupling.JointToActuatorEffort().cols() == 4);
+    CPPUNIT_ASSERT(robot.PotCoupling.JointToActuatorPosition().rows() == 4);
+    CPPUNIT_ASSERT(robot.PotCoupling.JointToActuatorPosition().cols() == 4);
 
-    vctDoubleMat actuator_to_joint_position(4, 4, VCT_ROW_MAJOR);
-    actuator_to_joint_position.Assign(0.0, 1.0, 0.0, 0.0,
+    vctDoubleMat joint_to_actuator_position(4, 4, VCT_ROW_MAJOR);
+    joint_to_actuator_position.Assign(0.0, 1.0, 0.0, 0.0,
                                       1.0, 0.0, 0.0, 0.0,
                                       0.0, 0.0, 1.0, 1.0,
                                       0.0, 0.0, 0.0, 1.0);
-    CPPUNIT_ASSERT(robot.Coupling.ActuatorToJointPosition().AlmostEqual(actuator_to_joint_position));
+    CPPUNIT_ASSERT(robot.PotCoupling.JointToActuatorPosition().AlmostEqual(joint_to_actuator_position));
 }
 
 

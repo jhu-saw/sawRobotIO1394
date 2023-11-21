@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -30,8 +30,8 @@ namespace sawRobotIO1394 {
         mtsDigitalInput1394Data():
             DigitalInputBits(0x0)
         {};
-        AmpIO_UInt32 BitMask;       // BitMask for this input. From DigitalInput Stream.
-        AmpIO_UInt32 DigitalInputBits; // BitMask for this input. From DigitalInput Stream.
+        uint32_t BitMask;       // BitMask for this input. From DigitalInput Stream.
+        uint32_t DigitalInputBits; // BitMask for this input. From DigitalInput Stream.
     };
 }
 
@@ -39,11 +39,7 @@ using namespace sawRobotIO1394;
 
 mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
                                          const osaDigitalInput1394Configuration & config):
-    OwnerServices(owner.Services()),
-    mData(0),
-    mValue(false),
-    mPreviousValue(false),
-    mDebounceCounter(-1)
+    OwnerServices(owner.Services())
 {
     mData = new mtsDigitalInput1394Data;
 
@@ -79,12 +75,11 @@ void mtsDigitalInput1394::SetupProvidedInterface(mtsInterfaceProvided * prov, mt
 void mtsDigitalInput1394::CheckState(void)
 {
     // Send appropriate events if the value changed in the last update
-
     // Check if value has changed
-    if (mValue != mPreviousValue) {
+    if (mFirstRun || (mValue != mPreviousValue)) {
         // Check if the value is equal to the value when the digital input is considered pressed
         if (mValue) {
-            // Emit a press event
+            // Emit a press event if specified in config
             if (mTriggerPress) {
                 if (mStateTable) {
                     mEventPayloads.Pressed.SetTimestamp(mStateTable->GetTic());
@@ -92,7 +87,7 @@ void mtsDigitalInput1394::CheckState(void)
                 Button(mEventPayloads.Pressed);
             }
         } else {
-            // Emit a release event
+            // Emit a release event if specified in config
             if (mTriggerRelease) {
                 if (mStateTable) {
                     mEventPayloads.Released.SetTimestamp(mStateTable->GetTic());
@@ -100,6 +95,10 @@ void mtsDigitalInput1394::CheckState(void)
                 Button(mEventPayloads.Released);
             }
         }
+    }
+    // Disable first run
+    if (mFirstRun) {
+        mFirstRun = false;
     }
 }
 
@@ -113,12 +112,9 @@ void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & con
     mPressedValue = config.PressedValue;
     mTriggerPress = config.TriggerWhenPressed;
     mTriggerRelease = config.TriggerWhenReleased;
+    mFirstRun = !config.SkipFirstRun;
     mDebounceThreshold = config.DebounceThreshold;
     mDebounceThresholdClick = config.DebounceThresholdClick;
-
-    // Set the value to un-pressed
-    mValue = !mPressedValue;
-    mPreviousValue = mValue;
 }
 
 void mtsDigitalInput1394::SetBoard(AmpIO * board)
@@ -138,17 +134,17 @@ void mtsDigitalInput1394::PollState(void)
     mData->DigitalInputBits =  mBoard->GetDigitalInput();
 
     // If the masked bit is low, set the value to the pressed value
-    bool value = (mData->DigitalInputBits & mData->BitMask)
-        ? (!mPressedValue) : (mPressedValue);
+    bool value = ((mData->DigitalInputBits & mData->BitMask)
+                  ? (!mPressedValue) : (mPressedValue));
 
     // No debounce needed
-    if (mDebounceThreshold == 0.0) {
+    if (mFirstRun || (mDebounceThreshold == 0.0)) {
         mValue = value;
         return;
     }
 
     // Debounce - start if we find one new different value
-    if (mDebounceCounter == -1.0) {
+    if (mDebounceCounter < 0.0) {
         if (value != mPreviousValue) {
             mDebounceCounter = 0.0;
             mTransitionValue = value;
@@ -157,10 +153,13 @@ void mtsDigitalInput1394::PollState(void)
     } else {
         if (mDebounceCounter < mDebounceThreshold) {
             if (value == mTransitionValue) {
-                mDebounceCounter += mBoard->GetTimestamp() / (49.125 * 1000.0 * 1000.0); // clock is 49.125 MHz
+                mDebounceCounter += mBoard->GetTimestamp() * mBoard->GetFPGAClockPeriod();
             } else {
-                // click if button is now released and counter is short enough
-                if (!value && (mDebounceCounter >  mDebounceThresholdClick)) {
+                // click if button is now changed back and counter is short enough
+                if ((mDebounceThresholdClick != mDebounceThreshold) // click is activated
+                    && !value // input is "changed back"
+                    && (mDebounceCounter >  mDebounceThresholdClick) // pressed long enough
+                    ) {
                     if (mStateTable) {
                         mEventPayloads.Clicked.SetTimestamp(mStateTable->GetTic());
                     }

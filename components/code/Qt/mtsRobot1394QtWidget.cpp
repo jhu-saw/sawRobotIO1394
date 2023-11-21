@@ -177,7 +177,7 @@ void mtsRobot1394QtWidget::SlotSafetyRelay(bool toggle)
 void mtsRobot1394QtWidget::SlotPowerEnable(bool toggle)
 {
     // send to controller first
-    Actuators.WritePowerEnable(toggle);
+    Robot.WritePowerEnable(toggle);
 
     // set all current to 0
     SlotResetCurrentAll();
@@ -270,7 +270,7 @@ void mtsRobot1394QtWidget::SlotActuatorAmpEnable(void)
 {
     ActuatorAmpEnable.SetSize(NumberOfActuators);
     QVWActuatorCurrentEnableEach->GetValue(ActuatorAmpEnable);
-    Actuators.SetAmpEnable(ActuatorAmpEnable);
+    Robot.SetActuatorAmpEnable(ActuatorAmpEnable);
 }
 
 void mtsRobot1394QtWidget::SlotBrakeAmpEnable(void)
@@ -380,15 +380,13 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         Robot.GetPowerEnable(PowerEnable);
         Robot.GetSafetyRelayStatus(SafetyRelayStatus);
         if (NumberOfActuators != 0) {
-            Actuators.GetAmpEnable(ActuatorAmpEnable);
-            Actuators.GetAmpStatus(ActuatorAmpStatus);
-            Robot.measured_js(StateJoint);
-            StateJoint.Position().ElementwiseMultiply(UnitFactor); // to degrees or mm
-            Actuators.measured_js(ActuatorStateJoint);
+            Robot.GetActuatorAmpEnable(ActuatorAmpEnable);
+            Robot.GetActuatorAmpStatus(ActuatorAmpStatus);
+            Robot.measured_js(ActuatorStateJoint);
             ActuatorStateJoint.Position().ElementwiseMultiply(UnitFactor); // to degrees or mm
             ActuatorStateJoint.Velocity().ElementwiseMultiply(UnitFactor); // to degrees or mm
             Robot.GetAnalogInputVolts(PotentiometersVolts);
-            Robot.GetAnalogInputPosSI(PotentiometersPosition);
+            Robot.pot_measured_js(PotentiometersPosition);
             PotentiometersPosition.Position().ElementwiseMultiply(UnitFactor); // to degrees or mm
             Robot.GetActuatorFeedbackCurrent(ActuatorFeedbackCurrent);
             ActuatorFeedbackCurrent.Multiply(1000.0); // to mA
@@ -404,7 +402,6 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
             Robot.GetBrakeAmpTemperature(BrakeAmpTemperature);
         }
     } else {
-        StateJoint.Position().SetAll(DummyValueWhenNotConnected);
         ActuatorStateJoint.Position().SetAll(DummyValueWhenNotConnected);
         ActuatorStateJoint.Velocity().SetAll(DummyValueWhenNotConnected);
         PotentiometersVolts.SetAll(DummyValueWhenNotConnected);
@@ -425,19 +422,15 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
 
     QMIntervalStatistics->SetValue(IntervalStatistics);
     if (PlotMode) {
-        Robot.measured_js(StateJoint);
-        PlotSignals[0]->AppendPoint(vct2(StateJoint.Timestamp(),
-                                         StateJoint.Position()[PlotIndex] * UnitFactor[PlotIndex]));
-        Actuators.measured_js(ActuatorStateJoint);
-        PlotSignals[1]->AppendPoint(vct2(ActuatorStateJoint.Timestamp(),
+        Robot.measured_js(ActuatorStateJoint);
+        PlotSignals[0]->AppendPoint(vct2(ActuatorStateJoint.Timestamp(),
                                          ActuatorStateJoint.Position()[PlotIndex] * UnitFactor[PlotIndex]));
-        Robot.GetAnalogInputPosSI(PotentiometersPosition);
-        PlotSignals[2]->AppendPoint(vct2(PotentiometersPosition.Timestamp(),
+        Robot.pot_measured_js(PotentiometersPosition);
+        PlotSignals[1]->AppendPoint(vct2(PotentiometersPosition.Timestamp(),
                                          PotentiometersPosition.Position()[PlotIndex] * UnitFactor[PlotIndex]));
         QPlot->update();
     } else {
         if (NumberOfActuators != 0) {
-            QVRJointPosition->SetValue(StateJoint.Position());
             QVRActuatorPosition->SetValue(ActuatorStateJoint.Position());
             QVRActuatorVelocity->SetValue(ActuatorStateJoint.Velocity());
             QVRPotVolts->SetValue(PotentiometersVolts);
@@ -487,7 +480,7 @@ void mtsRobot1394QtWidget::SetupCisstInterface(void)
 
         robotInterface->AddFunction("measured_js", Robot.measured_js);
         robotInterface->AddFunction("GetAnalogInputVolts", Robot.GetAnalogInputVolts);
-        robotInterface->AddFunction("GetAnalogInputPosSI", Robot.GetAnalogInputPosSI);
+        robotInterface->AddFunction("pot/measured_js", Robot.pot_measured_js);
         robotInterface->AddFunction("GetActuatorRequestedCurrent", Robot.GetActuatorRequestedCurrent);
         robotInterface->AddFunction("GetActuatorFeedbackCurrent", Robot.GetActuatorFeedbackCurrent);
         robotInterface->AddFunction("GetActuatorCurrentMax", Robot.GetActuatorCurrentMax);
@@ -515,15 +508,11 @@ void mtsRobot1394QtWidget::SetupCisstInterface(void)
                                              this, "WatchdogTimeoutStatus");
         robotInterface->AddEventHandlerWrite(&mtsRobot1394QtWidget::UsePotsForSafetyCheckEventHandler,
                                              this, "UsePotsForSafetyCheck");
-    }
 
-    mtsInterfaceRequired * actuatorInterface = AddInterfaceRequired("RobotActuators");
-    if (actuatorInterface) {
-        actuatorInterface->AddFunction("measured_js", Actuators.measured_js);
-        actuatorInterface->AddFunction("WritePowerEnable", Actuators.WritePowerEnable);
-        actuatorInterface->AddFunction("SetAmpEnable", Actuators.SetAmpEnable);
-        actuatorInterface->AddFunction("GetAmpEnable", Actuators.GetAmpEnable);
-        actuatorInterface->AddFunction("GetAmpStatus", Actuators.GetAmpStatus);
+        robotInterface->AddFunction("WritePowerEnable", Robot.WritePowerEnable);
+        robotInterface->AddFunction("SetActuatorAmpEnable", Robot.SetActuatorAmpEnable);
+        robotInterface->AddFunction("GetActuatorAmpEnable", Robot.GetActuatorAmpEnable);
+        robotInterface->AddFunction("GetActuatorAmpStatus", Robot.GetActuatorAmpStatus);
     }
 }
 
@@ -654,7 +643,7 @@ void mtsRobot1394QtWidget::setupUi(void)
     timingTitle->setFont(font);
     timingTitle->setAlignment(Qt::AlignCenter);
     timingLayout->addWidget(timingTitle);
-    QMIntervalStatistics = new mtsQtWidgetIntervalStatistics();
+    QMIntervalStatistics = new mtsIntervalStatisticsQtWidget();
     timingLayout->addWidget(QMIntervalStatistics);
     timingLayout->addStretch();
     timingFrame->setLayout(timingLayout);
@@ -706,11 +695,6 @@ void mtsRobot1394QtWidget::setupUi(void)
         textLayout->addWidget(new QLabel("Current feedback (mA)"), row, 0);
         QVRActuatorCurrentFeedback = new vctQtWidgetDynamicVectorDoubleRead();
         textLayout->addWidget(QVRActuatorCurrentFeedback, row, 1);
-        row++;
-
-        textLayout->addWidget(new QLabel("Joint position (deg)"), row, 0);
-        QVRJointPosition = new vctQtWidgetDynamicVectorDoubleRead();
-        textLayout->addWidget(QVRJointPosition, row, 1);
         row++;
 
         textLayout->addWidget(new QLabel("Actuator position (deg|mm)"), row, 0);
@@ -793,10 +777,9 @@ void mtsRobot1394QtWidget::setupUi(void)
 
     // constants
     const QColor baseColor = palette().color(QPalette::Base);
-    const vct3 _colors[3] = {vct3(1.0, 0.0, 0.0),
-                             vct3(0.0, 1.0, 0.0),
-                             vct3(0.0, 0.0, 1.0)};
-    const std::string _signals[3] = {"Joint position", "Actuator position", "Potentiometer"};
+    const vct3 _colors[2] = {vct3(1.0, 0.0, 0.0),
+                             vct3(0.0, 1.0, 0.0)};
+    const std::string _signals[2] = {"Actuator position", "Potentiometer"};
 
     // mapping
     PlotSignalMapper = new QSignalMapper();
@@ -806,7 +789,7 @@ void mtsRobot1394QtWidget::setupUi(void)
     QPalette palette;
 
     for (size_t signal = 0;
-         signal < 3;
+         signal < 2;
          ++signal) {
         QHBoxLayout * signalLayout = new QHBoxLayout();
         signalLayout->setContentsMargins(0, 0, 0, 0);
@@ -843,7 +826,7 @@ void mtsRobot1394QtWidget::setupUi(void)
     PlotScale = QPlot->AddScale("Position");
     QPlot->SetDisplayYRangeScale(PlotScale);
     for (size_t signal = 0;
-         signal < 3;
+         signal < 2;
          ++signal) {
         PlotSignals[signal] = PlotScale->AddSignal(_signals[signal]);
         PlotSignals[signal]->SetColor(_colors[signal]);

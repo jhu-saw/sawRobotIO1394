@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2021 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -227,6 +227,11 @@ void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
     mSkipConfigurationCheck = skip;
 }
 
+void mtsRobotIO1394::SetCalibrationMode(const bool & mode)
+{
+    mCalibrationMode = mode;
+}
+
 void mtsRobotIO1394::SaveConfigurationJSON(const std::string & filename)
 {
     mSaveConfigurationJSON = filename;
@@ -237,12 +242,12 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     CMN_LOG_CLASS_INIT_VERBOSE << "Configure: configuring from " << filename << std::endl;
 
     osaPort1394Configuration config;
-    osaXML1394ConfigurePort(filename, config);
+    osaXML1394ConfigurePort(filename, config, mCalibrationMode);
 
     // Add all the robots
     for (const auto & configRobot : config.Robots) {
         // Create a new robot
-        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot);
+        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot, mCalibrationMode);
         // Check the configuration if needed
         if (!mSkipConfigurationCheck) {
             if (!robot->CheckConfiguration()) {
@@ -345,18 +350,8 @@ bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
     robotInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
                                         "period_statistics");
 
-    // Create actuator interface
-    std::string actuatorInterfaceName = robot->Name();
-    actuatorInterfaceName.append("Actuators");
-    mtsInterfaceProvided * actuatorInterface = this->AddInterfaceProvided(actuatorInterfaceName);
-    if (!actuatorInterface) {
-        CMN_LOG_CLASS_INIT_ERROR << "SetupRobot: failed to create robot actuator interface \""
-                                 << actuatorInterfaceName << "\", do we have multiple robots with the same name?" << std::endl;
-        return false;
-    }
-
     // Setup the MTS interfaces
-    robot->SetupInterfaces(robotInterface, actuatorInterface);
+    robot->SetupInterfaces(robotInterface);
 
     return true;
 }
@@ -398,6 +393,11 @@ void mtsRobotIO1394::Startup(void)
 {
     // Use preferred watchdog timeout
     SetWatchdogPeriod(mWatchdogPeriod);
+
+    // Robot Startup
+    for (auto & robot : mRobots) {
+        robot->Startup();
+    }
 }
 
 void mtsRobotIO1394::PreRead(void)
@@ -536,22 +536,32 @@ void mtsRobotIO1394::Cleanup(void)
     Write();
 }
 
-void mtsRobotIO1394::GetNumberOfDigitalInputs(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfDigitalInputs(size_t & placeHolder) const
 {
     placeHolder = mDigitalInputs.size();
 }
 
-void mtsRobotIO1394::GetNumberOfDigitalOutputs(int & placeHolder) const
+mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index)
+{
+    return mDigitalInputs.at(index);
+}
+
+const mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index) const
+{
+    return mDigitalInputs.at(index);
+}
+
+void mtsRobotIO1394::GetNumberOfDigitalOutputs(size_t & placeHolder) const
 {
     placeHolder = mDigitalOutputs.size();
 }
 
-void mtsRobotIO1394::GetNumberOfBoards(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfBoards(size_t & placeHolder) const
 {
     placeHolder = mBoards.size();
 }
 
-void mtsRobotIO1394::GetNumberOfRobots(int & placeHolder) const
+void mtsRobotIO1394::GetNumberOfRobots(size_t & placeHolder) const
 {
     placeHolder = mRobots.size();
 }
@@ -561,14 +571,14 @@ mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
     return mRobots.at(index);
 }
 
-std::string mtsRobotIO1394::DefaultPort(void)
-{
-    return BasePort::DefaultPort();
-}
-
 const mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index) const
 {
     return mRobots.at(index);
+}
+
+std::string mtsRobotIO1394::DefaultPort(void)
+{
+    return BasePort::DefaultPort();
 }
 
 void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
@@ -756,8 +766,8 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
         }
     }
 
-    const AmpIO_UInt32 currentFirmwareRevision = 7;
-    const AmpIO_UInt32 lowestFirmwareSupported = 6;
+    const uint32_t currentFirmwareRevision = 8;
+    const uint32_t lowestFirmwareSupported = 6;
 
     std::stringstream message;
     bool fatal = false;

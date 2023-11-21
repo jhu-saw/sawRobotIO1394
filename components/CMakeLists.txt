@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2021 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2023 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -9,9 +9,8 @@
 #
 # --- end cisst license ---
 
-cmake_minimum_required (VERSION 2.8)
-
-project (sawRobotIO1394)
+cmake_minimum_required (VERSION 3.10)
+project (sawRobotIO1394 VERSION 2.2.0)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,12 +20,11 @@ set (REQUIRED_CISST_LIBRARIES
      cisstCommon
      cisstCommonXML
      cisstVector
-     cisstNumerical
      cisstOSAbstraction
      cisstMultiTask
      cisstParameterTypes)
 
-find_package (cisst 1.1.0 REQUIRED ${REQUIRED_CISST_LIBRARIES})
+find_package (cisst 1.2.0 REQUIRED ${REQUIRED_CISST_LIBRARIES})
 
 if (cisst_FOUND_AS_REQUIRED)
 
@@ -42,50 +40,40 @@ if (cisst_FOUND_AS_REQUIRED)
   endif ()
 
   # catkin/ROS paths
-  cisst_is_catkin_build (sawRobotIO1394_IS_CATKIN_BUILT)
-  if (sawRobotIO1394_IS_CATKIN_BUILT)
-    set (sawRobotIO1394_CONFIG_FILE_DIR
-         "${CATKIN_DEVEL_PREFIX}/share/sawRobotIO1394/cmake")
-    set (LIBRARY_OUTPUT_PATH "${sawRobotIO1394_BINARY_DIR}/lib")
-    set (EXECUTABLE_OUTPUT_PATH "${CATKIN_DEVEL_PREFIX}/bin")
-  else ()
-    set (sawRobotIO1394_CONFIG_FILE_DIR "${sawRobotIO1394_BINARY_DIR}")
-  endif ()
+  cisst_set_output_path ()
 
   # Compile lib Amp1394 and examples within this project
   add_subdirectory (code/Amp1394)
   set (CMAKE_PREFIX_PATH "${sawRobotIO1394_BINARY_DIR}/code/Amp1394" ${CMAKE_PREFIX_PATH})
-  find_package(Amp1394 REQUIRED)
+  find_package (Amp1394 REQUIRED)
 
   # Allow c++ code to find local header files
-  include_directories (${sawRobotIO1394_SOURCE_DIR})
+  include_directories (BEFORE ${sawRobotIO1394_SOURCE_DIR})
 
   # create/configure file for find_package (sawRobotIO1394)
   set (sawRobotIO1394_INCLUDE_DIR "${sawRobotIO1394_SOURCE_DIR}/include"
                                   "${sawRobotIO1394_BINARY_DIR}/include"
                                   ${Amp1394_INCLUDE_DIR})
+  set (sawRobotIO1394_HEADER_DIR "${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394")
   set (sawRobotIO1394_LIBRARY_DIR "${LIBRARY_OUTPUT_PATH}" ${Amp1394_LIBRARY_DIR})
   set (sawRobotIO1394_LIBRARIES sawRobotIO1394 ${Amp1394_LIBRARIES})
 
-  # Set the version number
-  set (sawRobotIO1394_VERSION_MAJOR "2")
-  set (sawRobotIO1394_VERSION_MINOR "1")
-  set (sawRobotIO1394_VERSION_PATCH "0")
-  set (sawRobotIO1394_VERSION "${sawRobotIO1394_VERSION_MAJOR}.${sawRobotIO1394_VERSION_MINOR}.${sawRobotIO1394_VERSION_PATCH}")
+  include_directories (BEFORE ${sawRobotIO1394_INCLUDE_DIR})
+  link_directories (${Amp1394_LIBRARY_DIR})
 
-  # Generate sawRobotIO1394Revision.h
-  configure_file ("${sawRobotIO1394_SOURCE_DIR}/code/sawRobotIO1394Revision.h.in"
-                  "${sawRobotIO1394_BINARY_DIR}/include/sawRobotIO1394/sawRobotIO1394Revision.h")
+  if (CISST_HAS_QT)
+    add_subdirectory (code/Qt)
+    set (sawRobotIO1394_LIBRARIES ${sawRobotIO1394_LIBRARIES} sawRobotIO1394Qt)
+  endif ()
+
+  # add all config files for this component
+  cisst_add_config_files (sawRobotIO1394)
 
   # create data type using the data generator
   cisst_data_generator (sawRobotIO1394
                         "${sawRobotIO1394_BINARY_DIR}/include" # where to save the file
                         "sawRobotIO1394/"    # sub directory for include
                         code/osaConfiguration1394.cdg)
-
-			include_directories (${sawRobotIO1394_INCLUDE_DIR})
-  set (sawRobotIO1394_HEADER_DIR "${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394")
-  link_directories (${Amp1394_LIBRARY_DIR})
 
   # create the library
   add_library (sawRobotIO1394
@@ -102,10 +90,13 @@ if (cisst_FOUND_AS_REQUIRED)
                code/mtsDigitalOutput1394.cpp
                code/mtsDallasChip1394.cpp
                code/mtsRobotIO1394.cpp
-	       ${sawRobotIO1394_CISST_DG_SRCS}
+               ${sawRobotIO1394_CISST_DG_SRCS}
                ${sawRobotIO1394_CISST_DG_HDRS})
 
-  set_property (TARGET sawRobotIO1394 PROPERTY FOLDER "sawRobotIO1394")
+  set_target_properties (sawRobotIO1394 PROPERTIES
+                         VERSION ${sawRobotIO1394_VERSION}
+                         FOLDER "sawRobotIO1394")
+
   target_link_libraries (sawRobotIO1394 Amp1394)
 
   # link rtai lib (may need to add Xenomai support)
@@ -116,37 +107,16 @@ if (cisst_FOUND_AS_REQUIRED)
   # link cisst lib
   cisst_target_link_libraries (sawRobotIO1394 ${REQUIRED_CISST_LIBRARIES})
 
-  if (CISST_HAS_QT)
-    # add Qt code
-    add_subdirectory (code/Qt)
-    set (sawRobotIO1394_LIBRARIES ${sawRobotIO1394_LIBRARIES} ${sawRobotIO1394Qt_LIBRARIES})
-  endif (CISST_HAS_QT)
-
-  set (sawRobotIO1394_CMAKE_CONFIG_FILE
-       "${sawRobotIO1394_CONFIG_FILE_DIR}/sawRobotIO1394Config.cmake")
-
-  configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/cmake/sawRobotIO1394Config.cmake.in"
-                  "${sawRobotIO1394_CMAKE_CONFIG_FILE}"
-                   @ONLY)
-
-  cisst_add_config_version ("${sawRobotIO1394_CONFIG_FILE_DIR}/sawRobotIO1394ConfigVersion.cmake"
-                            VERSION ${sawRobotIO1394_VERSION}
-                            DESTINATION ${CISST_CMAKE_INSTALL_SUFFIX}/saw
-                            COMPONENT sawRobotIO1394)
-
   # Install targets for headers and library
-  install (DIRECTORY
-           ${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394
-           ${sawRobotIO1394_BINARY_DIR}/include/sawRobotIO1394
+  install (DIRECTORY "${sawRobotIO1394_SOURCE_DIR}/include/sawRobotIO1394"
+                     "${sawRobotIO1394_BINARY_DIR}/include/sawRobotIO1394"
            DESTINATION include
+           COMPONENT sawRobotIO1394-dev
            PATTERN .svn EXCLUDE)
 
-  install (TARGETS sawRobotIO1394
+  install (TARGETS sawRobotIO1394 COMPONENT sawRobotIO1394
            RUNTIME DESTINATION bin
            LIBRARY DESTINATION lib
            ARCHIVE DESTINATION lib)
-
-  install (FILES "${sawRobotIO1394_CMAKE_CONFIG_FILE}"
-           DESTINATION "share/sawRobotIO1394")
 
 endif(cisst_FOUND_AS_REQUIRED)

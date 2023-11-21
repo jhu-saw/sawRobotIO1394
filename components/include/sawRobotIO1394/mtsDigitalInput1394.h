@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Jonathan Bohren
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -74,8 +74,8 @@ namespace sawRobotIO1394 {
 
     protected:
         mtsFunctionWrite Button;    // The event function for button, will return prmEventButton
-        AmpIO * mBoard;              // Board Assignment
-        mtsDigitalInput1394Data * mData; // Internal data using AmpIO types
+        AmpIO * mBoard = nullptr;   // Board Assignment
+        mtsDigitalInput1394Data * mData = nullptr; // Internal data using AmpIO types
         osaDigitalInput1394Configuration mConfiguration;
         std::string mName;
         int mBitID;                  // Board assigned bitID for this Digital Input
@@ -86,10 +86,11 @@ namespace sawRobotIO1394 {
         double mDebounceThresholdClick; // Quick transition, i.e. single click
 
         // State data
+        bool mFirstRun = true;
         bool mValue;                    // Current read value
         bool mTransitionValue;          // For debouncing
-        bool mPreviousValue;            // Saved value from the previous read
-        double mDebounceCounter;        // time in seconds with constant value
+        bool mPreviousValue = false;    // Saved value from the previous read
+        double mDebounceCounter = -1.0; // time in seconds with constant value
         mtsStateTable * mStateTable = nullptr;
 
         struct {

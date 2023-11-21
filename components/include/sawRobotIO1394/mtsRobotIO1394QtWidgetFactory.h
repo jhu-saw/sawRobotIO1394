@@ -5,7 +5,7 @@
   Author(s):  Kwang Young Lee
   Created on: 2013-04-11
 
-  (C) Copyright 2013-2020 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -58,8 +58,8 @@ protected:
     std::vector<std::string> RobotNames;
     std::vector<std::string> DigitalInputNames;
 
-    int NumberOfRobots;
-    int NumberOfDigitalInputs;
+    size_t NumberOfRobots;
+    size_t NumberOfDigitalInputs;
 
     vctIntVec NumberOfActuatorsPerRobot;
     vctIntVec NumberOfBrakesPerRobot;

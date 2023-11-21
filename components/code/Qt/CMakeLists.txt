@@ -46,15 +46,14 @@ if (cisst_FOUND_AS_REQUIRED)
                ${sawRobotIO1394_HEADER_DIR}/mtsRobotIO1394QtWidgetFactory.h
                mtsRobotIO1394QtWidgetFactory.cpp
                ${SAW_ROBOTIO1394_QT_WRAP_CPP})
-  set_property (TARGET sawRobotIO1394Qt PROPERTY FOLDER "sawRobotIO1394")
+  set_target_properties (sawRobotIO1394Qt PROPERTIES
+                         VERSION ${sawRobotIO1394_VERSION}
+                         FOLDER "sawRobotIO1394")
   cisst_target_link_libraries (sawRobotIO1394Qt ${REQUIRED_CISST_LIBRARIES})
   target_link_libraries (sawRobotIO1394Qt
                          ${sawRobotIO1394_LIBRARIES})
 
-  # make sure the new library is known by the parent folder to add to the config file
-  set (sawRobotIO1394Qt_LIBRARIES sawRobotIO1394Qt PARENT_SCOPE)
-
-  install (TARGETS sawRobotIO1394Qt
+  install (TARGETS sawRobotIO1394Qt COMPONENT sawRobotIO1394-Qt
            RUNTIME DESTINATION bin
            LIBRARY DESTINATION lib
            ARCHIVE DESTINATION lib)
