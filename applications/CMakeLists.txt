@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2019 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2023 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.10)
-project (sawRobotIO1394Applications VERSION 1.3.0)
+project (sawRobotIO1394Applications VERSION 2.2.0)
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
