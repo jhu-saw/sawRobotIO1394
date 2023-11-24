@@ -31,7 +31,7 @@ namespace sawRobotIO1394 {
 
     class mtsDigitalInput1394Data;
 
-    class mtsDigitalInput1394 {
+    class CISST_EXPORT mtsDigitalInput1394 {
     public:
         /*! Pointer on existing services.  This allows to use the class
           name and level of detail of another class, e.g. the class that
