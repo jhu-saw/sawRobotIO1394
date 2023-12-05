@@ -41,7 +41,7 @@ int main(int argc, char ** argv)
     cmnLogger::AddChannel(std::cerr, CMN_LOG_ALLOW_ERRORS_AND_WARNINGS);
 
     // create ROS node handle
-    ros::init(argc, argv, "sensable_phantom", ros::init_options::AnonymousName);
+    ros::init(argc, argv, "robot_io", ros::init_options::AnonymousName);
     ros::NodeHandle rosNodeHandle;
 
     // parse options
