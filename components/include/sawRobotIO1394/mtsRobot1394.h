@@ -109,6 +109,8 @@ namespace sawRobotIO1394 {
         //! Power / Safety Control
         void PowerOnSequence(void);
         void PowerOffSequence(const bool & openSafetyRelays = true);
+        void PowerOffSequenceOnError(const bool & openSafetyRelays = true);
+        void Explain(void);
         void WritePowerEnable(const bool & power);
         void WriteSafetyRelay(const bool & close);
         void SetWatchdogPeriod(const double & periodInSeconds);
@@ -397,7 +399,7 @@ namespace sawRobotIO1394 {
 
         mtsStateTable * mStateTableRead;
         mtsStateTable * mStateTableWrite;
-        bool mUserExpectsPower;
+        bool mUserExpectsPower = false;
         double mPoweringStartTime;
 
         prmForceTorqueJointSet mTorqueJoint;
