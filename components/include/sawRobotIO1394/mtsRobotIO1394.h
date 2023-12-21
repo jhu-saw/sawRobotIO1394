@@ -111,6 +111,7 @@ public:
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
 
     static std::string DefaultPort(void);
+    void close_all_relays(void);
 
 protected:
     void GetNumberOfBoards(size_t & placeHolder) const;
@@ -121,7 +122,6 @@ protected:
     void GetRobotNames(std::vector<std::string> & names) const;
     void GetDigitalInputNames(std::vector<std::string> & names) const;
     void GetDigitalOutputNames(std::vector<std::string> & names) const;
-    void close_all_relays(void);
 
     void PreRead(void);
     void PostRead(void);
