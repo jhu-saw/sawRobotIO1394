@@ -188,32 +188,35 @@ void mtsRobotIO1394::Init(const std::string & port)
     // Provide names of robot, names of digital inputs, and name of this member.
 
     // All previous interfaces are ready. Good start. Let's make a new provided interface.
-    mtsInterfaceProvided * configurationInterface   = this->AddInterfaceProvided("Configuration");
-    if (configurationInterface) {
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetRobotNames, this,
-                                               "GetRobotNames");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfActuatorsPerRobot, this,
-                                               "GetNumActuators");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfBrakesPerRobot, this,
-                                               "GetNumBrakes");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfRobots, this,
-                                               "GetNumRobots");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalInputs, this,
-                                               "GetNumDigitalInputs");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalInputNames, this,
-                                               "GetDigitalInputNames");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalOutputs, this,
-                                               "GetNumDigitalOutputs");
-        configurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalOutputNames, this,
-                                               "GetDigitalOutputNames");
-        configurationInterface->AddCommandRead<mtsComponent>(&mtsComponent::GetName, this,
-                                                             "GetName");
-        configurationInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
-                                                    "period_statistics");
-        configurationInterface->AddCommandReadState(*mStateTableRead, mStateTableRead->PeriodStats,
-                                                    "period_statistics_read");
-        configurationInterface->AddCommandReadState(*mStateTableWrite, mStateTableWrite->PeriodStats,
-                                                    "period_statistics_write");
+    mConfigurationInterface = this->AddInterfaceProvided("Configuration");
+    if (mConfigurationInterface) {
+        mConfigurationInterface->AddMessageEvents();
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetRobotNames, this,
+                                                "GetRobotNames");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfActuatorsPerRobot, this,
+                                                "GetNumActuators");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfBrakesPerRobot, this,
+                                                "GetNumBrakes");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfRobots, this,
+                                                "GetNumRobots");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalInputs, this,
+                                                "GetNumDigitalInputs");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalInputNames, this,
+                                                "GetDigitalInputNames");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalOutputs, this,
+                                                "GetNumDigitalOutputs");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalOutputNames, this,
+                                                "GetDigitalOutputNames");
+        mConfigurationInterface->AddCommandRead<mtsComponent>(&mtsComponent::GetName, this,
+                                                              "GetName");
+        mConfigurationInterface->AddCommandVoid(&mtsRobotIO1394::close_all_relays, this,
+                                                "close_all_relays");
+        mConfigurationInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
+                                                     "period_statistics");
+        mConfigurationInterface->AddCommandReadState(*mStateTableRead, mStateTableRead->PeriodStats,
+                                                     "period_statistics_read");
+        mConfigurationInterface->AddCommandReadState(*mStateTableWrite, mStateTableWrite->PeriodStats,
+                                                     "period_statistics_write");
     } else {
         CMN_LOG_CLASS_INIT_ERROR << "Configure: unable to create configuration interface." << std::endl;
     }
@@ -852,6 +855,16 @@ void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) con
     names.clear();
     for (const auto & output : mDigitalOutputs) {
         names.push_back(output->Name());
+    }
+}
+
+void mtsRobotIO1394::close_all_relays(void)
+{
+    if (mPort) {
+        AmpIO::WriteSafetyRelayAll(mPort, true);
+        mConfigurationInterface->SendStatus("Closed all safety relays");
+    } else {
+        mConfigurationInterface->SendError("Failed to close all safety relays, port has not been created yet");
     }
 }
 
