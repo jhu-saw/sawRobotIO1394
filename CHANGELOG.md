@@ -1,6 +1,22 @@
 Change log
 ==========
 
+2.2.1 (2013-12-29)
+==================
+
+* API changes:
+  * None
+* Deprecated features:
+  * None
+* New features:
+  * Provides more explanations if power fails on Si controllers
+  * Current calibration application
+    * Less confusing prompts
+    * Closes all relays so the user doesn't have to call `qlacommand -c close-relays`
+* Bug fixes:
+  * Added delay before testing MV good after powering
+  * Missing CISST_EXPORT for Windows
+
 2.2.0 (2023-11-21)
 ==================
 
