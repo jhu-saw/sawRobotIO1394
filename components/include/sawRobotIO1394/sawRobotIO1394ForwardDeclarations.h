@@ -33,6 +33,7 @@ namespace sawRobotIO1394 {
 
     const double WatchdogTimeout = 30.0 * cmn_ms;
 
+    const double MaximumTimeForMVGood = 0.2 * cmn_s;
     const double MaximumTimeToPower = 3.0 * cmn_s;
 
     const double TimeBetweenPotentiometerMissingErrors = 5.0 * cmn_s;

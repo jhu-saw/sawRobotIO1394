@@ -1323,8 +1323,11 @@ void mtsRobot1394::CheckState(void)
     if (mPreviousPowerFault != mPowerFault) {
         EventTriggers.PowerFault(mPowerFault);
         if (mPowerFault) {
-            this->PowerOffSequenceOnError(false /* do not open safety relays */);
-            mInterface->SendError("IO: " + this->Name() + " detected power fault");
+            // give some time to power, if greater then it's an issue
+            if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeForMVGood) {
+                this->PowerOffSequenceOnError(false /* do not open safety relays */);
+                mInterface->SendError("IO: " + this->Name() + " detected power fault");
+            }
         }
     }
 
