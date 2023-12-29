@@ -281,6 +281,7 @@ int main(int argc, char * argv[])
     cmnGetChar();
 
     robot->SetWatchdogPeriod(300.0 * cmn_ms);
+    port->close_all_relays();
     if (!enablePower(BOARD)) {
         robot->PowerOffSequence();
         delete port;
@@ -321,7 +322,7 @@ int main(int argc, char * argv[])
               << "Status: standard deviation in mA:       " << samplesCmdErr.stdDeviation << std::endl
               << "Status: kept " << samplesCmdErr.validSamples << " samples out of " << samplesCmdErr.totalSamples << std::endl
               << "Status: new average in mA:              " << samplesCmdErr.averageValidSamples << std::endl
-              << std::endl << std::endl;
+              << std::endl;
 
     // disable power
     robot->PowerOffSequence();
@@ -333,91 +334,88 @@ int main(int argc, char * argv[])
     }
 
     // display results
-    std::cout << "Measured current offsets:" << std::endl
-              << samplesFbErr.averageValidSamples << std::endl
-              << "Command current offsets (corrected using measured current offsets):" << std::endl
-              << averageValidSamples << std::endl
-              << std::endl
-              << "Do you want to update the config file with these values? [Y/y]" << std::endl;
+    std::cout << "Status: measured current offsets in mA: " << samplesFbErr.averageValidSamples << std::endl
+              << "Status: command current offsets in mA (corrected): " << averageValidSamples << std::endl
+              << std::endl;
+
+    cmnXMLPath xmlConfig;
+    xmlConfig.SetInputSource(configFile);
+    std::string
+        xmlQueryCmdOffset,
+        xmlQueryCmdScale,
+        xmlQueryFbOffset;
+    if (brakes) {
+        xmlQueryCmdOffset = "Robot[1]/Actuator[%d]/AnalogBrake/AmpsToBits/@Offset";
+        xmlQueryCmdScale  = "Robot[1]/Actuator[%d]/AnalogBrake/AmpsToBits/@Scale";
+        xmlQueryFbOffset =  "Robot[1]/Actuator[%d]/AnalogBrake/BitsToFeedbackAmps/@Offset";
+    } else {
+        xmlQueryCmdOffset = "Robot[1]/Actuator[%d]/Drive/AmpsToBits/@Offset";
+        xmlQueryCmdScale  = "Robot[1]/Actuator[%d]/Drive/AmpsToBits/@Scale";
+        xmlQueryFbOffset =  "Robot[1]/Actuator[%d]/Drive/BitsToFeedbackAmps/@Offset";
+    }
+
+    // query previous current offset and scales
+    vctDoubleVec previousCmdOffsets(numberOfAxis, 0.0);
+    vctDoubleVec previousCmdScales(numberOfAxis, 0.0);
+    vctDoubleVec previousFbOffsets(numberOfAxis, 0.0);
+    for (size_t index = 0; index < numberOfAxis; ++index) {
+        char path[64];
+        const char * context = "Config";
+        sprintf(path, xmlQueryCmdOffset.c_str(), static_cast<int>(index + 1));
+        xmlConfig.GetXMLValue(context, path, previousCmdOffsets[index]);
+        sprintf(path, xmlQueryCmdScale.c_str(), static_cast<int>(index + 1));
+        xmlConfig.GetXMLValue(context, path, previousCmdScales[index]);
+        sprintf(path, xmlQueryFbOffset.c_str(), static_cast<int>(index + 1));
+        xmlConfig.GetXMLValue(context, path, previousFbOffsets[index]);
+    }
+    // compute new offsets
+    vctDoubleVec newCmdOffsets(numberOfAxis);
+    newCmdOffsets.Assign(averageValidSamples);
+    newCmdOffsets.Divide(-1000.0); // convert back to Amps and negate
+    newCmdOffsets.ElementwiseMultiply(previousCmdScales);
+    newCmdOffsets.Add(previousCmdOffsets);
+
+    vctDoubleVec newFbOffsets(numberOfAxis);
+    newFbOffsets.Assign(previousFbOffsets);
+    newFbOffsets.Subtract(samplesFbErr.averageValidSamples / 1000.0);
+
+    // ask one last confirmation from user
+    std::cout << "Status: commanded current offsets in XML configuration file: " << previousCmdOffsets << std::endl
+              << "Status: new commanded current offsets:                       " << newCmdOffsets << std::endl
+              << "Status: measured current offsets in XML configuration file: " << previousFbOffsets << std::endl
+              << "Status: new measured current offsets:                       " << newFbOffsets << std::endl
+              << std::endl;
 
     // save if needed
-    char key;
-    key = cmnGetChar();
+    char key = '0';
+    while ((key != 'y')
+           && (key != 'Y')
+           && (key != 'n')
+           && (key != 'N')) {
+        std::cout << "Do you want to update the config file with these values? [y(es)/n(o)]" << std::endl;
+        key = cmnGetChar();
+    }
     if ((key == 'y') || (key == 'Y')) {
-        cmnXMLPath xmlConfig;
-        xmlConfig.SetInputSource(configFile);
-        std::string
-            xmlQueryCmdOffset,
-            xmlQueryCmdScale,
-            xmlQueryFbOffset;
-        if (brakes) {
-            xmlQueryCmdOffset = "Robot[1]/Actuator[%d]/AnalogBrake/AmpsToBits/@Offset";
-            xmlQueryCmdScale  = "Robot[1]/Actuator[%d]/AnalogBrake/AmpsToBits/@Scale";
-            xmlQueryFbOffset =  "Robot[1]/Actuator[%d]/AnalogBrake/BitsToFeedbackAmps/@Offset";
-        } else {
-            xmlQueryCmdOffset = "Robot[1]/Actuator[%d]/Drive/AmpsToBits/@Offset";
-            xmlQueryCmdScale  = "Robot[1]/Actuator[%d]/Drive/AmpsToBits/@Scale";
-            xmlQueryFbOffset =  "Robot[1]/Actuator[%d]/Drive/BitsToFeedbackAmps/@Offset";
-        }
-
-        // query previous current offset and scales
-        vctDoubleVec previousCmdOffsets(numberOfAxis, 0.0);
-        vctDoubleVec previousCmdScales(numberOfAxis, 0.0);
-        vctDoubleVec previousFbOffsets(numberOfAxis, 0.0);
+        vctIntVec newCmdOffsetsInt(newCmdOffsets);
+        vctDoubleVec newFbOffsetsInt(newFbOffsets);
         for (size_t index = 0; index < numberOfAxis; ++index) {
             char path[64];
             const char * context = "Config";
             sprintf(path, xmlQueryCmdOffset.c_str(), static_cast<int>(index + 1));
-            xmlConfig.GetXMLValue(context, path, previousCmdOffsets[index]);
-            sprintf(path, xmlQueryCmdScale.c_str(), static_cast<int>(index + 1));
-            xmlConfig.GetXMLValue(context, path, previousCmdScales[index]);
+            xmlConfig.SetXMLValue(context, path, newCmdOffsetsInt[index]);
             sprintf(path, xmlQueryFbOffset.c_str(), static_cast<int>(index + 1));
-            xmlConfig.GetXMLValue(context, path, previousFbOffsets[index]);
-
+            xmlConfig.SetXMLValue(context, path, newFbOffsetsInt[index]);
         }
-        // compute new offsets
-        vctDoubleVec newCmdOffsets(numberOfAxis);
-        newCmdOffsets.Assign(averageValidSamples);
-        newCmdOffsets.Divide(-1000.0); // convert back to Amps and negate
-        newCmdOffsets.ElementwiseMultiply(previousCmdScales);
-        newCmdOffsets.Add(previousCmdOffsets);
-
-        vctDoubleVec newFbOffsets(numberOfAxis);
-        newFbOffsets.Assign(previousFbOffsets);
-        newFbOffsets.Subtract(samplesFbErr.averageValidSamples / 1000.0);
-
-        // ask one last confirmation from user
-        std::cout << "Status: commanded current offsets in XML configuration file: " << previousCmdOffsets << std::endl
-                  << "Status: new commanded current offsets:                       " << newCmdOffsets << std::endl
-                  << "Status: measured current offsets in XML configuration file: " << previousFbOffsets << std::endl
-                  << "Status: new measured current offsets:                       " << newFbOffsets << std::endl
-                  << std::endl
-                  << "Do you want to save these values? [S/s]" << std::endl;
-        key = cmnGetChar();
-        if ((key == 's') || (key == 'S')) {
-            vctIntVec newCmdOffsetsInt(newCmdOffsets);
-            vctDoubleVec newFbOffsetsInt(newFbOffsets);
-            for (size_t index = 0; index < numberOfAxis; ++index) {
-                char path[64];
-                const char * context = "Config";
-                sprintf(path, xmlQueryCmdOffset.c_str(), static_cast<int>(index + 1));
-                xmlConfig.SetXMLValue(context, path, newCmdOffsetsInt[index]);
-                sprintf(path, xmlQueryFbOffset.c_str(), static_cast<int>(index + 1));
-                xmlConfig.SetXMLValue(context, path, newFbOffsetsInt[index]);
-            }
-            // rename old file and save in place
-            std::string currentDateTime;
-            osaGetDateTimeString(currentDateTime);
-            std::string newName = configFile + "-backup-" + currentDateTime;
-            cmnPath::RenameFile(configFile, newName);
-            std::cout << "Existing IO config file has been renamed " << newName << std::endl;
-            xmlConfig.SaveAs(configFile);
-            std::cout << "Results saved in IO config file " << configFile << std::endl;
-        } else {
-            std::cout << "Status: user didn't want to save new offsets." << std::endl;
-        }
+        // rename old file and save in place
+        std::string currentDateTime;
+        osaGetDateTimeString(currentDateTime);
+        std::string newName = configFile + "-backup-" + currentDateTime;
+        cmnPath::RenameFile(configFile, newName);
+        std::cout << "Existing IO config file has been renamed " << newName << std::endl;
+        xmlConfig.SaveAs(configFile);
+        std::cout << "Results saved in IO config file " << configFile << std::endl;
     } else {
-        std::cout << "Status: no data saved in config file." << std::endl;
+        std::cout << "Status: user didn't want to save new offsets." << std::endl;
     }
 
     delete port;

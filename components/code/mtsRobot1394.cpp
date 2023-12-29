@@ -166,6 +166,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
                                    "PowerOnSequence");
     robotInterface->AddCommandWrite(&mtsRobot1394::PowerOffSequence, this,
                                     "PowerOffSequence"); // bool, true to open safety relays
+    robotInterface->AddCommandVoid(&mtsRobot1394::Explain, this,
+                                   "Explain");
 
     robotInterface->AddCommandReadState(*mStateTableRead, mPowerEnable,
                                         "GetPowerEnable"); // bool
@@ -1048,7 +1050,7 @@ void mtsRobot1394::CheckState(void)
     }
 
     if (mCurrentSafetyViolationsCounter > mCurrentSafetyViolationsMaximum) {
-        this->PowerOffSequence(false /* do no open safety relays */);
+        this->PowerOffSequenceOnError(false /* do no open safety relays */);
         cmnThrow(this->Name() + ": too many consecutive current safety violations.  Power has been disabled.");
     }
 
@@ -1127,7 +1129,7 @@ void mtsRobot1394::CheckState(void)
         }
 
         if (temperatureError) {
-            this->PowerOffSequence(false /* do not open safety relays */);
+            this->PowerOffSequenceOnError(false /* do not open safety relays */);
             std::stringstream message;
             message << "IO: " << this->Name() << " controller measured temperature is " << temperatureTrigger
                     << "ºC, error threshold is set to " << sawRobotIO1394::TemperatureErrorThreshold << "ºC";
@@ -1181,7 +1183,7 @@ void mtsRobot1394::CheckState(void)
             }
         }
         if (foundMissingPot) {
-            this->PowerOffSequence();
+            this->PowerOffSequenceOnError();
             // send error message without flooding the UI
             if (mTimeLastPotentiometerMissingError >= sawRobotIO1394::TimeBetweenPotentiometerMissingErrors) {
                 mInterface->SendError("IO: " + this->Name() + " detected an unknow pot position, make sure you're using the correct lookup configuration file or recalibrate your potentiometers");
@@ -1237,7 +1239,7 @@ void mtsRobot1394::CheckState(void)
                     // check how long have we been off
                     if (*potDuration > *potLatency) {
                         // now we have a problem,
-                        this->PowerOffSequence(false); // don't open safety relays
+                        this->PowerOffSequenceOnError(false); // don't open safety relays
                         // maybe it's not new, used for reporting
                         if (*potValid) {
                             // this is new
@@ -1259,6 +1261,7 @@ void mtsRobot1394::CheckState(void)
         // if status has changed
         if (statusChanged) {
             if (error) {
+                this->PowerOffSequenceOnError(false /* do not open safety relays */);
                 std::string errorMessage = "IO: " + this->Name() + ": inconsistency between encoders and potentiometers";
                 std::string warningMessage = errorMessage + "\nencoders:\n";
                 warningMessage.append(encoderRef.ToString());
@@ -1284,7 +1287,7 @@ void mtsRobot1394::CheckState(void)
 
     // Check for encoder overflow
     if (mEncoderOverflow.Any()) {
-        this->PowerOffSequence(false /* do not open safety relays */);
+        this->PowerOffSequenceOnError(false /* do not open safety relays */);
         this->SetEncoderPosition(vctDoubleVec(mNumberOfActuators, 0.0));
         if (mEncoderOverflow.NotEqual(mPreviousEncoderOverflow)) {
             mPreviousEncoderOverflow.Assign(mEncoderOverflow);
@@ -1311,6 +1314,7 @@ void mtsRobot1394::CheckState(void)
         if (!mFullyPowered && mUserExpectsPower) {
             // give some time to power, if greater then it's an issue
             if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
+                this->PowerOffSequenceOnError(false /* do not open safety relays */);
                 mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
             }
         }
@@ -1319,13 +1323,18 @@ void mtsRobot1394::CheckState(void)
     if (mPreviousPowerFault != mPowerFault) {
         EventTriggers.PowerFault(mPowerFault);
         if (mPowerFault) {
-            mInterface->SendError("IO: " + this->Name() + " detected power fault");
+            // give some time to power, if greater then it's an issue
+            if ((mStateTableRead->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeForMVGood) {
+                this->PowerOffSequenceOnError(false /* do not open safety relays */);
+                mInterface->SendError("IO: " + this->Name() + " detected power fault");
+            }
         }
     }
 
     if (mPreviousWatchdogTimeoutStatus != mWatchdogTimeoutStatus) {
         EventTriggers.WatchdogTimeoutStatus(mWatchdogTimeoutStatus);
         if (mWatchdogTimeoutStatus) {
+            this->PowerOffSequenceOnError(false /* do not open safety relays */);
             mInterface->SendError("IO: " + this->Name() + " watchdog triggered");
         } else {
             mInterface->SendStatus("IO: " + this->Name() + " watchdog ok");
@@ -1421,6 +1430,22 @@ void mtsRobot1394::PowerOffSequence(const bool & openSafetyRelays)
     WritePowerEnable(false);
     if (openSafetyRelays) {
         WriteSafetyRelay(false);
+    }
+}
+
+void mtsRobot1394::PowerOffSequenceOnError(const bool & openSafetyRelays)
+{
+    if (mUserExpectsPower && (mHardwareVersion == osa1394::dRA1)) {
+        this->Explain();
+    }
+    PowerOffSequence(openSafetyRelays);
+}
+
+void mtsRobot1394::Explain(void)
+{
+    for (auto board : mUniqueBoards) {
+        CMN_LOG_CLASS_RUN_ERROR << "Explain: " << this->Name()
+                                << " - " << board.second->ExplainSiFault() << std::endl;
     }
 }
 

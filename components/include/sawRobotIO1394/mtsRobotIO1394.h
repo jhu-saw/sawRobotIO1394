@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -38,9 +38,9 @@ public:
 
 protected:
 
-    std::ostream * mMessageStream; // Stream provided to the low level boards for messages, redirected to cmnLogger
+    std::ostream * mMessageStream = nullptr; // Stream provided to the low level boards for messages, redirected to cmnLogger
 
-    BasePort * mPort;
+    BasePort * mPort = nullptr;
 
     double mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
     bool mSkipConfigurationCheck = false;
@@ -82,7 +82,7 @@ public:
     void SkipConfigurationCheck(const bool skip); // must be called before Configure
     void SetCalibrationMode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
     void SaveConfigurationJSON(const std::string & filename); // must be called before Configure
-    void Configure(const std::string & filename);
+    void Configure(const std::string & filename) override;
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     bool SetupDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalOutput);
@@ -94,9 +94,9 @@ public:
 
     bool CheckFirmwareVersions(void);
 
-    void Startup(void);
-    void Run(void);
-    void Cleanup(void);
+    void Startup(void) override;
+    void Run(void) override;
+    void Cleanup(void) override;
     void GetNumberOfDigitalInputs(size_t & placeHolder) const;
     sawRobotIO1394::mtsDigitalInput1394 * DigitalInput(const size_t index);
     const sawRobotIO1394::mtsDigitalInput1394* DigitalInput(const size_t index) const;
@@ -111,12 +111,14 @@ public:
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
 
     static std::string DefaultPort(void);
+    void close_all_relays(void);
 
 protected:
     void GetNumberOfBoards(size_t & placeHolder) const;
     void GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const;
     void GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const;
 
+    mtsInterfaceProvided * mConfigurationInterface = nullptr;
     void GetRobotNames(std::vector<std::string> & names) const;
     void GetDigitalInputNames(std::vector<std::string> & names) const;
     void GetDigitalOutputNames(std::vector<std::string> & names) const;
