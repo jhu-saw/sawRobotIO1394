@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2023 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2024 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required(VERSION 3.10)
-project (sawRobotIO1394All VERSION 2.2.1)
+project (sawRobotIO1394Core VERSION 2.2.1)
 
 find_package (cisst REQUIRED)
 include (${CISST_USE_FILE})
@@ -24,7 +24,7 @@ add_subdirectory (components)
 add_subdirectory (share)
 
 # Applications
-set (sawRobotIO1394_DIR "${sawRobotIO1394All_BINARY_DIR}/components")
+set (sawRobotIO1394_DIR "${sawRobotIO1394Core_BINARY_DIR}/components")
 add_subdirectory (applications)
 
 # Tests programs, will only get compiled if cisstTestsDriver has been compiled

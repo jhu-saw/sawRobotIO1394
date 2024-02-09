@@ -1,4 +1,4 @@
 [submodule "components/code/Amp1394"]
-	path = components/code/Amp1394
+	path = core/components/code/Amp1394
 	url = https://github.com/jhu-cisst/mechatronics-software.git
         branch = devel

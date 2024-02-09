@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2022-10-12
 
-  (C) Copyright 2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2022-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -29,7 +29,7 @@ http://www.cisst.org/cisst/license.txt.
 CMN_IMPLEMENT_SERVICES_DERIVED(mts_ros_crtk_robot_io_bridge, mtsComponent);
 
 mts_ros_crtk_robot_io_bridge::mts_ros_crtk_robot_io_bridge(const std::string & name,
-                                                           ros::NodeHandle * node_handle,
+                                                           cisst_ral::node_ptr_t node_handle,
                                                            const double & ros_period,
                                                            const double & tf_period):
     mtsComponent(name),

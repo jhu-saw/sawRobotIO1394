@@ -1,0 +1,4 @@
+{
+  "name": "robot_io",
+  "dependencies": ["cisst_ros_crtk", "sawRobotIO1394Core"]
+}
