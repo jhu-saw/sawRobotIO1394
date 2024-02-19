@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2013-2016 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2013-2024 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -9,16 +9,18 @@
 #
 # --- end cisst license ---
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.10)
+project (sawRobotIO1394ExamplesDataCollection VERSION 2.2.1)
 
 # create a list of required cisst libraries
-set (REQUIRED_CISST_LIBRARIES cisstCommon
-                              cisstCommonXML
-                              cisstVector
-                              cisstNumerical
-                              cisstOSAbstraction
-                              cisstMultiTask
-                              cisstParameterTypes)
+set (REQUIRED_CISST_LIBRARIES
+  cisstCommon
+  cisstCommonXML
+  cisstVector
+  cisstNumerical
+  cisstOSAbstraction
+  cisstMultiTask
+  cisstParameterTypes)
 
 # find cisst and make sure the required libraries have been compiled
 find_package (cisst REQUIRED ${REQUIRED_CISST_LIBRARIES})
@@ -29,10 +31,7 @@ if (cisst_FOUND_AS_REQUIRED)
   include (${CISST_USE_FILE})
 
   # catkin/ROS paths
-  cisst_is_catkin_build (sawRobotIO1394ExamplesDataCollection_IS_CATKIN_BUILT)
-  if (sawRobotIO1394ExamplesDataCollection_IS_CATKIN_BUILT)
-    set (EXECUTABLE_OUTPUT_PATH "${CATKIN_DEVEL_PREFIX}/bin")
-  endif ()
+  cisst_set_output_path ()
 
   # sawRobotIO1394 has been compiled within cisst, we should find it automatically
   find_package (sawRobotIO1394 REQUIRED)

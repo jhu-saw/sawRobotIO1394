@@ -12,10 +12,6 @@
 cmake_minimum_required (VERSION 3.10)
 project (sawRobotIO1394Applications VERSION 2.2.1)
 
-set (CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
-
 # Qt based example, CMake will look for cisstQt
 add_subdirectory (Qt)
 

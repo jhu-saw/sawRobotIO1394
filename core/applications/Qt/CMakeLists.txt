@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2009-2021 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2009-2024 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -9,18 +9,20 @@
 #
 # --- end cisst license ---
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.10)
+project (sawRobotIO1394QtConsole VERSION 2.2.1)
 
 # create a list of required cisst libraries
-set (REQUIRED_CISST_LIBRARIES cisstCommon
-                              cisstVector
-                              cisstVectorQt
-                              cisstOSAbstraction
-                              cisstMultiTask
-                              cisstMultiTaskQt
-                              cisstParameterTypes
-                              cisstParameterTypesQt
-                              cisstQt)
+set (REQUIRED_CISST_LIBRARIES
+  cisstCommon
+  cisstVector
+  cisstVectorQt
+  cisstOSAbstraction
+  cisstMultiTask
+  cisstMultiTaskQt
+  cisstParameterTypes
+  cisstParameterTypesQt
+  cisstQt)
 
 # find cisst and make sure the required libraries have been compiled
 find_package (cisst REQUIRED ${REQUIRED_CISST_LIBRARIES})
@@ -31,10 +33,7 @@ if (cisst_FOUND_AS_REQUIRED)
   include (${CISST_USE_FILE})
 
   # catkin/ROS paths
-  cisst_is_catkin_build (sawRobotIO1394ExamplesQt_IS_CATKIN_BUILT)
-  if (sawRobotIO1394ExamplesQt_IS_CATKIN_BUILT)
-    set (EXECUTABLE_OUTPUT_PATH "${CATKIN_DEVEL_PREFIX}/bin")
-  endif ()
+  cisst_set_output_path ()
 
   # sawRobotIO1394 has been compiled within cisst, we should find it automatically
   find_package (sawRobotIO1394 REQUIRED)
@@ -57,10 +56,11 @@ if (cisst_FOUND_AS_REQUIRED)
     # link against cisst libraries (and dependencies)
     cisst_target_link_libraries (sawRobotIO1394QtConsole ${REQUIRED_CISST_LIBRARIES})
 
-    install (TARGETS sawRobotIO1394QtConsole COMPONENT sawRobotIO1394-Applications
-             RUNTIME DESTINATION bin
-             LIBRARY DESTINATION lib
-             ARCHIVE DESTINATION lib)
+    install (TARGETS sawRobotIO1394QtConsole
+      COMPONENT sawRobotIO1394-Applications
+      RUNTIME DESTINATION bin
+      LIBRARY DESTINATION lib
+      ARCHIVE DESTINATION lib)
 
   endif (sawRobotIO1394_FOUND)
 

@@ -83,7 +83,7 @@ int main(int argc, char ** argv)
     options.AddOptionNoValue("D", "dark-mode",
                              "replaces the default Qt palette with darker colors");
 
-    if (!options.Parse(ral.stripped_arguments(), std::cerr)) {
+    if (!options.Parse(argc, argv, std::cerr)) {
         return -1;
     }
 

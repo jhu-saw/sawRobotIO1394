@@ -1,7 +1,7 @@
 #
 # CMakeLists for sawRobotIO1394 tests
 #
-# (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2013-2024 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -14,17 +14,14 @@
 cmake_minimum_required(VERSION 3.10)
 project (sawRobotIO1394Tests VERSION 2.1.0)
 
-set (CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
-
 # create a list of required cisst libraries
-set (REQUIRED_CISST_LIBRARIES cisstCommon
-                              cisstVector
-                              cisstOSAbstraction
-                              cisstMultiTask
-                              cisstParameterTypes
-			      cisstTestsDriver)
+set (REQUIRED_CISST_LIBRARIES
+  cisstCommon
+  cisstVector
+  cisstOSAbstraction
+  cisstMultiTask
+  cisstParameterTypes
+  cisstTestsDriver)
 
 # find cisst and make sure the required libraries have been compiled
 find_package (cisst REQUIRED ${REQUIRED_CISST_LIBRARIES})
@@ -35,10 +32,7 @@ if (cisst_FOUND_AS_REQUIRED)
   include (${CISST_USE_FILE})
 
   # catkin/ROS paths
-  cisst_is_catkin_build (sawRobotIO1394Tests_IS_CATKIN_BUILT)
-  if (sawRobotIO1394Tests_IS_CATKIN_BUILT)
-    set (EXECUTABLE_OUTPUT_PATH "${CATKIN_DEVEL_PREFIX}/bin")
-  endif ()
+  cisst_set_output_path ()
 
   # sawRobotIO1394 has been compiled within cisst, we should find it automatically
   find_package (sawRobotIO1394 REQUIRED)
