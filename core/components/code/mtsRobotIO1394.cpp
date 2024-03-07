@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -769,7 +769,7 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
         }
     }
 
-    const uint32_t currentFirmwareRevision = 8;
+    const uint32_t currentFirmwareRevision = 9;
     const uint32_t lowestFirmwareSupported = 6;
 
     std::stringstream message;

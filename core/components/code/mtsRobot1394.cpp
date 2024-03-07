@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -168,6 +168,8 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
                                     "PowerOffSequence"); // bool, true to open safety relays
     robotInterface->AddCommandVoid(&mtsRobot1394::Explain, this,
                                    "Explain");
+    robotInterface->AddCommandWrite(&mtsRobot1394::set_LED_pattern, this,
+                                    "set_LED_pattern");
 
     robotInterface->AddCommandReadState(*mStateTableRead, mPowerEnable,
                                         "GetPowerEnable"); // bool
@@ -1448,6 +1450,23 @@ void mtsRobot1394::Explain(void)
                                 << " - " << board.second->ExplainSiFault() << std::endl;
     }
 }
+
+
+void mtsRobot1394::set_LED_pattern(const prmInputData & pattern)
+{
+    if ((pattern.AnalogInputs().size() != 2)
+        || (pattern.DigitalInputs().size() != 2)) {
+        CMN_LOG_CLASS_RUN_WARNING << "set_LED_pattern for " << this->Name() << " has incorrect number of values" << std::endl;
+        return;
+    }
+    for (auto board : mUniqueBoards) {
+        board.second->WriteRobotLED(static_cast<uint32_t>(pattern.AnalogInputs().at(0)),
+                                    static_cast<uint32_t>(pattern.AnalogInputs().at(1)),
+                                    pattern.DigitalInputs().at(0),
+                                    pattern.DigitalInputs().at(1));
+    }
+}
+
 
 void mtsRobot1394::SetWatchdogPeriod(const double & periodInSeconds)
 {

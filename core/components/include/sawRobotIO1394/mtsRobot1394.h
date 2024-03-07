@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -20,6 +20,7 @@ http://www.cisst.org/cisst/license.txt.
 #define _mtsRobot1394_h
 
 #include <cisstParameterTypes/prmMaskedVector.h>
+#include <cisstParameterTypes/prmInputData.h>
 #include <cisstParameterTypes/prmConfigurationJoint.h>
 #include <cisstParameterTypes/prmStateJoint.h>
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
@@ -111,6 +112,7 @@ namespace sawRobotIO1394 {
         void PowerOffSequence(const bool & openSafetyRelays = true);
         void PowerOffSequenceOnError(const bool & openSafetyRelays = true);
         void Explain(void);
+        void set_LED_pattern(const prmInputData & pattern);
         void WritePowerEnable(const bool & power);
         void WriteSafetyRelay(const bool & close);
         void SetWatchdogPeriod(const double & periodInSeconds);
