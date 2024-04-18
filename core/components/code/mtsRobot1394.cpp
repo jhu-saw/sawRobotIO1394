@@ -679,24 +679,31 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
     for (auto board = mUniqueBoards.begin();
          board != mUniqueBoards.end();
          ++board, ++boardCounter) {
+        // check the hardware version vs version specified in configuration file
+        const auto hardwareVersion = board->second->GetHardwareVersion();
+        if (!((hardwareVersion == QLA1_String && mHardwareVersion == osa1394::QLA1)
+              || (hardwareVersion == DQLA_String && mHardwareVersion == osa1394::DQLA)
+              || (hardwareVersion == dRA1_String && mHardwareVersion == osa1394::dRA1))) {
+            if (hardwareVersion == BCFG_String) {
+                CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
+                                         << ", hardware version query reported BCFG (boot configuration)." << std::endl
+                                         << "Maybe you just need to wait for the controller to boot or forgot to insert the SD with a valid firmware." << std::endl;
+            } else {
+                CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
+                                         << ", hardware version doesn't match value from configuration file for board: " << boardCounter
+                                         << ", Id: " << static_cast<int>(board->second->GetBoardId())
+                                         << ".  Hardware found: " << board->second->GetHardwareVersionString()
+                                         << ".  Configuration file value: " << osa1394::HardwareTypeToString(mHardwareVersion) << std::endl;
+            }
+            exit(EXIT_FAILURE);
+        }
+        // then get firmware
         uint32_t fversion = board->second->GetFirmwareVersion();
         if (fversion == 0) {
             CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
                                      << ", unable to get firmware version for board: " << boardCounter
                                      << ", Id: " << static_cast<int>(board->second->GetBoardId())
                                      << ".  Make sure the controller is powered and connected" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        // check the hardware version vs version specified in configuration file
-        const auto hardwareVersion = board->second->GetHardwareVersion();
-        if (!((hardwareVersion == QLA1_String && mHardwareVersion == osa1394::QLA1)
-              || (hardwareVersion == DQLA_String && mHardwareVersion == osa1394::DQLA)
-              || (hardwareVersion == dRA1_String && mHardwareVersion == osa1394::dRA1))) {
-            CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->mName
-                                     << ", hardware version doesn't match value from configuration file for board: " << boardCounter
-                                     << ", Id: " << static_cast<int>(board->second->GetBoardId())
-                                     << ".  Hardware found: " << board->second->GetHardwareVersionString()
-                                     << ".  Configuration file value: " << osa1394::HardwareTypeToString(mHardwareVersion) << std::endl;
             exit(EXIT_FAILURE);
         }
         std::string serialQLA;
