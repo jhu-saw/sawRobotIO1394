@@ -173,6 +173,11 @@ void mtsRobotIO1394::Init(const std::string & port)
         CMN_LOG_CLASS_INIT_ERROR << "Init: failed to initialize " << mPort->GetPortTypeString() << std::endl;
         exit(EXIT_FAILURE);
     }
+    // check number of port users
+    if (mPort->NumberOfUsers() > 1) {
+        CMN_LOG_CLASS_INIT_ERROR << "Init: found more than one user on firewire port: " << port << std::endl;;
+        exit(EXIT_FAILURE);
+    }
 
     mtsInterfaceProvided * mainInterface = AddInterfaceProvided("MainInterface");
     if (mainInterface) {
