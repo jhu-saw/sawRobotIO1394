@@ -28,7 +28,6 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnXMLPath.h>
 
-#include <cisstParameterTypes/prmJointType.h>
 #include <cisstParameterTypes/prmPositionJointGet.h>
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
 

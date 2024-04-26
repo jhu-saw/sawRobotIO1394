@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-16
 
-  (C) Copyright 2013-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -122,14 +122,14 @@ void mtsRobot1394QtWidget::Startup(void)
         // set unitFactor
         for (size_t i = 0; i < this->NumberOfActuators; i++ ) {
             switch (jointConfig.Type().at(i)) {
-            case PRM_JOINT_REVOLUTE:
+            case CMN_JOINT_REVOLUTE:
                 UnitFactor[i] = cmn180_PI;
                 break;
-            case PRM_JOINT_PRISMATIC:
+            case CMN_JOINT_PRISMATIC:
                 UnitFactor[i] = 1.0 / cmn_mm; // convert internal values to mm
                 break;
-            case PRM_JOINT_INACTIVE:
-            case PRM_JOINT_UNDEFINED:
+            case CMN_JOINT_INACTIVE:
+            case CMN_JOINT_UNDEFINED:
                 break;
             default:
                 cmnThrow("mtsRobot1394QtWidget: unknown joint type");

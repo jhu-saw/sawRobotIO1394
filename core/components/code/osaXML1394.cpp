@@ -5,7 +5,7 @@
   Author(s):  Jonathan Bohren, Anton Deguet
   Created on: 2013-06-29
 
-  (C) Copyright 2013-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -23,16 +23,16 @@ http://www.cisst.org/cisst/license.txt.
 
 namespace sawRobotIO1394 {
 
-    bool osaXML1394CheckUnitVsType(const prmJointType & type, const std::string & unit,
+    bool osaXML1394CheckUnitVsType(const cmnJointType & type, const std::string & unit,
                                    const bool onlyIO, const std::string & path)
     {
-        if (type == PRM_JOINT_REVOLUTE) {
+        if (type == CMN_JOINT_REVOLUTE) {
             if (!osaUnitIsDistanceRevolute(unit) && !onlyIO) {
                 CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
                                    << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
                 return false;
             }
-        } else if (type == PRM_JOINT_PRISMATIC) {
+        } else if (type == CMN_JOINT_PRISMATIC) {
             if (!osaUnitIsDistancePrismatic(unit) && !onlyIO) {
                 CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
                                    << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
@@ -257,9 +257,9 @@ namespace sawRobotIO1394 {
             }
 
             if (actuatorType == "Revolute") {
-                actuator.JointType = PRM_JOINT_REVOLUTE;
+                actuator.JointType = CMN_JOINT_REVOLUTE;
             } else if (actuatorType == "Prismatic") {
-                actuator.JointType = PRM_JOINT_PRISMATIC;
+                actuator.JointType = CMN_JOINT_PRISMATIC;
             }
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/AmpsToBits/@Scale", robotIndex, actuatorIndex);

@@ -4,8 +4,8 @@
 inline-header {
 #include <set>
 #include <cisstCommon/cmnUnits.h>
+#include <cisstCommon/cmnJointType.h>
 #include <cisstVector/vctDynamicMatrixTypes.h>
-#include <cisstParameterTypes/prmJointType.h>
 #include <cisstParameterTypes/prmActuatorJointCoupling.h>
 #include <sawRobotIO1394/sawRobotIO1394Revision.h>
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
@@ -243,7 +243,7 @@ class {
     }
     member {
         name JointType;
-        type prmJointType;
+        type cmnJointType;
         visibility public;
     }
     member {
