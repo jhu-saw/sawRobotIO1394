@@ -39,14 +39,17 @@ if (cisst_FOUND_AS_REQUIRED)
     message (FATAL_ERROR "You need to make sure CISST_USE_SI_UNITS to ON")
   endif ()
 
+  # catkin/ROS paths
+  cisst_set_output_path ()
+
   # Compile lib Amp1394 and examples within this project
-  set (LIBRARY_OUTPUT_PATH "${CISST_BINARY_DIR}/lib")
+  set (LIBRARY_OUTPUT_PATH "${CISST_BINARY_DIR}/lib") # for Python wrappers
   set (Amp1394_BUILD_SWIG ${CISST_HAS_SWIG_PYTHON} CACHE BOOL "" FORCE)
   add_subdirectory (code/Amp1394)
   set (CMAKE_PREFIX_PATH "${sawRobotIO1394_BINARY_DIR}/code/Amp1394" ${CMAKE_PREFIX_PATH})
   find_package (Amp1394 REQUIRED)
 
-  # catkin/ROS paths
+  # reset catkin/ROS paths
   cisst_set_output_path ()
 
   # Allow c++ code to find local header files
