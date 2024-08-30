@@ -1,6 +1,20 @@
 Change log
 ==========
 
+2.3.0 (2014-08-30)
+==================
+
+* API changes:
+  * Reorganized files so ROS nodes can be compiled for both ROS1 and ROS2. `components` and `examples` are now under `core`.  The directory `ros` contains all the ROS dependent applications (i.e. `robot_io`)
+* Deprecated features:
+  * Used `cmnJointType` instead of `prmJointType`
+* New features:
+  * Si LEDs
+  * Better error messages for Si systems
+  * Expose Python wrappers for AmpIO library 
+* Bug fixes:
+  * Re-added check on number of applications using FireWire port
+
 2.2.1 (2013-12-29)
 ==================
 

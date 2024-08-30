@@ -1,11 +1,11 @@
 /* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-    */
 /* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
-/*
 
+/*
   Author(s):  Anton Deguet
   Created on: 2013-02-07
 
-  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2024 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -14,7 +14,6 @@ no warranty.  The complete license can be found in license.txt and
 http://www.cisst.org/cisst/license.txt.
 
 --- end cisst license ---
-
 */
 
 // system
@@ -28,7 +27,6 @@ http://www.cisst.org/cisst/license.txt.
 #include <sawRobotIO1394/mtsRobotIO1394.h>
 #include <sawRobotIO1394/mtsRobotIO1394QtWidgetFactory.h>
 
-#include <ros/ros.h>
 #include "mts_ros_crtk_robot_io_bridge.h"
 
 #include <QApplication>
@@ -41,8 +39,8 @@ int main(int argc, char ** argv)
     cmnLogger::AddChannel(std::cerr, CMN_LOG_ALLOW_ERRORS_AND_WARNINGS);
 
     // create ROS node handle
-    ros::init(argc, argv, "robot_io", ros::init_options::AnonymousName);
-    ros::NodeHandle rosNodeHandle;
+    cisst_ral::ral ral(argc, argv, "robot_io_console");
+    auto rosNode = ral.node();
 
     // parse options
     cmnCommandLineOptions options;
@@ -127,7 +125,7 @@ int main(int argc, char ** argv)
 
     // ROS CRTK bridge
     mts_ros_crtk_robot_io_bridge * crtk_bridge
-        = new mts_ros_crtk_robot_io_bridge("robot_io_crtk_bridge", &rosNodeHandle,
+        = new mts_ros_crtk_robot_io_bridge("robot_io_crtk_bridge", rosNode,
                                            rosPeriod, tfPeriod);
     componentManager->AddComponent(crtk_bridge);
     componentManager->Connect("robot_io_crtk_bridge", "RobotConfiguration",
@@ -160,7 +158,7 @@ int main(int argc, char ** argv)
     cmnLogger::Kill();
 
     // stop ROS node
-    ros::shutdown();
+    cisst_ral::shutdown();
 
     return 0;
 }
