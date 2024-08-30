@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2023 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2024 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.10)
-project (sawRobotIO1394Applications VERSION 2.2.1)
+project (sawRobotIO1394Applications VERSION 2.3.0)
 
 # Qt based example, CMake will look for cisstQt
 add_subdirectory (Qt)

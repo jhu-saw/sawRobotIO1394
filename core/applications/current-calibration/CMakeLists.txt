@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.10)
-project (sawRobotIO1394ExamplesCurrentCalibration VERSION 2.2.1)
+project (sawRobotIO1394ExamplesCurrentCalibration VERSION 2.3.0)
 
 # create a list of required cisst libraries
 set (REQUIRED_CISST_LIBRARIES
