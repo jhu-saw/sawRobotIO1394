@@ -325,6 +325,8 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         jsonFile.close();
     }
 
+    mPort->ReadAllBoards();
+
     // Check firmware versions used so far
     if (!CheckFirmwareVersions()) {
         exit(EXIT_FAILURE);
