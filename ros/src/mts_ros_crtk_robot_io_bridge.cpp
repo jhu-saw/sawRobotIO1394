@@ -74,14 +74,14 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
 
     std::vector<std::string> robot_names;
     m_configuration.GetRobotNames(robot_names);
-    for (const auto robot : robot_names) {
+    for (const auto & robot : robot_names) {
         m_bridge->bridge_interface_provided(m_io_component_name, robot,
                                             m_ros_period, m_tf_period);
     }
 
     std::vector<std::string> input_names;
     m_configuration.GetDigitalInputNames(input_names);
-    for (const auto input : input_names) {
+    for (const auto & input : input_names) {
         m_bridge->bridge_interface_provided(m_io_component_name, input,
                                             m_ros_period, m_tf_period);
     }
