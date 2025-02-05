@@ -50,7 +50,6 @@ int main(int argc, char ** argv)
     std::string robotName = "Robot";
     double periodInSeconds = 1.0 * cmn_ms;
     double rosPeriod = 2.0 * cmn_ms;
-    double tfPeriod = 20.0 * cmn_ms;
     std::list<std::string> managerConfig;
 
     options.AddOptionMultipleValues("c", "config",
@@ -74,14 +73,9 @@ int main(int argc, char ** argv)
     options.AddOptionOneValue("P", "ros-period",
                               "period in seconds to read all tool positions (default 0.002, 2 ms, 500Hz).  There is no point to have a period higher than the device",
                               cmnCommandLineOptions::OPTIONAL_OPTION, &rosPeriod);
-    options.AddOptionOneValue("T", "tf-ros-period",
-                              "period in seconds to read all components and broadcast tf2 (default 0.02, 20 ms, 50Hz).  There is no point to have a period higher than the arm component's period",
-                              cmnCommandLineOptions::OPTIONAL_OPTION, &tfPeriod);
     options.AddOptionMultipleValues("m", "component-manager",
                                     "JSON files to configure component manager",
                                     cmnCommandLineOptions::OPTIONAL_OPTION, &managerConfig);
-    options.AddOptionNoValue("D", "dark-mode",
-                             "replaces the default Qt palette with darker colors");
 
     if (!options.Parse(argc, argv, std::cerr)) {
         return -1;
@@ -104,9 +98,6 @@ int main(int argc, char ** argv)
     // create a Qt application
     QApplication application(argc, argv);
     cmnQt::QApplicationExitsOnCtrlC();
-    if (options.IsSet("dark-mode")) {
-        cmnQt::SetDarkMode();
-    }
 
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
     componentManager->AddComponent(robotWidgetFactory);
@@ -126,7 +117,7 @@ int main(int argc, char ** argv)
     // ROS CRTK bridge
     mts_ros_crtk_robot_io_bridge * crtk_bridge
         = new mts_ros_crtk_robot_io_bridge("robot_io_crtk_bridge", rosNode,
-                                           rosPeriod, tfPeriod);
+                                           rosPeriod, 0.0); // 0.0 is to disable Tf2
     componentManager->AddComponent(crtk_bridge);
     componentManager->Connect("robot_io_crtk_bridge", "RobotConfiguration",
                               "robotIO", "Configuration");

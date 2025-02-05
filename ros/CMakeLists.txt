@@ -20,7 +20,11 @@ find_package (catkin QUIET
 # ROS 1
 if (catkin_FOUND)
   set (ROS_VERSION 1)
-  catkin_package (CATKIN_DEPENDS cisst_ros_crtk roscpp roslib)
+  catkin_package (
+    INCLUDE_DIRS include
+    LIBRARIES saw_robot_io_1394_ros
+    CATKIN_DEPENDS cisst_ros_crtk roscpp roslib
+    )
   include_directories (${catkin_INCLUDE_DIRS})
 
 else (catkin_FOUND)
@@ -94,22 +98,38 @@ if (cisst_FOUND_AS_REQUIRED)
       ${catkin_LIBRARIES})
     cisst_target_link_libraries (robot_io_console ${REQUIRED_CISST_LIBRARIES})
 
-    install (TARGETS saw_robot_io_1394_ros robot_io_console
-      EXPORT robot_io_console
+
+    install (
+      TARGETS robot_io_console
+      RUNTIME DESTINATION lib
+      )
+
+    install (
+      TARGETS saw_robot_io_1394_ros
+      EXPORT saw_robot_io_1394_ros
       LIBRARY DESTINATION lib
       ARCHIVE DESTINATION lib
-      RUNTIME DESTINATION bin
-      INCLUDES DESTINATION include)
+      INCLUDES DESTINATION include
+      )
+
+    install (
+      DIRECTORY include/saw_robot_io_1394_ros
+      DESTINATION include
+      )
 
     if (ROS_VERSION EQUAL 2)
-      ament_target_dependencies (
-        saw_robot_io_1394_ros
-        ${ROS2_depends}
-        )
       ament_target_dependencies (
         robot_io_console
         ${ROS2_depends}
         )
+
+      ament_target_dependencies (
+        saw_robot_io_1394_ros
+        ${ROS2_depends}
+        )
+
+      ament_export_targets (saw_robot_io_1394_ros HAS_LIBRARY_TARGET)
+
       ament_package ()
     endif ()
 
