@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2017-2024 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2017-2025 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.10)
-project (robot_io VERSION 2.3.0)
+project (saw_robot_io_1394_ros VERSION 2.3.0)
 
 # first test for ROS1
 set (ROS1_depends cisst_ros_crtk roscpp roslib)
@@ -69,25 +69,43 @@ if (cisst_FOUND_AS_REQUIRED)
   if (sawRobotIO1394_FOUND)
 
     # sawRobotIO1394 configuration
-    include_directories (${sawRobotIO1394_INCLUDE_DIR})
+    include_directories (
+      ${saw_robot_io_1394_ros_SOURCE_DIR}/include
+      ${sawRobotIO1394_INCLUDE_DIR})
     link_directories (${sawRobotIO1394_LIBRARY_DIR})
 
-    add_executable (robot_io_console
-      src/mts_ros_crtk_robot_io_bridge.h
-      src/mts_ros_crtk_robot_io_bridge.cpp
+    add_library (
+      saw_robot_io_1394_ros
+      include/saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h
+      src/mts_ros_crtk_robot_io_bridge.cpp)
+    target_link_libraries (
+      saw_robot_io_1394_ros
+      ${sawRobotIO1394_LIBRARIES}
+      ${catkin_LIBRARIES})
+    cisst_target_link_libraries (saw_robot_io_1394_ros ${REQUIRED_CISST_LIBRARIES})
+
+    add_executable (
+      robot_io_console
       src/robot_io_console.cpp)
-    target_link_libraries (robot_io_console
-                           ${sawRobotIO1394_LIBRARIES}
-                           ${catkin_LIBRARIES})
+    target_link_libraries (
+      robot_io_console
+      saw_robot_io_1394_ros
+      ${sawRobotIO1394_LIBRARIES}
+      ${catkin_LIBRARIES})
     cisst_target_link_libraries (robot_io_console ${REQUIRED_CISST_LIBRARIES})
 
-    install (TARGETS robot_io_console
-      LIBRARY DESTINATION lib/${PROJECT_NAME}
-      RUNTIME DESTINATION lib/${PROJECT_NAME}
+    install (TARGETS saw_robot_io_1394_ros robot_io_console
+      EXPORT robot_io_console
       LIBRARY DESTINATION lib
+      ARCHIVE DESTINATION lib
+      RUNTIME DESTINATION bin
       INCLUDES DESTINATION include)
 
     if (ROS_VERSION EQUAL 2)
+      ament_target_dependencies (
+        saw_robot_io_1394_ros
+        ${ROS2_depends}
+        )
       ament_target_dependencies (
         robot_io_console
         ${ROS2_depends}

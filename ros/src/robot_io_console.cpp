@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2013-02-07
 
-  (C) Copyright 2013-2024 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -27,7 +27,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <sawRobotIO1394/mtsRobotIO1394.h>
 #include <sawRobotIO1394/mtsRobotIO1394QtWidgetFactory.h>
 
-#include "mts_ros_crtk_robot_io_bridge.h"
+#include <saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h>
 
 #include <QApplication>
 

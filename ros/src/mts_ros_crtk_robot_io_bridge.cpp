@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2022-10-12
 
-  (C) Copyright 2022-2024 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2022-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -24,7 +24,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstMultiTask/mtsInterfaceRequired.h>
 #include <cisstMultiTask/mtsManagerLocal.h>
 
-#include "mts_ros_crtk_robot_io_bridge.h"
+#include <saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h>
 
 CMN_IMPLEMENT_SERVICES_DERIVED(mts_ros_crtk_robot_io_bridge, mtsComponent);
 
