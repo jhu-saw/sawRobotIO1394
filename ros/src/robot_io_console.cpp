@@ -117,7 +117,8 @@ int main(int argc, char ** argv)
     // ROS CRTK bridge
     mts_ros_crtk_robot_io_bridge * crtk_bridge
         = new mts_ros_crtk_robot_io_bridge("robot_io_crtk_bridge", rosNode,
-                                           rosPeriod, 0.0); // 0.0 is to disable Tf2
+                                           rosPeriod, 0.0, // 0.0 is to disable Tf2
+                                           true); // read_write = true
     componentManager->AddComponent(crtk_bridge);
     componentManager->Connect("robot_io_crtk_bridge", "RobotConfiguration",
                               "robotIO", "Configuration");

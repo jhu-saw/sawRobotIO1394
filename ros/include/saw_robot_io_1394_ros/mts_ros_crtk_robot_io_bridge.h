@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2022-10-12
 
-  (C) Copyright 2022-2024 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2022-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -29,8 +29,12 @@ class CISST_EXPORT mts_ros_crtk_robot_io_bridge: public mtsComponent
 public:
     mts_ros_crtk_robot_io_bridge(const std::string & name,
                                  cisst_ral::node_ptr_t node_handle,
-                                 const double & ros_period,
-                                 const double & tf_period);
+                                 const double & ros_period
+                                 = cisst_ros_crtk::bridge_provided_default_publish_period,
+                                 const double & tf_period
+                                 = cisst_ros_crtk::bridge_provided_default_tf_period,
+                                 const bool read_write
+                                 = true);
 
     inline ~mts_ros_crtk_robot_io_bridge(void) {}
 
@@ -44,6 +48,7 @@ protected:
     std::string m_io_component_name;
     mts_ros_crtk_bridge_provided * m_bridge = nullptr;
     double m_ros_period, m_tf_period;
+    bool m_read_write;
 
     struct ConfigStruct {
         mtsFunctionRead GetRobotNames;
