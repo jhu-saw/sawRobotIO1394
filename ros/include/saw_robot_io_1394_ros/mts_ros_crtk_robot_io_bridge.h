@@ -29,6 +29,7 @@ class CISST_EXPORT mts_ros_crtk_robot_io_bridge: public mtsComponent
 public:
     mts_ros_crtk_robot_io_bridge(const std::string & name,
                                  cisst_ral::node_ptr_t node_handle,
+                                 const std::string & ros_prefix,
                                  const double & ros_period
                                  = cisst_ros_crtk::bridge_provided_default_publish_period,
                                  const double & tf_period
@@ -46,6 +47,7 @@ protected:
     bool already_bridged = false;
     mtsInterfaceRequired * m_configuration_interface;
     std::string m_io_component_name;
+    std::string m_ros_prefix;
     mts_ros_crtk_bridge_provided * m_bridge = nullptr;
     double m_ros_period, m_tf_period;
     bool m_read_write;

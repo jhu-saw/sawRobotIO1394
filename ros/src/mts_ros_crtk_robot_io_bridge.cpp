@@ -30,10 +30,12 @@ CMN_IMPLEMENT_SERVICES_DERIVED(mts_ros_crtk_robot_io_bridge, mtsComponent);
 
 mts_ros_crtk_robot_io_bridge::mts_ros_crtk_robot_io_bridge(const std::string & name,
                                                            cisst_ral::node_ptr_t node_handle,
+                                                           const std::string & ros_prefix,
                                                            const double & ros_period,
                                                            const double & tf_period,
                                                            const bool read_write):
     mtsComponent(name),
+    m_ros_prefix(ros_prefix),
     m_ros_period(ros_period),
     m_tf_period(tf_period),
     m_read_write(read_write)
@@ -78,6 +80,7 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
     m_configuration.GetRobotNames(robot_names);
     for (const auto & robot : robot_names) {
         m_bridge->bridge_interface_provided(m_io_component_name, robot,
+                                            m_ros_prefix + robot,
                                             m_ros_period, m_tf_period, m_read_write);
     }
 
@@ -85,6 +88,7 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
     m_configuration.GetDigitalInputNames(input_names);
     for (const auto & input : input_names) {
         m_bridge->bridge_interface_provided(m_io_component_name, input,
+                                            m_ros_prefix + input,
                                             m_ros_period, m_tf_period, m_read_write);
     }
 
