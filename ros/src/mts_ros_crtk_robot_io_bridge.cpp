@@ -24,6 +24,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstMultiTask/mtsInterfaceRequired.h>
 #include <cisstMultiTask/mtsManagerLocal.h>
 
+#include <cisst_ros_bridge/mtsROSBridge.h>
 #include <saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h>
 
 CMN_IMPLEMENT_SERVICES_DERIVED(mts_ros_crtk_robot_io_bridge, mtsComponent);
@@ -33,14 +34,16 @@ mts_ros_crtk_robot_io_bridge::mts_ros_crtk_robot_io_bridge(const std::string & n
                                                            const std::string & ros_prefix,
                                                            const double & ros_period,
                                                            const double & tf_period,
-                                                           const bool read_write):
+                                                           const bool read_write,
+                                                           const bool perform_spin):
     mtsComponent(name),
     m_ros_prefix(ros_prefix),
     m_ros_period(ros_period),
     m_tf_period(tf_period),
     m_read_write(read_write)
 {
-    m_bridge = new mts_ros_crtk_bridge_provided(name + "_actual_bridge", node_handle);
+    m_bridge = new mts_ros_crtk_bridge_provided(name + "_actual_bridge", node_handle,
+                                                5.0 * cmn_ms, perform_spin);
 
     // This function will make the required interface to be connected with
     // the provided interface of mtsRobotIO1394 named Configure with predefined function names.
@@ -73,6 +76,10 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
         return;
     }
 
+    mtsManagerLocal * _component_manager = mtsComponentManager::GetInstance();
+    m_pub_bridge_extra = new mtsROSBridge("io-bridge-extra",
+                                          m_ros_period, m_bridge->node_handle_ptr());
+    
     // robots, one component per robot with 2 interfaces to be connected
     m_configuration.GetName(m_io_component_name);
 
@@ -82,6 +89,23 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
         m_bridge->bridge_interface_provided(m_io_component_name, robot,
                                             m_ros_prefix + robot,
                                             m_ros_period, m_tf_period, m_read_write);
+
+        std::string _ros_namespace = m_ros_prefix + robot;
+        cisst_ral::clean_namespace(_ros_namespace);
+
+        m_pub_bridge_extra->AddPublisherFromCommandRead<vctDoubleVec, CISST_RAL_MSG(sensor_msgs, JointState)>
+            ("io-" + robot, "GetActuatorFeedbackCurrent",
+             _ros_namespace + "/measured_current");
+        m_pub_bridge_extra->AddPublisherFromCommandRead<vctDoubleVec, CISST_RAL_MSG(sensor_msgs, JointState)>
+            ("io-" + robot, "GetActuatorRequestedCurrent",
+             _ros_namespace + "/servo_current");
+        m_pub_bridge_extra->AddPublisherFromCommandRead<vctDoubleVec, CISST_RAL_MSG(sensor_msgs, JointState)>
+            ("io-" + robot, "GetActuatorTimestamp",
+             _ros_namespace + "/timestamp");
+
+        // add
+        m_connections.Add("io-bridge-extra", "io-" + robot,
+                          m_io_component_name, robot);
     }
 
     std::vector<std::string> input_names;
@@ -93,4 +117,6 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
     }
 
     m_bridge->Connect();
+    _component_manager->AddComponent(m_pub_bridge_extra);
+    m_connections.Connect();
 }

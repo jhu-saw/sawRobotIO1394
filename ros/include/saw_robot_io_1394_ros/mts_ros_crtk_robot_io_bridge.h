@@ -35,6 +35,8 @@ public:
                                  const double & tf_period
                                  = cisst_ros_crtk::bridge_provided_default_tf_period,
                                  const bool read_write
+                                 = true,
+                                 const bool perform_spin
                                  = true);
 
     inline ~mts_ros_crtk_robot_io_bridge(void) {}
@@ -51,6 +53,8 @@ protected:
     mts_ros_crtk_bridge_provided * m_bridge = nullptr;
     double m_ros_period, m_tf_period;
     bool m_read_write;
+    mtsROSBridge * m_pub_bridge_extra;
+    mtsDelayedConnections m_connections;
 
     struct ConfigStruct {
         mtsFunctionRead GetRobotNames;
