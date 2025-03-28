@@ -478,16 +478,16 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     m_measured_js.Effort().SetSize(mNumberOfActuators);
 
     // names
-    m_measured_js.Name().SetSize(mNumberOfActuators);
+    m_measured_js.Name().resize(mNumberOfActuators);
     for (size_t index = 0; index < mNumberOfActuators; ++index) {
         m_measured_js.Name().at(index) = "actuator_" + std::to_string(index);
     }
-    m_firmware_measured_js.Name().ForceAssign(m_measured_js.Name());
-    m_software_measured_js.Name().ForceAssign(m_measured_js.Name());
-    m_pot_measured_js.Name().ForceAssign(m_measured_js.Name());
+    cmnDataCopy(m_firmware_measured_js.Name(), m_measured_js.Name());
+    cmnDataCopy(m_software_measured_js.Name(), m_measured_js.Name());
+    cmnDataCopy(m_pot_measured_js.Name(), m_measured_js.Name());
     // these names might be confusing since we name the pots based on
     // actuator names
-    m_raw_pot_measured_js.Name().ForceAssign(m_measured_js.Name());
+    cmnDataCopy(m_raw_pot_measured_js.Name(), m_measured_js.Name());
 
     mEffortToCurrentScales.SetSize(mNumberOfActuators);
     mActuatorCurrentToBitsScales.SetSize(mNumberOfActuators);
@@ -1750,19 +1750,15 @@ void mtsRobot1394::configuration_js(prmConfigurationJoint & jointConfig) const
 
 void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
 {
-    // we assume the types are loaded from the XML config file, we
-    // need the names from above (IO).  This is not very elegant.  We
-    // use SetSize followed by Assign as a way to enforce that sizes
-    // match.
-    m_configuration_js.Name().SetSize(mNumberOfActuators);
-    m_configuration_js.Name().Assign(jointConfig.Name());
-    // now that we know sizes match, just use ForceAssign
-    m_measured_js.Name().ForceAssign(jointConfig.Name());
-    m_software_measured_js.Name().ForceAssign(jointConfig.Name());
-    m_pot_measured_js.Name().ForceAssign(jointConfig.Name());
-    // these names might be confusing since we name the pots based on
-    // actuator names
-    m_raw_pot_measured_js.Name().ForceAssign(jointConfig.Name());
+    if (jointConfig.Name().size() != mNumberOfActuators) {
+        cmnThrow(this->Name() + ": configure_js, incorrect number of actuators.");
+    }
+    cmnDataCopy(m_configuration_js.Name(), jointConfig.Name());
+    cmnDataCopy(m_measured_js.Name(), jointConfig.Name());
+    cmnDataCopy(m_firmware_measured_js.Name(), jointConfig.Name());
+    cmnDataCopy(m_software_measured_js.Name(), jointConfig.Name());
+    cmnDataCopy(m_pot_measured_js.Name(), jointConfig.Name());
+    cmnDataCopy(m_raw_pot_measured_js.Name(), jointConfig.Name());
 }
 
 void mtsRobot1394::GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const
