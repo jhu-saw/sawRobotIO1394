@@ -77,9 +77,9 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
     }
 
     mtsManagerLocal * _component_manager = mtsComponentManager::GetInstance();
-    m_pub_bridge_extra = new mtsROSBridge("io-bridge-extra",
+    m_pub_bridge_extra = new mtsROSBridge(this->GetName() + "_extra",
                                           m_ros_period, m_bridge->node_handle_ptr());
-    
+
     // robots, one component per robot with 2 interfaces to be connected
     m_configuration.GetName(m_io_component_name);
 
@@ -104,7 +104,7 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
              _ros_namespace + "/timestamp");
 
         // add
-        m_connections.Add("io-bridge-extra", "io-" + robot,
+        m_connections.Add(m_pub_bridge_extra->GetName(), "io-" + robot,
                           m_io_component_name, robot);
     }
 

@@ -2,10 +2,10 @@
 /* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
 
 /*
-  Author(s):  Kwang Young Lee
+  Author(s):  Kwang Young Lee, Anton Deguet
   Created on: 2013-04-11
 
-  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -30,8 +30,8 @@ http://www.cisst.org/cisst/license.txt.
 CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobotIO1394QtWidgetFactory, mtsComponent, std::string);
 
 
-mtsRobotIO1394QtWidgetFactory::mtsRobotIO1394QtWidgetFactory(const std::string &name):
-    mtsComponent(name),
+mtsRobotIO1394QtWidgetFactory::mtsRobotIO1394QtWidgetFactory(const std::string & name):
+    mtsComponent(name + "_Qt_factory"),
     mButtonsWidget(0),
     BuildWidgetsCalled(false)
 {
@@ -94,10 +94,10 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
     Configuration.GetNumbersOfBrakes(NumberOfBrakesPerRobot);
 
     for (size_t i = 0; i < NumberOfRobots; ++i) {
-        std::string newComponentName = RobotNames[i] + " IO";
+        std::string newComponentName = GetName() + "/" + RobotNames[i];
         mtsRobot1394QtWidget * robotWidget =
                 new mtsRobot1394QtWidget(newComponentName, NumberOfActuatorsPerRobot[i], NumberOfBrakesPerRobot[i]);
-        mWidgets.push_back(robotWidget);
+        mWidgets[RobotNames[i]] = robotWidget;
         robotWidget->Configure();
         componentManager->AddComponent(robotWidget);
         componentManager->Connect(newComponentName, "Robot", NameOfRobotIO1394, RobotNames[i]);
@@ -111,7 +111,7 @@ void mtsRobotIO1394QtWidgetFactory::BuildWidgets(void)
         DigitalInputNames.resize(NumberOfDigitalInputs);
         Configuration.GetDigitalInputNames(DigitalInputNames);
 
-        mButtonsWidget = new prmEventButtonQtWidgetComponent("Digital inputs");
+        mButtonsWidget = new prmEventButtonQtWidgetComponent(GetName() + "/inputs");
         // adapt width to number of IOs
         if (NumberOfDigitalInputs > 32) {
             mButtonsWidget->SetNumberOfColumns(6);
