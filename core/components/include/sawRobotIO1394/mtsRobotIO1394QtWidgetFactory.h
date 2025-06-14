@@ -40,7 +40,7 @@ public:
     void Configure(const std::string & filename = "");
     void Startup(void);
 
-    typedef std::list<mtsRobot1394QtWidget *> WidgetListType;
+    typedef std::map<std::string, mtsRobot1394QtWidget *> WidgetListType;
     const WidgetListType & Widgets(void) const;
 
     inline prmEventButtonQtWidgetComponent * ButtonsWidget(void) {
