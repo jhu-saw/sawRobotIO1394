@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2017-2024 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2017-2025 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -9,8 +9,8 @@
 #
 # --- end cisst license ---
 
-cmake_minimum_required (VERSION 3.10)
-project (robot_io VERSION 2.3.0)
+cmake_minimum_required (VERSION 3.16)
+project (saw_robot_io_1394_ros VERSION 2.3.0)
 
 # first test for ROS1
 set (ROS1_depends cisst_ros_crtk roscpp roslib)
@@ -20,7 +20,11 @@ find_package (catkin QUIET
 # ROS 1
 if (catkin_FOUND)
   set (ROS_VERSION 1)
-  catkin_package (CATKIN_DEPENDS cisst_ros_crtk roscpp roslib)
+  catkin_package (
+    INCLUDE_DIRS include
+    LIBRARIES saw_robot_io_1394_ros
+    CATKIN_DEPENDS cisst_ros_crtk roscpp roslib
+    )
   include_directories (${catkin_INCLUDE_DIRS})
 
 else (catkin_FOUND)
@@ -69,29 +73,63 @@ if (cisst_FOUND_AS_REQUIRED)
   if (sawRobotIO1394_FOUND)
 
     # sawRobotIO1394 configuration
-    include_directories (${sawRobotIO1394_INCLUDE_DIR})
+    include_directories (
+      ${saw_robot_io_1394_ros_SOURCE_DIR}/include
+      ${sawRobotIO1394_INCLUDE_DIR})
     link_directories (${sawRobotIO1394_LIBRARY_DIR})
 
-    add_executable (robot_io_console
-      src/mts_ros_crtk_robot_io_bridge.h
-      src/mts_ros_crtk_robot_io_bridge.cpp
+    add_library (
+      saw_robot_io_1394_ros
+      include/saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h
+      src/mts_ros_crtk_robot_io_bridge.cpp)
+    target_link_libraries (
+      saw_robot_io_1394_ros
+      ${sawRobotIO1394_LIBRARIES}
+      ${catkin_LIBRARIES})
+    cisst_target_link_libraries (saw_robot_io_1394_ros ${REQUIRED_CISST_LIBRARIES})
+
+    add_executable (
+      robot_io_console
       src/robot_io_console.cpp)
-    target_link_libraries (robot_io_console
-                           ${sawRobotIO1394_LIBRARIES}
-                           ${catkin_LIBRARIES})
+    target_link_libraries (
+      robot_io_console
+      saw_robot_io_1394_ros
+      ${sawRobotIO1394_LIBRARIES}
+      ${catkin_LIBRARIES})
     cisst_target_link_libraries (robot_io_console ${REQUIRED_CISST_LIBRARIES})
 
-    install (TARGETS robot_io_console
-      LIBRARY DESTINATION lib/${PROJECT_NAME}
-      RUNTIME DESTINATION lib/${PROJECT_NAME}
+
+    install (
+      TARGETS robot_io_console
+      RUNTIME DESTINATION lib
+      )
+
+    install (
+      TARGETS saw_robot_io_1394_ros
+      EXPORT saw_robot_io_1394_ros
       LIBRARY DESTINATION lib
-      INCLUDES DESTINATION include)
+      ARCHIVE DESTINATION lib
+      INCLUDES DESTINATION include
+      )
+
+    install (
+      DIRECTORY include/saw_robot_io_1394_ros
+      DESTINATION include
+      )
 
     if (ROS_VERSION EQUAL 2)
       ament_target_dependencies (
         robot_io_console
         ${ROS2_depends}
         )
+
+      ament_target_dependencies (
+        saw_robot_io_1394_ros
+        ${ROS2_depends}
+        )
+
+      ament_export_targets (saw_robot_io_1394_ros HAS_LIBRARY_TARGET)
+
       ament_package ()
     endif ()
 

@@ -329,6 +329,9 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     if (!CheckFirmwareVersions()) {
         exit(EXIT_FAILURE);
     }
+
+    // Read all the boards, a easy solution to the issue that specific board cannot be read when using boardcast-read-write
+    mPort->ReadAllBoards();
 }
 
 bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)

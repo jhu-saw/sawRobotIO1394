@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>robot_io</name>
+  <name>saw_robot_io_1394_ros</name>
   <version>2.3.0</version>
-  <description>cisst/SAW RobotIO</description>
+  <description>cisst/SAW RobotIO ROS</description>
 
   <maintainer email="anton.deguet@jhu.edu">Anton Deguet</maintainer>
   <license>cisst</license>
