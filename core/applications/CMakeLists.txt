@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2024 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2025 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -23,6 +23,3 @@ add_subdirectory (data-plot)
 
 # utility to collect data
 add_subdirectory (data-collection)
-
-# utility to convert XML config files to JSON
-add_subdirectory (xml-to-json)

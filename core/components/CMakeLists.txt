@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2024 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2025 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -14,7 +14,6 @@ project (sawRobotIO1394 VERSION 2.3.0)
 
 set (REQUIRED_CISST_LIBRARIES
      cisstCommon
-     cisstCommonXML
      cisstVector
      cisstOSAbstraction
      cisstMultiTask
@@ -78,14 +77,12 @@ if (cisst_FOUND_AS_REQUIRED)
 
   # create the library
   add_library (sawRobotIO1394
-               ${sawRobotIO1394_HEADER_DIR}/osaXML1394.h
                ${sawRobotIO1394_HEADER_DIR}/sawRobotIO1394Export.h
                ${sawRobotIO1394_HEADER_DIR}/mtsRobot1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsDigitalInput1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsDigitalOutput1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsDallasChip1394.h
                ${sawRobotIO1394_HEADER_DIR}/mtsRobotIO1394.h
-               code/osaXML1394.cpp
                code/mtsRobot1394.cpp
                code/mtsDigitalInput1394.cpp
                code/mtsDigitalOutput1394.cpp

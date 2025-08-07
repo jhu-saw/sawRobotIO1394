@@ -30,7 +30,6 @@ http://www.cisst.org/cisst/license.txt.
 #include <sawRobotIO1394/mtsDigitalOutput1394.h>
 #include <sawRobotIO1394/mtsDallasChip1394.h>
 #include <sawRobotIO1394/mtsRobot1394.h>
-#include <sawRobotIO1394/osaXML1394.h>
 
 #include <Amp1394/AmpIORevision.h>
 #include "PortFactory.h"
@@ -55,59 +54,59 @@ mtsRobotIO1394::mtsRobotIO1394(const mtsTaskPeriodicConstructorArg & arg):
 mtsRobotIO1394::~mtsRobotIO1394()
 {
     // delete robots before deleting boards
-    for (auto & robot : mRobots) {
+    for (auto & robot : m_robots) {
         if (robot != 0) {
             delete robot;
         }
     }
-    mRobots.clear();
-    mRobotsByName.clear();
+    m_robots.clear();
+    m_robots_by_name.clear();
 
     // delete digital inputs before deleting boards
-    for (auto & input : mDigitalInputs) {
+    for (auto & input : m_digital_inputs) {
         if (input != 0) {
             delete input;
         }
     }
-    mDigitalInputs.clear();
-    mDigitalInputsByName.clear();
+    m_digital_inputs.clear();
+    m_digital_inputs_by_name.clear();
 
     // delete digital outputs before deleting boards
-    for (auto & output : mDigitalOutputs) {
+    for (auto & output : m_digital_outputs) {
         if (output != 0) {
             delete output;
         }
     }
-    mDigitalOutputs.clear();
-    mDigitalOutputsByName.clear();
+    m_digital_outputs.clear();
+    m_digital_outputs_by_name.clear();
 
     // delete Dallas chips before deleting boards
-    for (auto & dallas : mDallasChips) {
+    for (auto & dallas : m_dallas_chips) {
         if (dallas != 0) {
             delete dallas;
         }
     }
-    mDallasChips.clear();
-    mDallasChipsByName.clear();
+    m_dallas_chips.clear();
+    m_dallas_chips_by_name.clear();
 
     // delete board structures
-    for (board_iterator iter = mBoards.begin();
-         iter != mBoards.end();
+    for (board_iterator iter = m_boards.begin();
+         iter != m_boards.end();
          ++iter) {
         if (iter->second != 0) {
-            mPort->RemoveBoard(iter->first);
+            m_port->RemoveBoard(iter->first);
             delete iter->second;
         }
     }
-    mBoards.clear();
+    m_boards.clear();
 
     // delete firewire port
-    if (mPort != 0) {
-        delete mPort;
+    if (m_port != 0) {
+        delete m_port;
     }
 
     // delete message stream
-    delete mMessageStream;
+    delete m_message_stream;
 }
 
 void mtsRobotIO1394::SetProtocol(const std::string & protocol)
@@ -116,8 +115,8 @@ void mtsRobotIO1394::SetProtocol(const std::string & protocol)
     bool ok = false;
     if (BasePort::ParseProtocol(protocol.c_str(),
                                 protocolType,
-                                *mMessageStream)) {
-        ok = mPort->SetProtocol(protocolType);
+                                *m_message_stream)) {
+        ok = m_port->SetProtocol(protocolType);
     }
     if (!ok) {
         CMN_LOG_CLASS_INIT_ERROR << "mtsRobot1394::SetProtocol failed" << std::endl;
@@ -127,8 +126,8 @@ void mtsRobotIO1394::SetProtocol(const std::string & protocol)
 
 void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
 {
-    mWatchdogPeriod = periodInSeconds;
-    for (auto & robot : mRobots) {
+    m_watchdog_period = periodInSeconds;
+    for (auto & robot : m_robots) {
         robot->SetWatchdogPeriod(periodInSeconds);
     }
 }
@@ -147,19 +146,19 @@ void mtsRobotIO1394::Init(const std::string & port)
     }
 
     // default watchdog period
-    mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout;
-    mSkipConfigurationCheck = false;
+    m_watchdog_period = sawRobotIO1394::WatchdogTimeout;
+    m_skip_configuration_check = false;
 
     // add state tables for stats
-    mStateTableRead = new mtsStateTable(100, this->GetName() + "Read");
-    mStateTableRead->SetAutomaticAdvance(false);
-    mStateTableWrite = new mtsStateTable(100, this->GetName() + "Write");
-    mStateTableWrite->SetAutomaticAdvance(false);
+    m_state_table_read = new mtsStateTable(100, this->GetName() + "Read");
+    m_state_table_read->SetAutomaticAdvance(false);
+    m_state_table_write = new mtsStateTable(100, this->GetName() + "Write");
+    m_state_table_write->SetAutomaticAdvance(false);
 
     // create port
-    mMessageStream = new std::ostream(this->GetLogMultiplexer());
-    mPort = PortFactory(port.c_str(), *mMessageStream);
-    if (!mPort) {
+    m_message_stream = new std::ostream(this->GetLogMultiplexer());
+    m_port = PortFactory(port.c_str(), *m_message_stream);
+    if (!m_port) {
         CMN_LOG_CLASS_INIT_ERROR << "Init: unknown port type: " << port
                                  << ", port can be: " << std::endl
                                  << "  - a single number (implicitly a FireWire port)" << std::endl
@@ -169,12 +168,12 @@ void mtsRobotIO1394::Init(const std::string & port)
         exit(EXIT_FAILURE);
     }
     // test port
-    if (!mPort->IsOK()) {
-        CMN_LOG_CLASS_INIT_ERROR << "Init: failed to initialize " << mPort->GetPortTypeString() << std::endl;
+    if (!m_port->IsOK()) {
+        CMN_LOG_CLASS_INIT_ERROR << "Init: failed to initialize " << m_port->GetPortTypeString() << std::endl;
         exit(EXIT_FAILURE);
     }
     // check number of port users
-    if (mPort->NumberOfUsers() > 1) {
+    if (m_port->NumberOfUsers() > 1) {
         CMN_LOG_CLASS_INIT_ERROR << "Init: found more than one user on firewire port: " << port << std::endl;;
         exit(EXIT_FAILURE);
     }
@@ -209,7 +208,7 @@ void mtsRobotIO1394::Init(const std::string & port)
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalInputNames, this,
                                                 "GetDigitalInputNames");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalOutputs, this,
-                                                "GetNumDigitalOutputs");
+                                                "GetNum_digital_outputs");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetDigitalOutputNames, this,
                                                 "GetDigitalOutputNames");
         mConfigurationInterface->AddCommandRead<mtsComponent>(&mtsComponent::GetName, this,
@@ -218,9 +217,9 @@ void mtsRobotIO1394::Init(const std::string & port)
                                                 "close_all_relays");
         mConfigurationInterface->AddCommandReadState(StateTable, StateTable.PeriodStats,
                                                      "period_statistics");
-        mConfigurationInterface->AddCommandReadState(*mStateTableRead, mStateTableRead->PeriodStats,
+        mConfigurationInterface->AddCommandReadState(*m_state_table_read, m_state_table_read->PeriodStats,
                                                      "period_statistics_read");
-        mConfigurationInterface->AddCommandReadState(*mStateTableWrite, mStateTableWrite->PeriodStats,
+        mConfigurationInterface->AddCommandReadState(*m_state_table_write, m_state_table_write->PeriodStats,
                                                      "period_statistics_write");
     } else {
         CMN_LOG_CLASS_INIT_ERROR << "Configure: unable to create configuration interface." << std::endl;
@@ -232,17 +231,12 @@ void mtsRobotIO1394::Init(const std::string & port)
 
 void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
 {
-    mSkipConfigurationCheck = skip;
+    m_skip_configuration_check = skip;
 }
 
 void mtsRobotIO1394::SetCalibrationMode(const bool & mode)
 {
-    mCalibrationMode = mode;
-}
-
-void mtsRobotIO1394::SaveConfigurationJSON(const std::string & filename)
-{
-    mSaveConfigurationJSON = filename;
+    m_calibration_mode = mode;
 }
 
 void mtsRobotIO1394::Configure(const std::string & filename)
@@ -250,14 +244,39 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     CMN_LOG_CLASS_INIT_VERBOSE << "Configure: configuring from " << filename << std::endl;
 
     osaPort1394Configuration config;
-    osaXML1394ConfigurePort(filename, config, mCalibrationMode);
+
+    try {
+        std::ifstream jsonStream;
+        Json::Value jsonConfig;
+        Json::Reader jsonReader;
+
+        jsonStream.open(filename.c_str());
+        if (!jsonReader.parse(jsonStream, jsonConfig)) {
+            CMN_LOG_CLASS_INIT_ERROR << "Configure " << this->GetName()
+                                     << ": failed to parse configuration file \""
+                                     << filename << "\"\n"
+                                     << jsonReader.getFormattedErrorMessages();
+            exit(EXIT_FAILURE);
+        }
+
+        // base component configuration
+        mtsComponent::ConfigureJSON(jsonConfig);
+
+        // using cmnData traits
+        cmnDataJSON<osaPort1394Configuration>::DeSerializeText(config, jsonConfig);
+
+    } catch (std::exception & e) {
+        CMN_LOG_CLASS_INIT_ERROR << "Configure " << this->GetName() << ": parsing file \""
+                                 << filename << "\", got error: " << e.what() << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     // Add all the robots
-    for (const auto & configRobot : config.Robots) {
+    for (const auto & configRobot : config.robots) {
         // Create a new robot
-        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot, mCalibrationMode);
+        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot, m_calibration_mode);
         // Check the configuration if needed
-        if (!mSkipConfigurationCheck) {
+        if (!m_skip_configuration_check) {
             if (!robot->CheckConfiguration()) {
                 CMN_LOG_CLASS_INIT_ERROR << "Configure: error in configuration file \""
                                          << filename << "\" for robot \""
@@ -279,7 +298,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     }
 
     // Add all the digital inputs
-    for (const auto & configInput : config.DigitalInputs) {
+    for (const auto & configInput : config.digital_inputs) {
         // Create a new digital input
         mtsDigitalInput1394 * digitalInput = new mtsDigitalInput1394(*this, configInput);
         // Set up the cisstMultiTask interfaces
@@ -291,7 +310,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     }
 
     // Add all the digital outputs
-    for (const auto & configOutput : config.DigitalOutputs) {
+    for (const auto & configOutput : config.digital_outputs) {
         // Create a new digital input
         mtsDigitalOutput1394 * digitalOutput = new mtsDigitalOutput1394(*this, configOutput);
         // Set up the cisstMultiTask interfaces
@@ -303,7 +322,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     }
 
     // Add all the Dallas chips
-    for (const auto & configDallas : config.DallasChips) {
+    for (const auto & configDallas : config.dallas_chips) {
         // Create a new digital input
         mtsDallasChip1394 * dallasChip = new mtsDallasChip1394(*this, configDallas);
         // Set up the cisstMultiTask interfaces
@@ -314,24 +333,13 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         }
     }
 
-    // Save as JSON if needed (used to port older XML file to JSON)
-    if (!mSaveConfigurationJSON.empty()) {
-        std::ofstream jsonFile;
-        jsonFile.open(mSaveConfigurationJSON);
-        Json::Value jsonConfig;
-        config.SerializeTextJSON(jsonConfig);
-        Json::StyledWriter writer;
-        jsonFile << writer.write(jsonConfig) << std::endl;
-        jsonFile.close();
-    }
-
     // Check firmware versions used so far
     if (!CheckFirmwareVersions()) {
         exit(EXIT_FAILURE);
     }
 
     // Read all the boards, a easy solution to the issue that specific board cannot be read when using boardcast-read-write
-    mPort->ReadAllBoards();
+    m_port->ReadAllBoards();
 }
 
 bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
@@ -403,18 +411,18 @@ bool mtsRobotIO1394::SetupDallasChip(mtsDallasChip1394 * dallasChip)
 void mtsRobotIO1394::Startup(void)
 {
     // Use preferred watchdog timeout
-    SetWatchdogPeriod(mWatchdogPeriod);
+    SetWatchdogPeriod(m_watchdog_period);
 
     // Robot Startup
-    for (auto & robot : mRobots) {
+    for (auto & robot : m_robots) {
         robot->Startup();
     }
 }
 
 void mtsRobotIO1394::PreRead(void)
 {
-    mStateTableRead->Start();
-    for (auto & robot : mRobots) {
+    m_state_table_read->Start();
+    for (auto & robot : m_robots) {
         robot->StartReadStateTable();
     }
 }
@@ -422,10 +430,10 @@ void mtsRobotIO1394::PreRead(void)
 void mtsRobotIO1394::Read(void)
 {
     // Read from all boards on the port
-    mPort->ReadAllBoards();
+    m_port->ReadAllBoards();
 
     // Poll the state for each robot
-    for (auto & robot : mRobots) {
+    for (auto & robot : m_robots) {
         // Poll the board validity
         robot->PollValidity();
 
@@ -436,24 +444,24 @@ void mtsRobotIO1394::Read(void)
         robot->ConvertState();
     }
     // Poll the state for each digital input
-    for (auto & input : mDigitalInputs) {
+    for (auto & input : m_digital_inputs) {
         input->PollState();
     }
     // Poll the state for each digital output
-    for (auto & output : mDigitalOutputs) {
+    for (auto & output : m_digital_outputs) {
         output->PollState();
     }
     // Poll the state for each Dallas chip
-    for (auto & dallas: mDallasChips) {
+    for (auto & dallas: m_dallas_chips) {
         dallas->PollState();
     }
 }
 
 void mtsRobotIO1394::PostRead(void)
 {
-    mStateTableRead->Advance();
+    m_state_table_read->Advance();
     // Trigger robot events
-    for (auto & robot : mRobots) {
+    for (auto & robot : m_robots) {
         try {
             robot->CheckState();
         } catch (std::exception & stdException) {
@@ -466,20 +474,20 @@ void mtsRobotIO1394::PostRead(void)
         robot->AdvanceReadStateTable();
     }
     // Trigger digital input events
-    for (auto & input : mDigitalInputs) {
+    for (auto & input : m_digital_inputs) {
         input->CheckState();
     }
 }
 
 bool mtsRobotIO1394::IsOK(void) const
 {
-    return mPort->IsOK();
+    return m_port->IsOK();
 }
 
 void mtsRobotIO1394::PreWrite(void)
 {
-    mStateTableWrite->Start();
-    for (auto & robot : mRobots) {
+    m_state_table_write->Start();
+    for (auto & robot : m_robots) {
         robot->StartWriteStateTable();
     }
 }
@@ -487,14 +495,14 @@ void mtsRobotIO1394::PreWrite(void)
 void mtsRobotIO1394::Write(void)
 {
     // Write to all boards
-    mPort->WriteAllBoards();
+    m_port->WriteAllBoards();
 }
 
 void mtsRobotIO1394::PostWrite(void)
 {
-    mStateTableWrite->Advance();
+    m_state_table_write->Advance();
     // Trigger robot events
-    for (auto & robot : mRobots) {
+    for (auto & robot : m_robots) {
         robot->AdvanceWriteStateTable();
     }
 }
@@ -518,7 +526,7 @@ void mtsRobotIO1394::Run(void)
     if (gotException) {
         CMN_LOG_CLASS_RUN_ERROR << "Run: port read, " << message << std::endl;
         // Trigger robot events
-        for (auto & robot : mRobots) {
+        for (auto & robot : m_robots) {
             robot->mInterface->SendError(message);
         }
     }
@@ -538,9 +546,9 @@ void mtsRobotIO1394::Run(void)
 
 void mtsRobotIO1394::Cleanup(void)
 {
-    for (size_t i = 0; i < mRobots.size(); i++) {
-        if (mRobots[i]->Valid()) {
-            mRobots[i]->PowerOffSequence(true /* open safety relays */);
+    for (size_t i = 0; i < m_robots.size(); i++) {
+        if (m_robots[i]->Valid()) {
+            m_robots[i]->PowerOffSequence(true /* open safety relays */);
         }
     }
     // Write to all boards
@@ -549,42 +557,42 @@ void mtsRobotIO1394::Cleanup(void)
 
 void mtsRobotIO1394::GetNumberOfDigitalInputs(size_t & placeHolder) const
 {
-    placeHolder = mDigitalInputs.size();
+    placeHolder = m_digital_inputs.size();
 }
 
 mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index)
 {
-    return mDigitalInputs.at(index);
+    return m_digital_inputs.at(index);
 }
 
 const mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index) const
 {
-    return mDigitalInputs.at(index);
+    return m_digital_inputs.at(index);
 }
 
 void mtsRobotIO1394::GetNumberOfDigitalOutputs(size_t & placeHolder) const
 {
-    placeHolder = mDigitalOutputs.size();
+    placeHolder = m_digital_outputs.size();
 }
 
 void mtsRobotIO1394::GetNumberOfBoards(size_t & placeHolder) const
 {
-    placeHolder = mBoards.size();
+    placeHolder = m_boards.size();
 }
 
 void mtsRobotIO1394::GetNumberOfRobots(size_t & placeHolder) const
 {
-    placeHolder = mRobots.size();
+    placeHolder = m_robots.size();
 }
 
 mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
 {
-    return mRobots.at(index);
+    return m_robots.at(index);
 }
 
 const mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index) const
 {
-    return mRobots.at(index);
+    return m_robots.at(index);
 }
 
 std::string mtsRobotIO1394::DefaultPort(void)
@@ -594,19 +602,19 @@ std::string mtsRobotIO1394::DefaultPort(void)
 
 void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
 {
-    size_t numRobots = mRobots.size();
-    placeHolder.resize(numRobots);
-    for (size_t i = 0; i < numRobots; i++) {
-        placeHolder[i] = mRobots[i]->NumberOfActuators();
+    const size_t _num_robots = m_robots.size();
+    placeHolder.resize(_num_robots);
+    for (size_t i = 0; i < _num_robots; i++) {
+        placeHolder[i] = m_robots[i]->NumberOfActuators();
     }
 }
 
 void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
 {
-    size_t numRobots = mRobots.size();
-    placeHolder.resize(numRobots);
-    for (size_t i = 0; i < numRobots; i++) {
-        placeHolder[i] = mRobots[i]->NumberOfBrakes();
+    const size_t _num_robots = m_robots.size();
+    placeHolder.resize(_num_robots);
+    for (size_t i = 0; i < _num_robots; i++) {
+        placeHolder[i] = m_robots[i]->NumberOfBrakes();
     }
 }
 
@@ -619,47 +627,47 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
     const osaRobot1394Configuration & config = robot->GetConfiguration();
 
     // Check to make sure this robot isn't already added
-    if (mRobotsByName.count(config.Name) > 0) {
+    if (m_robots_by_name.count(config.name) > 0) {
         cmnThrow(robot->Name() + ": robot name is not unique.");
     }
 
     // Construct a vector of boards relevant to this robot
-    std::vector<osaActuatorMapping> actuatorBoards(config.NumberOfActuators);
-    std::vector<osaBrakeMapping> brakeBoards(config.NumberOfBrakes);
+    std::vector<osaActuatorMapping> actuatorBoards(config.number_of_actuators);
+    std::vector<osaBrakeMapping> brakeBoards(config.number_of_brakes);
     int currentBrake = 0;
 
-    for (int i = 0; i < config.NumberOfActuators; i++) {
+    for (size_t i = 0; i < config.number_of_actuators; i++) {
 
         // Board for the actuator
-        int boardId = config.Actuators[i].BoardID;
+        int _board_id = config.actuators[i].board_id;
 
         // If the board hasn't been created, construct it and add it to the port
-        if (mBoards.count(boardId) == 0) {
-            mBoards[boardId] = new AmpIO(boardId);
-            mPort->AddBoard(mBoards[boardId]);
+        if (m_boards.count(_board_id) == 0) {
+            m_boards[_board_id] = new AmpIO(_board_id);
+            m_port->AddBoard(m_boards[_board_id]);
         }
 
         // Add the board to the list of boards relevant to this robot
-        actuatorBoards[i].Board = mBoards[boardId];
-        actuatorBoards[i].BoardID = boardId;
-        actuatorBoards[i].Axis = config.Actuators[i].AxisID;
+        actuatorBoards[i].board = m_boards[_board_id];
+        actuatorBoards[i].board_id = _board_id;
+        actuatorBoards[i].axis = config.actuators[i].axis_id;
 
         // Board for the brake if any
-        osaAnalogBrake1394Configuration * brake = config.Actuators[i].Brake;
+        osaAnalogBrake1394Configuration * brake = config.actuators[i].brake;
         if (brake) {
             // Board for the brake
-            boardId = brake->BoardID;
+            _board_id = brake->board_id;
 
             // If the board hasn't been created, construct it and add it to the port
-            if (mBoards.count(boardId) == 0) {
-                mBoards[boardId] = new AmpIO(boardId);
-                mPort->AddBoard(mBoards[boardId]);
+            if (m_boards.count(_board_id) == 0) {
+                m_boards[_board_id] = new AmpIO(_board_id);
+                m_port->AddBoard(m_boards[_board_id]);
             }
 
             // Add the board to the list of boards relevant to this robot
-            brakeBoards[currentBrake].Board = mBoards[boardId];
-            brakeBoards[currentBrake].BoardID = boardId;
-            brakeBoards[currentBrake].Axis = brake->AxisID;
+            brakeBoards[currentBrake].board = m_boards[_board_id];
+            brakeBoards[currentBrake].board_id = _board_id;
+            brakeBoards[currentBrake].axis = brake->axis_id;
             currentBrake++;
         }
     }
@@ -668,8 +676,8 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
     robot->SetBoards(actuatorBoards, brakeBoards);
 
     // Store the robot by name
-    mRobots.push_back(robot);
-    mRobotsByName[config.Name] = robot;
+    m_robots.push_back(robot);
+    m_robots_by_name[config.name] = robot;
 }
 
 void mtsRobotIO1394::AddDigitalInput(mtsDigitalInput1394 * digitalInput)
@@ -681,25 +689,25 @@ void mtsRobotIO1394::AddDigitalInput(mtsDigitalInput1394 * digitalInput)
     const osaDigitalInput1394Configuration & config = digitalInput->Configuration();
 
     // Check to make sure this digital input isn't already added
-    if (mDigitalInputsByName.count(config.Name) > 0) {
+    if (m_digital_inputs_by_name.count(config.name) > 0) {
         cmnThrow(digitalInput->Name() + ": digital input name is not unique.");
     }
 
     // Construct a vector of boards relevant to this digital input
-    int boardID = config.BoardID;
+    int board_id = config.board_id;
 
     // If the board hasn't been created, construct it and add it to the port
-    if (mBoards.count(boardID) == 0) {
-        mBoards[boardID] = new AmpIO(boardID);
-        mPort->AddBoard(mBoards[boardID]);
+    if (m_boards.count(board_id) == 0) {
+        m_boards[board_id] = new AmpIO(board_id);
+        m_port->AddBoard(m_boards[board_id]);
     }
 
     // Assign the board to the digital input
-    digitalInput->SetBoard(mBoards[boardID]);
+    digitalInput->SetBoard(m_boards[board_id]);
 
     // Store the digital input by name
-    mDigitalInputs.push_back(digitalInput);
-    mDigitalInputsByName[config.Name] = digitalInput;
+    m_digital_inputs.push_back(digitalInput);
+    m_digital_inputs_by_name[config.name] = digitalInput;
 }
 
 void mtsRobotIO1394::AddDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
@@ -711,25 +719,25 @@ void mtsRobotIO1394::AddDigitalOutput(mtsDigitalOutput1394 * digitalOutput)
     const osaDigitalOutput1394Configuration & config = digitalOutput->Configuration();
 
     // Check to make sure this digital output isn't already added
-    if (mDigitalOutputsByName.count(config.Name) > 0) {
+    if (m_digital_outputs_by_name.count(config.name) > 0) {
         cmnThrow(digitalOutput->Name() + ": digital output name is not unique.");
     }
 
     // Construct a vector of boards relevant to this digital output
-    int boardID = config.BoardID;
+    int board_id = config.board_id;
 
     // If the board hasn't been created, construct it and add it to the port
-    if (mBoards.count(boardID) == 0) {
-        mBoards[boardID] = new AmpIO(boardID);
-        mPort->AddBoard(mBoards[boardID]);
+    if (m_boards.count(board_id) == 0) {
+        m_boards[board_id] = new AmpIO(board_id);
+        m_port->AddBoard(m_boards[board_id]);
     }
 
     // Assign the board to the digital output
-    digitalOutput->SetBoard(mBoards[boardID]);
+    digitalOutput->SetBoard(m_boards[board_id]);
 
     // Store the digital output by name
-    mDigitalOutputs.push_back(digitalOutput);
-    mDigitalOutputsByName[config.Name] = digitalOutput;
+    m_digital_outputs.push_back(digitalOutput);
+    m_digital_outputs_by_name[config.name] = digitalOutput;
 }
 
 void mtsRobotIO1394::AddDallasChip(mtsDallasChip1394 * dallasChip)
@@ -741,32 +749,32 @@ void mtsRobotIO1394::AddDallasChip(mtsDallasChip1394 * dallasChip)
     const osaDallasChip1394Configuration & config = dallasChip->Configuration();
 
     // Check to make sure this Dallas chip isn't already added
-    if (mDallasChipsByName.count(config.Name) > 0) {
+    if (m_dallas_chips_by_name.count(config.name) > 0) {
         cmnThrow(dallasChip->Name() + ": Dallas chip name is not unique.");
     }
 
     // Construct a vector of boards relevant to this Dallas chip
-    int boardID = config.BoardID;
+    int board_id = config.board_id;
 
     // If the board hasn't been created, construct it and add it to the port
-    if (mBoards.count(boardID) == 0) {
-        mBoards[boardID] = new AmpIO(boardID);
-        mPort->AddBoard(mBoards[boardID]);
+    if (m_boards.count(board_id) == 0) {
+        m_boards[board_id] = new AmpIO(board_id);
+        m_port->AddBoard(m_boards[board_id]);
     }
 
     // Assign the board to the Dallas chip
-    dallasChip->SetBoard(mBoards[boardID]);
+    dallasChip->SetBoard(m_boards[board_id]);
 
     // Store the digital output by name
-    mDallasChips.push_back(dallasChip);
-    mDallasChipsByName[config.Name] = dallasChip;
+    m_dallas_chips.push_back(dallasChip);
+    m_dallas_chips_by_name[config.name] = dallasChip;
 }
 
 bool mtsRobotIO1394::CheckFirmwareVersions(void)
 {
     unsigned int lowest = 99999;
     unsigned int highest = 0;
-    for (const auto & robot : mRobots) {
+    for (const auto & robot : m_robots) {
         unsigned int robotLow, robotHigh;
         robot->GetFirmwareRange(robotLow, robotHigh);
         if (robotLow < lowest) {
@@ -845,7 +853,7 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
 void mtsRobotIO1394::GetRobotNames(std::vector<std::string> & names) const
 {
     names.clear();
-    for (const auto & robot : mRobots) {
+    for (const auto & robot : m_robots) {
         names.push_back(robot->Name());
     }
 }
@@ -853,7 +861,7 @@ void mtsRobotIO1394::GetRobotNames(std::vector<std::string> & names) const
 void mtsRobotIO1394::GetDigitalInputNames(std::vector<std::string> & names) const
 {
     names.clear();
-    for (const auto & input : mDigitalInputs) {
+    for (const auto & input : m_digital_inputs) {
         names.push_back(input->Name());
     }
 }
@@ -861,15 +869,15 @@ void mtsRobotIO1394::GetDigitalInputNames(std::vector<std::string> & names) cons
 void mtsRobotIO1394::GetDigitalOutputNames(std::vector<std::string> & names) const
 {
     names.clear();
-    for (const auto & output : mDigitalOutputs) {
+    for (const auto & output : m_digital_outputs) {
         names.push_back(output->Name());
     }
 }
 
 void mtsRobotIO1394::close_all_relays(void)
 {
-    if (mPort) {
-        AmpIO::WriteSafetyRelayAll(mPort, true);
+    if (m_port) {
+        AmpIO::WriteSafetyRelayAll(m_port, true);
         mConfigurationInterface->SendStatus("Closed all safety relays");
     } else {
         mConfigurationInterface->SendError("Failed to close all safety relays, port has not been created yet");
@@ -906,23 +914,23 @@ void mtsRobotIO1394::IntervalStatisticsCallback(void)
     // check load
     if (!error) {
         if (StateTable.PeriodStats.ComputeTimeAvg() > expectedPeriod) {
-            if (now >= (mTimeLastTimingWarning + sawRobotIO1394::TimeBetweenTimingWarnings)) {
+            if (now >= (m_time_last_timing_warning + sawRobotIO1394::TimeBetweenTimingWarnings)) {
                 sendingMessage = true;
                 message << "average compute time (" << cmnInternalTo_ms(StateTable.PeriodStats.ComputeTimeAvg())
                         << " ms) exceeds expected period ("
                         << cmnInternalTo_ms(expectedPeriod) << " ms)";
-                mTimeLastTimingWarning = now;
+                m_time_last_timing_warning = now;
             }
         } else {
             // reset time so next time we hit a warning it displays immediately
-            mTimeLastTimingWarning = 0.0;
+            m_time_last_timing_warning = 0.0;
         }
     }
 
     // send message as needed
     if (sendingMessage) {
         std::string messageString = " IO: " + message.str();
-        for (auto & robot : mRobots) {
+        for (auto & robot : m_robots) {
             if (error) {
                 robot->mInterface->SendError(robot->Name() + messageString);
             } else {

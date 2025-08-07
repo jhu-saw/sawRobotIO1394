@@ -269,7 +269,7 @@ int main(int argc, char * argv[])
     }
     // preload encoders
     try {
-        robot->CalibrateEncoderOffsetsFromPots();
+        robot->CalibrateEncoderOffsetsFromPotentiometers();
     } catch (const std::runtime_error & e) {
         std::cerr << "Caught exception: " << e.what() << std::endl
                   << "--> This is normal if that robot doesn't use the potentiometers to calibrate the encoders"

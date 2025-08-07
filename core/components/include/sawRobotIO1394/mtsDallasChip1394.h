@@ -36,13 +36,13 @@ namespace sawRobotIO1394 {
           name and level of detail of another class, e.g. the class that
           owns this map.  To set the "Owner", use the method SetOwner
           after the cmnNamedMap is constructed. */
-        const cmnClassServicesBase * OwnerServices;
+        const cmnClassServicesBase * m_owner_services;
 
         /*! Method used to emulate the cmnGenericObject interface used by
           CMN_LOG_CLASS macros. */
         //@{
         inline const cmnClassServicesBase * Services(void) const {
-            return this->OwnerServices;
+            return this->m_owner_services;
         }
 
         inline cmnLogger::StreamBufType * GetLogMultiplexer(void) const {
@@ -78,13 +78,13 @@ namespace sawRobotIO1394 {
         void TriggerToolTypeEvent(const unsigned int & model,
                                   const unsigned int & version,
                                   const std::string & name);
-        mtsInterfaceProvided * mInterface = nullptr;
-        mtsFunctionWrite ToolTypeEvent;
-        AmpIO * mBoard = nullptr;
-        osaDallasChip1394Configuration mConfiguration;
-        std::string mName;
-        mtsStdString mToolType = ToolTypeUndefined;
-        bool mWaiting = false;
+        mtsInterfaceProvided * m_interface = nullptr;
+        mtsFunctionWrite m_tool_type_event;
+        AmpIO * m_board = nullptr;
+        osaDallasChip1394Configuration m_configuration;
+        std::string m_name;
+        std::string m_tool_type = ToolTypeUndefined;
+        bool m_waiting = false;
     };
 
 } // namespace sawRobotIO1394

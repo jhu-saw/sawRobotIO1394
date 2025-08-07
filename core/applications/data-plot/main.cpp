@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -88,7 +88,7 @@ int main(int argc, char * argv[])
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
     // preload encoders
-    robot->CalibrateEncoderOffsetsFromPots();
+    robot->CalibrateEncoderOffsetsFromPotentiometers();
 
     QApplication application(argc, argv);
     plotObject * plot = new plotObject(port, robot, actuatorIndex);

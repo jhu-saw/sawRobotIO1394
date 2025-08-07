@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -28,10 +28,10 @@ namespace sawRobotIO1394 {
     class mtsDigitalInput1394Data {
     public:
         mtsDigitalInput1394Data():
-            DigitalInputBits(0x0)
+            digital_input_bits(0x0)
         {};
-        uint32_t BitMask;       // BitMask for this input. From DigitalInput Stream.
-        uint32_t DigitalInputBits; // BitMask for this input. From DigitalInput Stream.
+        uint32_t bit_mask;           // BitMask for this input. From DigitalInput Stream.
+        uint32_t digital_input_bits; // BitMask for this input. From DigitalInput Stream.
     };
 }
 
@@ -39,82 +39,75 @@ using namespace sawRobotIO1394;
 
 mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
                                          const osaDigitalInput1394Configuration & config):
-    OwnerServices(owner.Services())
+    m_owner_services(owner.Services())
 {
-    mData = new mtsDigitalInput1394Data;
+    m_data = new mtsDigitalInput1394Data;
 
     // predefined payloads
-    mEventPayloads.Pressed.SetType(prmEventButton::PRESSED);
-    mEventPayloads.Pressed.SetValid(true);
-    mEventPayloads.Released.SetType(prmEventButton::RELEASED);
-    mEventPayloads.Released.SetValid(true);
-    mEventPayloads.Clicked.SetType(prmEventButton::CLICKED);
-    mEventPayloads.Clicked.SetValid(true);
+    m_event_payloads.pressed.SetType(prmEventButton::PRESSED);
+    m_event_payloads.pressed.SetValid(true);
+    m_event_payloads.released.SetType(prmEventButton::RELEASED);
+    m_event_payloads.released.SetValid(true);
+    m_event_payloads.clicked.SetType(prmEventButton::CLICKED);
+    m_event_payloads.clicked.SetValid(true);
     Configure(config);
 }
 
 mtsDigitalInput1394::~mtsDigitalInput1394()
 {
-    if (mData) {
-        delete mData;
+    if (m_data) {
+        delete m_data;
     }
 }
 
 void mtsDigitalInput1394::SetupStateTable(mtsStateTable & stateTable)
 {
-    stateTable.AddData(mValue, mName + "Value");
-    mStateTable = &stateTable;
+    stateTable.AddData(m_value, m_configuration.name + "Value");
+    m_state_table = &stateTable;
 }
 
 void mtsDigitalInput1394::SetupProvidedInterface(mtsInterfaceProvided * prov, mtsStateTable & stateTable)
 {
-    prov->AddCommandReadState(stateTable, this->mValue, "GetButton");
-    prov->AddEventWrite(this->Button, "Button", prmEventButton());
+    prov->AddCommandReadState(stateTable, this->m_value, "GetButton");
+    prov->AddEventWrite(this->m_button, "Button", prmEventButton());
 }
 
 void mtsDigitalInput1394::CheckState(void)
 {
     // Send appropriate events if the value changed in the last update
     // Check if value has changed
-    if (mFirstRun || (mValue != mPreviousValue)) {
+    if (m_first_run || (m_value != m_previous_value)) {
         // Check if the value is equal to the value when the digital input is considered pressed
-        if (mValue) {
+        if (m_value) {
             // Emit a press event if specified in config
-            if (mTriggerPress) {
-                if (mStateTable) {
-                    mEventPayloads.Pressed.SetTimestamp(mStateTable->GetTic());
+            if (m_configuration.trigger_when_pressed) {
+                if (m_state_table) {
+                    m_event_payloads.pressed.SetTimestamp(m_state_table->GetTic());
                 }
-                Button(mEventPayloads.Pressed);
+                m_button(m_event_payloads.pressed);
             }
         } else {
             // Emit a release event if specified in config
-            if (mTriggerRelease) {
-                if (mStateTable) {
-                    mEventPayloads.Released.SetTimestamp(mStateTable->GetTic());
+            if (m_configuration.trigger_when_released) {
+                if (m_state_table) {
+                    m_event_payloads.released.SetTimestamp(m_state_table->GetTic());
                 }
-                Button(mEventPayloads.Released);
+                m_button(m_event_payloads.released);
             }
         }
     }
     // Disable first run
-    if (mFirstRun) {
-        mFirstRun = false;
+    if (m_first_run) {
+        m_first_run = false;
     }
 }
 
 void mtsDigitalInput1394::Configure(const osaDigitalInput1394Configuration & config)
 {
     // Store configuration
-    mConfiguration = config;
-    mName = config.Name;
-    mBitID = config.BitID;
-    mData->BitMask = 0x1 << mBitID;
-    mPressedValue = config.PressedValue;
-    mTriggerPress = config.TriggerWhenPressed;
-    mTriggerRelease = config.TriggerWhenReleased;
-    mFirstRun = !config.SkipFirstRun;
-    mDebounceThreshold = config.DebounceThreshold;
-    mDebounceThresholdClick = config.DebounceThresholdClick;
+    m_configuration = config;
+    m_data->bit_mask = 0x1 << m_configuration.bit_id;
+    m_first_run = !m_configuration.skip_first_run;
 }
 
 void mtsDigitalInput1394::SetBoard(AmpIO * board)
@@ -122,74 +115,74 @@ void mtsDigitalInput1394::SetBoard(AmpIO * board)
     if (board == 0) {
         cmnThrow(this->Name() + ": invalid board pointer.");
     }
-    mBoard = board;
+    m_board = board;
 }
 
 void mtsDigitalInput1394::PollState(void)
 {
     // Store previous value
-    mPreviousValue = mValue;
+    m_previous_value = m_value;
 
     // Get the new value
-    mData->DigitalInputBits =  mBoard->GetDigitalInput();
+    m_data->digital_input_bits =  m_board->GetDigitalInput();
 
     // If the masked bit is low, set the value to the pressed value
-    bool value = ((mData->DigitalInputBits & mData->BitMask)
-                  ? (!mPressedValue) : (mPressedValue));
+    bool value = ((m_data->digital_input_bits & m_data->bit_mask)
+                  ? (!m_configuration.pressed_value) : (m_configuration.pressed_value));
 
     // No debounce needed
-    if (mFirstRun || (mDebounceThreshold == 0.0)) {
-        mValue = value;
+    if (m_first_run || (m_configuration.debounce_threshold == 0.0)) {
+        m_value = value;
         return;
     }
 
     // Debounce - start if we find one new different value
-    if (mDebounceCounter < 0.0) {
-        if (value != mPreviousValue) {
-            mDebounceCounter = 0.0;
-            mTransitionValue = value;
+    if (m_debounce_counter < 0.0) {
+        if (value != m_previous_value) {
+            m_debounce_counter = 0.0;
+            m_transition_value = value;
         }
     // count consecutive equal values
     } else {
-        if (mDebounceCounter < mDebounceThreshold) {
-            if (value == mTransitionValue) {
-                mDebounceCounter += mBoard->GetTimestamp() * mBoard->GetFPGAClockPeriod();
+        if (m_debounce_counter < m_configuration.debounce_threshold) {
+            if (value == m_transition_value) {
+                m_debounce_counter += m_board->GetTimestamp() * m_board->GetFPGAClockPeriod();
             } else {
                 // click if button is now changed back and counter is short enough
-                if ((mDebounceThresholdClick != mDebounceThreshold) // click is activated
+                if ((m_configuration.debounce_threshold_click != m_configuration.debounce_threshold) // click is activated
                     && !value // input is "changed back"
-                    && (mDebounceCounter >  mDebounceThresholdClick) // pressed long enough
+                    && (m_debounce_counter >  m_configuration.debounce_threshold_click) // pressed long enough
                     ) {
-                    if (mStateTable) {
-                        mEventPayloads.Clicked.SetTimestamp(mStateTable->GetTic());
+                    if (m_state_table) {
+                        m_event_payloads.clicked.SetTimestamp(m_state_table->GetTic());
                     }
-                    Button(mEventPayloads.Clicked);
+                    m_button(m_event_payloads.clicked);
                 }
-                mDebounceCounter = -1.0;
+                m_debounce_counter = -1.0;
             }
         } else {
-            mValue = value;
-            mDebounceCounter = -1.0;
+            m_value = value;
+            m_debounce_counter = -1.0;
         }
     }
 }
 
 const osaDigitalInput1394Configuration & mtsDigitalInput1394::Configuration(void) const
 {
-    return mConfiguration;
+    return m_configuration;
 }
 
 const std::string & mtsDigitalInput1394::Name(void) const
 {
-    return mName;
+    return m_configuration.name;
 }
 
 const bool & mtsDigitalInput1394::Value(void) const
 {
-    return mValue;
+    return m_value;
 }
 
 const bool & mtsDigitalInput1394::PreviousValue(void) const
 {
-    return mPreviousValue;
+    return m_previous_value;
 }
