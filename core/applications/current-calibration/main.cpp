@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2013-12-20
 
-  (C) Copyright 2013-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -18,11 +18,12 @@ http://www.cisst.org/cisst/license.txt.
 
 // system
 #include <iostream>
+#include <json/json.h>
+
 // cisst/saw
 #include <cisstCommon/cmnPath.h>
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnGetChar.h>
-#include <cisstCommon/cmnXMLPath.h>
 #include <cisstCommon/cmnCommandLineOptions.h>
 #include <cisstOSAbstraction/osaSleep.h>
 #include <cisstOSAbstraction/osaGetTime.h>
@@ -88,7 +89,11 @@ bool enablePower(PowerType type) {
         osaSleep(10.0 * cmn_ms);
         port->Read();
         port->Write();
+        if ((i % 50) == 0) {
+            std::cerr << ".";
+        }
     }
+    std::cerr << std::endl;
 
     // check that power is on
     if (!robot->PowerStatus()) {
@@ -138,8 +143,11 @@ Samples collectSamples(void) {
         }
         samples[index].Multiply(1000.0); // convert all values to mA to be easier to read
         sumSamples.Add(samples[index]);
+        if ((index % 1000) == 0) {
+            std::cerr << ".";
+        }
     }
-
+    std::cerr << std::endl;
     port->Write();
 
     // compute simple average
@@ -192,6 +200,10 @@ int main(int argc, char * argv[])
     // log configuration
     cmnLogger::SetMask(CMN_LOG_ALLOW_ALL);
     cmnLogger::SetMaskDefaultLog(CMN_LOG_ALLOW_ALL);
+    cmnLogger::SetMaskFunction(CMN_LOG_ALLOW_ALL);
+    cmnLogger::SetMaskClassMatching("mtsDigital", CMN_LOG_ALLOW_ALL);
+    cmnLogger::SetMaskClassMatching("mtsDallasChip", CMN_LOG_ALLOW_ALL);
+    cmnLogger::SetMaskClassMatching("mtsRobot", CMN_LOG_ALLOW_ALL);
     cmnLogger::AddChannel(std::cerr, CMN_LOG_ALLOW_ERRORS_AND_WARNINGS);
 
     cmnCommandLineOptions options;
@@ -231,12 +243,12 @@ int main(int argc, char * argv[])
               << "Press any key to start." << std::endl;
     cmnGetChar();
 
-    std::cout << "Loading config file ..." << std::endl;
+    std::cout << "Loading config file..." << std::endl;
     port = new mtsRobotIO1394("io", 1.0 * cmn_ms, portName);
     port->SkipConfigurationCheck(true);
     port->Configure(configFile);
 
-    std::cout << "Creating robot ..." << std::endl;
+    std::cout << "Creating robot..." << std::endl;
     size_t numberOfRobots;
     port->GetNumberOfRobots(numberOfRobots);
     if (numberOfRobots == 0) {
@@ -276,9 +288,7 @@ int main(int argc, char * argv[])
                   << std::endl;
     }
 
-    std::cout << std::endl
-              << "Ready to power?  Press any key to start." << std::endl;
-    cmnGetChar();
+    std::cout << "Status: robot created" << std::endl;
 
     robot->SetWatchdogPeriod(300.0 * cmn_ms);
     port->close_all_relays();
@@ -289,7 +299,7 @@ int main(int argc, char * argv[])
     }
 
     std::cout << "Status: power seems fine." << std::endl
-              << "Starting calibration ..." << std::endl;
+              << "Starting calibration..." << std::endl;
     Samples samplesFbErr = collectSamples();
     // display results
     std::cout << "Measured current error statistics" << std::endl
@@ -314,7 +324,7 @@ int main(int argc, char * argv[])
     }
 
     std::cout << "Status: power seems fine." << std::endl
-              << "Starting calibration ..." << std::endl;
+              << "Starting calibration..." << std::endl;
     Samples samplesCmdErr = collectSamples();
     // display results
     std::cout << "Commanded current error statistics" << std::endl
@@ -338,36 +348,33 @@ int main(int argc, char * argv[])
               << "Status: command current offsets in mA (corrected): " << averageValidSamples << std::endl
               << std::endl;
 
-    cmnXMLPath xmlConfig;
-    xmlConfig.SetInputSource(configFile);
-    std::string
-        xmlQueryCmdOffset,
-        xmlQueryCmdScale,
-        xmlQueryFbOffset;
-    if (brakes) {
-        xmlQueryCmdOffset = "Robot[1]/Actuator[%d]/AnalogBrake/AmpsToBits/@Offset";
-        xmlQueryCmdScale  = "Robot[1]/Actuator[%d]/AnalogBrake/AmpsToBits/@Scale";
-        xmlQueryFbOffset =  "Robot[1]/Actuator[%d]/AnalogBrake/BitsToFeedbackAmps/@Offset";
-    } else {
-        xmlQueryCmdOffset = "Robot[1]/Actuator[%d]/Drive/AmpsToBits/@Offset";
-        xmlQueryCmdScale  = "Robot[1]/Actuator[%d]/Drive/AmpsToBits/@Scale";
-        xmlQueryFbOffset =  "Robot[1]/Actuator[%d]/Drive/BitsToFeedbackAmps/@Offset";
+    // load json file
+    std::ifstream jsonStream;
+    Json::Value jsonConfig;
+    Json::Reader jsonReader;
+
+    jsonStream.open(configFile.c_str());
+    if (!jsonReader.parse(jsonStream, jsonConfig)) {
+        std::cerr << "Failed to parse configuration file \""
+                  << configFile << "\"\n"
+                  << jsonReader.getFormattedErrorMessages();
+        exit(EXIT_FAILURE);
     }
+    jsonStream.close();
 
     // query previous current offset and scales
     vctDoubleVec previousCmdOffsets(numberOfAxis, 0.0);
     vctDoubleVec previousCmdScales(numberOfAxis, 0.0);
     vctDoubleVec previousFbOffsets(numberOfAxis, 0.0);
-    for (size_t index = 0; index < numberOfAxis; ++index) {
-        char path[64];
-        const char * context = "Config";
-        sprintf(path, xmlQueryCmdOffset.c_str(), static_cast<int>(index + 1));
-        xmlConfig.GetXMLValue(context, path, previousCmdOffsets[index]);
-        sprintf(path, xmlQueryCmdScale.c_str(), static_cast<int>(index + 1));
-        xmlConfig.GetXMLValue(context, path, previousCmdScales[index]);
-        sprintf(path, xmlQueryFbOffset.c_str(), static_cast<int>(index + 1));
-        xmlConfig.GetXMLValue(context, path, previousFbOffsets[index]);
+    std::string drive = brakes ? "brake": "drive";
+
+    for (int index = 0; index < static_cast<int>(numberOfAxis); ++index) {
+        const Json::Value & jsonDrive = jsonConfig["robots"][0]["actuators"][index][drive];
+        previousCmdOffsets[index] = jsonDrive["current_to_bits"]["offset"].asDouble();
+        previousCmdScales[index] =  jsonDrive["current_to_bits"]["scale"].asDouble();
+        previousFbOffsets[index] =  jsonDrive["bits_to_current"]["offset"].asDouble();
     }
+
     // compute new offsets
     vctDoubleVec newCmdOffsets(numberOfAxis);
     newCmdOffsets.Assign(averageValidSamples);
@@ -380,9 +387,10 @@ int main(int argc, char * argv[])
     newFbOffsets.Subtract(samplesFbErr.averageValidSamples / 1000.0);
 
     // ask one last confirmation from user
-    std::cout << "Status: commanded current offsets in XML configuration file: " << previousCmdOffsets << std::endl
+    std::cout << std::endl << std::endl
+              << "Status: commanded current offsets in configuration file: " << previousCmdOffsets << std::endl
               << "Status: new commanded current offsets:                       " << newCmdOffsets << std::endl
-              << "Status: measured current offsets in XML configuration file: " << previousFbOffsets << std::endl
+              << "Status: measured current offsets in configuration file: " << previousFbOffsets << std::endl
               << "Status: new measured current offsets:                       " << newFbOffsets << std::endl
               << std::endl;
 
@@ -398,21 +406,28 @@ int main(int argc, char * argv[])
     if ((key == 'y') || (key == 'Y')) {
         vctIntVec newCmdOffsetsInt(newCmdOffsets);
         vctDoubleVec newFbOffsetsInt(newFbOffsets);
-        for (size_t index = 0; index < numberOfAxis; ++index) {
-            char path[64];
-            const char * context = "Config";
-            sprintf(path, xmlQueryCmdOffset.c_str(), static_cast<int>(index + 1));
-            xmlConfig.SetXMLValue(context, path, newCmdOffsetsInt[index]);
-            sprintf(path, xmlQueryFbOffset.c_str(), static_cast<int>(index + 1));
-            xmlConfig.SetXMLValue(context, path, newFbOffsetsInt[index]);
+
+        for (int index = 0; index < static_cast<int>(numberOfAxis); ++index) {
+            Json::Value & jsonDrive = jsonConfig["robots"][0]["actuators"][index][drive];
+            jsonDrive["current_to_bits"]["offset"] = newCmdOffsets[index];
+            jsonDrive["bits_to_current"]["offset"] = newFbOffsets[index];
         }
+
         // rename old file and save in place
         std::string currentDateTime;
         osaGetDateTimeString(currentDateTime);
         std::string newName = configFile + "-backup-" + currentDateTime;
         cmnPath::RenameFile(configFile, newName);
         std::cout << "Existing IO config file has been renamed " << newName << std::endl;
-        xmlConfig.SaveAs(configFile);
+
+        // save new data
+        Json::StreamWriterBuilder builder;
+        builder["indentation"] = "    ";
+        std::ofstream outputFile(configFile);
+        std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+        writer->write(jsonConfig, &outputFile);
+        outputFile.close();
+
         std::cout << "Results saved in IO config file " << configFile << std::endl;
     } else {
         std::cout << "Status: user didn't want to save new offsets." << std::endl;

@@ -285,21 +285,10 @@ namespace sawRobotIO1394 {
 
         //! Vectors of actuator properties
         vctDoubleVec
-            mEffortToCurrentScales,
-            mActuatorCurrentToBitsScales,
             mBrakeCurrentToBitsScales,
-            mActuatorCurrentToBitsOffsets,
             mBrakeCurrentToBitsOffsets,
-            mActuatorBitsToCurrentScales,
             m_brakes_bits_to_current_scales,
-            mActuatorBitsToCurrentOffsets,
-            m_brakes_bits_to_current_offsets,
-            mBitsToPositionScales,
-            mBitsToPositionOffsets, // this is used only if the hardware doesn't allow encoder pre-loading
-            mBitsToVoltageScales,
-            mBitsToVoltageOffsets,
-            mVoltageToPositionScales,
-            mVoltageToPositionOffsets;
+            m_brakes_bits_to_current_offsets;
 
         vctDoubleVec
             mActuatorCurrentCommandLimits,
@@ -309,10 +298,7 @@ namespace sawRobotIO1394 {
             mPotentiometersToEncodersTolerance;       // maximum error between encoders and pots
 
         //! Robot type
-        osa1394::hardware_t m_hardware_version;
         prmConfigurationJoint m_configuration_js;
-        int mPotentiometerType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
-        vctDoubleMat mPotentiometerCoupling;
         bool mUsePotentiometersForSafetyCheck;
 
         //! State Members
@@ -350,7 +336,6 @@ namespace sawRobotIO1394 {
             mPotentiometerBits,
             mEncoderPositionBits,
             mPreviousEncoderPositionBits;
-            // mEncoderDPositionBits;
 
         vctIntVec
             mActuatorCurrentBitsCommand,
@@ -367,13 +352,10 @@ namespace sawRobotIO1394 {
             mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
             mEncoderAccelerationCountsPerSecSec,   // acceleration based on FPGA measurement (firmware rev 6)
             mEncoderAcceleration,                  // acceleration in SI units (firmware rev 6)
-            mActuatorEncoderAcceleration,
             mActuatorCurrentCommand,
             mBrakeCurrentCommand,
             mActuatorEffortCommand,
             mActuatorCurrentFeedback,
-            mPotentiometerToleranceLatency,
-            mPotentiometerToleranceDistance,
             mPotentiometerErrorDuration,
             mBrakeCurrentFeedback,
             mActuatorTemperature,

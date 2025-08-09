@@ -265,6 +265,12 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         // using cmnData traits
         cmnDataJSON<osaPort1394Configuration>::DeSerializeText(config, jsonConfig);
 
+        CMN_LOG_CLASS_INIT_VERBOSE << "Configure " << this->GetName()
+                                   << ": content of configuration file" << std::endl
+                                   << "------------ file ------------" << std::endl
+                                   << config
+                                   << "----------end of file --------" << std::endl;
+
     } catch (std::exception & e) {
         CMN_LOG_CLASS_INIT_ERROR << "Configure " << this->GetName() << ": parsing file \""
                                  << filename << "\", got error: " << e.what() << std::endl;

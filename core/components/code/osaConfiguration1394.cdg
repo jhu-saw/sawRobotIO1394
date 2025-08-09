@@ -117,13 +117,6 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name type;
-        type int;
-        visibility public;
-        default 0;
-        description  1 for analog pots, 2 for digital pots;
-    }
-    member {
         name bits_to_voltage;
         type osaLinearFunction;
         visibility public;
@@ -267,6 +260,30 @@ class {
     name osaPotentiometers1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
+    enum {
+        name potentiometer_type_t;
+        enum-value {
+            name UNDEFINED;
+            description undefined;
+        }
+        enum-value {
+            name NONE;
+            description none;
+        }
+        enum-value {
+            name ANALOG;
+            description analog;
+        }
+        enum-value {
+            name DIGITAL;
+            description digital;
+        }
+    }
+    member {
+        name potentiometers_type;
+        type osaPotentiometers1394Configuration::potentiometer_type_t;
+        visibility public;
+    }
     member {
         name tolerances;
         type std::vector<osaPotentiometerTolerance1394Configuration>;
@@ -371,16 +388,19 @@ class {
         name trigger_when_pressed;
         type bool;
         visibility public;
+        default false;
     }
     member {
         name trigger_when_released;
         type bool;
         visibility public;
+        default false;
     }
     member {
         name pressed_value;
         type bool;
         visibility public;
+        default true;
     }
     member {
         name skip_first_run;
@@ -392,11 +412,13 @@ class {
         name debounce_threshold;
         type double;
         visibility public;
+        default 0.0;
     }
     member {
         name debounce_threshold_click;
         type double;
         visibility public;
+        default 0.0;
     }
 }
 

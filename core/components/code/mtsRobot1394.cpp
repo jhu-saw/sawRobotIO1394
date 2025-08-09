@@ -109,7 +109,6 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
 
     m_state_table_read->AddData(m_measured_js, "measured_js");
     m_state_table_read->AddData(mEncoderAcceleration, "measured_ja");
-    m_state_table_read->AddData(mActuatorEncoderAcceleration, "actuator_measured_ja");
     m_state_table_read->AddData(m_firmware_measured_js, "firmware_measured_js");
     m_state_table_read->AddData(m_software_measured_js, "software_measured_js");
 
@@ -205,8 +204,6 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
     robotInterface->AddCommandReadState(*m_state_table_read, mEncoderAcceleration,
                                         "GetAcceleration"); // vector[double]
-    robotInterface->AddCommandReadState(*m_state_table_read, mActuatorEncoderAcceleration,
-                                        "GetActuatorAcceleration"); // vector[double]
 
     robotInterface->AddCommandReadState(*m_state_table_read, m_measured_js,
                                         "measured_js");
@@ -231,7 +228,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
                                         "GetActuatorRequestedCurrent");
 
     robotInterface->AddCommandWrite(&mtsRobot1394::UsePotentiometersForSafetyCheck, this,
-                                    "UsePotentiometersForSafetyCheck", mUsePotentiometersForSafetyCheck);
+                                    "UsePotsForSafetyCheck", mUsePotentiometersForSafetyCheck);
 
     robotInterface->AddCommandWrite<mtsRobot1394, vctBoolVec>(&mtsRobot1394::SetBrakeAmpEnable, this,
                                                               "SetBrakeAmpEnable", mBrakeAmpEnable); // vector[bool]
@@ -308,7 +305,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
 
 void mtsRobot1394::Startup(void)
 {
-    if (m_hardware_version == osa1394::dRA1) {
+    if (m_configuration.hardware_version == osa1394::dRA1) {
         // do an encoder preload since we always use the lookup table
         SetEncoderPosition(vctDoubleVec(m_number_of_actuators, 0.0));
         // check the serial number
@@ -331,17 +328,21 @@ void mtsRobot1394::Startup(void)
     }
 }
 
+
 void mtsRobot1394::StartReadStateTable(void) {
     m_state_table_read->Start();
 }
+
 
 void mtsRobot1394::AdvanceReadStateTable(void) {
     m_state_table_read->Advance();
 }
 
+
 void mtsRobot1394::StartWriteStateTable(void) {
     m_state_table_write->Start();
 }
+
 
 void mtsRobot1394::AdvanceWriteStateTable(void) {
     m_state_table_write->Advance();
@@ -355,6 +356,7 @@ void mtsRobot1394::GetSerialNumber(std::string & serialNumber) const {
     serialNumber = this->SerialNumber();
 }
 
+
 void mtsRobot1394::UsePotentiometersForSafetyCheck(const bool & usePotentiometersForSafetyCheck)
 {
     mUsePotentiometersForSafetyCheck = usePotentiometersForSafetyCheck;
@@ -364,9 +366,11 @@ void mtsRobot1394::UsePotentiometersForSafetyCheck(const bool & usePotentiometer
     EventTriggers.UsePotentiometersForSafetyCheck(usePotentiometersForSafetyCheck);
 }
 
+
 void mtsRobot1394::servo_jf(const prmForceTorqueJointSet & efforts) {
     this->SetActuatorEffort(efforts.ForceTorque());
 }
+
 
 void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
     for (size_t index = 0; index < values.Mask().size(); ++index) {
@@ -375,6 +379,7 @@ void mtsRobot1394::SetSomeEncoderPosition(const prmMaskedDoubleVec & values) {
         }
     }
 }
+
 
 void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(const int & numberOfSamples)
 {
@@ -402,17 +407,25 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(const int & numberO
     CalibrateEncoderOffsets.SamplesFromPotentiometersRequested = std::abs(numberOfSamples);
 }
 
+
 bool mtsRobot1394::CheckConfiguration(void)
 {
-    if ((m_hardware_version != osa1394::dRA1)
-        && (NumberOfActuators() > 2)
-        && mActuatorCurrentToBitsOffsets.Equal(mActuatorCurrentToBitsOffsets[0])) {
-        CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: all currents to bits offsets are equal, please calibrate the current offsets for arm: "
-                                 << this->Name() << std::endl;
-        return false;
+    if ((m_configuration.hardware_version != osa1394::dRA1)
+        && (NumberOfActuators() > 2)) {
+        const int first_offset = m_configuration.actuators[0].drive.current_to_bits.offset;
+        bool allEqual = true;
+        for (const auto & act : m_configuration.actuators) {
+            allEqual &= (first_offset == act.drive.current_to_bits.offset);
+        }
+        if (allEqual) {
+            CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: all currents to bits offsets are equal, please calibrate the current offsets for arm: "
+                                     << this->Name() << std::endl;
+            return false;
+        }
     }
     return true;
 }
+
 
 void mtsRobot1394::LoadPotentiometerLookupTable(void)
 {
@@ -454,7 +467,6 @@ void mtsRobot1394::LoadPotentiometerLookupTable(void)
                                  << Name() << " in path " << path << std::endl;
         exit(EXIT_FAILURE);
     }
-    vctDoubleMat lookupTable;
 
     try {
         std::ifstream jsonStream;
@@ -476,14 +488,14 @@ void mtsRobot1394::LoadPotentiometerLookupTable(void)
                                      << m_configuration.serial_number << ")" << std::endl;
             exit(EXIT_FAILURE);
         }
-        cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue["lookup"]);
+        cmnDataJSON<vctDoubleMat>::DeSerializeText(mPotentiometerLookupTable, jsonValue["lookup"]);
         // make sure the table size makes sense
-        if ((lookupTable.rows() != m_configuration.actuators.size())
-            || (lookupTable.cols() == 0)) {
+        if ((mPotentiometerLookupTable.rows() != m_configuration.actuators.size())
+            || (mPotentiometerLookupTable.cols() == 0)) {
             CMN_LOG_CLASS_INIT_ERROR << "LoadPotentiometerLookupTable: size of lookup table for " << Name()
                                      << " from " << m_configuration.potentiometers.lookup_table_file
                                      << " doesn't match the number of actuators, found "
-                                     << lookupTable.rows() << " but was expecting " << m_configuration.actuators.size()
+                                     << mPotentiometerLookupTable.rows() << " but was expecting " << m_configuration.actuators.size()
                                      << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -497,9 +509,8 @@ void mtsRobot1394::LoadPotentiometerLookupTable(void)
                                  << std::endl;
         exit(EXIT_FAILURE);
     }
-    // assign
-    mPotentiometerLookupTable.ForceAssign(lookupTable);
 }
+
 
 void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 {
@@ -507,7 +518,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     m_configuration = config;
 
     m_number_of_actuators = m_configuration.actuators.size();
-    
+
     // Low-level API
     mActuatorInfo.resize(m_number_of_actuators);
 
@@ -533,7 +544,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     m_pot_measured_js.Position().SetSize(m_number_of_actuators);
     mEncoderVelocityPredictedCountsPerSec.SetSize(m_number_of_actuators);
     mEncoderAccelerationCountsPerSecSec.SetSize(m_number_of_actuators);
-    mActuatorEncoderAcceleration.SetSize(m_number_of_actuators);
     mEncoderAcceleration.SetSize(m_number_of_actuators);
 
     // software velocity variables
@@ -571,36 +581,13 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     // actuator names
     cmnDataCopy(m_raw_pot_measured_js.Name(), m_measured_js.Name());
 
-    mEffortToCurrentScales.SetSize(m_number_of_actuators);
-    mActuatorCurrentToBitsScales.SetSize(m_number_of_actuators);
-    mActuatorCurrentToBitsOffsets.SetSize(m_number_of_actuators);
-    mActuatorBitsToCurrentScales.SetSize(m_number_of_actuators);
-    mActuatorBitsToCurrentOffsets.SetSize(m_number_of_actuators);
     mActuatorCurrentCommandLimits.SetSize(m_number_of_actuators);
     mActuatorCurrentFeedbackLimits.SetSize(m_number_of_actuators);
-    mPotentiometerToleranceLatency.SetSize(m_number_of_actuators);
-    mPotentiometerToleranceDistance.SetSize(m_number_of_actuators);
-    for (size_t i = 0; i < m_number_of_actuators; ++i) {
-        mPotentiometerToleranceLatency.at(i) = config.potentiometers.tolerances.at(i).latency;
-        mPotentiometerToleranceDistance.at(i) = config.potentiometers.tolerances.at(i).distance;
-    }
-    mPotentiometerCoupling.ForceAssign(config.potentiometers.coupling.JointToActuatorPosition());
     mPotentiometerErrorDuration.SetSize(m_number_of_actuators);
     mPotentiometerValid.SetSize(m_number_of_actuators);
     mPotentiometerErrorDuration.SetAll(0.0);
     mPotentiometerValid.SetAll(true);
     mUsePotentiometersForSafetyCheck = false;
-
-    // encoders
-    mBitsToPositionScales.SetSize(m_number_of_actuators);
-    mBitsToPositionOffsets.SetSize(m_number_of_actuators);
-
-    // analog pots
-    mBitsToVoltageScales.SetSize(m_number_of_actuators);
-    mBitsToVoltageOffsets.SetSize(m_number_of_actuators);
-    // all pots
-    mVoltageToPositionScales.SetSize(m_number_of_actuators);
-    mVoltageToPositionOffsets.SetSize(m_number_of_actuators);
 
     mActuatorTemperature.SetSize(m_number_of_actuators);
 
@@ -614,15 +601,9 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         const osaActuator1394Configuration & actuator = config.actuators.at(i);
         const osaDrive1394Configuration & drive = actuator.drive;
         const osaEncoder1394Configuration & encoder = actuator.encoder;
-        const osaPotentiometer1394Configuration & pot = actuator.potentiometer;
 
         m_configuration_js.Type().at(i) = actuator.joint_type;
 
-        mEffortToCurrentScales.at(i)        = drive.effort_to_current.scale;
-        mActuatorCurrentToBitsScales.at(i)  = drive.current_to_bits.scale;
-        mActuatorCurrentToBitsOffsets.at(i) = drive.current_to_bits.offset;
-        mActuatorBitsToCurrentScales.at(i)  = drive.bits_to_current.scale;
-        mActuatorBitsToCurrentOffsets.at(i) = drive.bits_to_current.offset;
         mActuatorCurrentCommandLimits.at(i) = drive.current_command_limit;
         m_configuration_js.PositionMin().at(i) = encoder.position_limits_soft.lower;
         m_configuration_js.PositionMax().at(i) = encoder.position_limits_soft.upper;
@@ -632,27 +613,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
         mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
-
-        mBitsToPositionScales.at(i) = encoder.bits_to_position.scale;
-        mBitsToPositionOffsets.at(i) = encoder.bits_to_position.offset;
-
-        // check which pots we have
-        if (mPotentiometerType == 0) {
-            mPotentiometerType = pot.type;
-        } else {
-            if (pot.type != mPotentiometerType) {
-                CMN_LOG_CLASS_INIT_ERROR << "Configure: " << this->Name()
-                                         << ", all potentiometers must be either analog or digital" << std::endl;
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        if (pot.type == 1) { // analog pots
-            mBitsToVoltageScales.at(i)  = pot.bits_to_voltage.scale;
-            mBitsToVoltageOffsets.at(i) = pot.bits_to_voltage.offset;
-            mVoltageToPositionScales.at(i)  = pot.voltage_to_position.scale;
-            mVoltageToPositionOffsets.at(i) = pot.voltage_to_position.offset;
-        }
 
         // Initialize state vectors
         m_measured_js.Position().at(i) = 0.0;
@@ -666,10 +626,14 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     }
 
     // check if pots are digital
-    if ((mPotentiometerType == 0)
-        && (m_configuration.potentiometers.lookup_table_file != "")) { // digital pots?
-        LoadPotentiometerLookupTable();
-        mPotentiometerType = 2;
+    if (config.potentiometers.potentiometers_type == osaPotentiometers1394Configuration::DIGITAL) {
+        if (m_configuration.potentiometers.lookup_table_file != "") {
+            LoadPotentiometerLookupTable();
+        } else {
+            CMN_LOG_CLASS_INIT_ERROR << "Configure: potentiometers.lookup_table_file is not defined for arm: "
+                                     << this->Name() << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Update brake data
@@ -764,9 +728,9 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
          ++board, ++boardCounter) {
         // check the hardware version vs version specified in configuration file
         const auto hardwareVersion = board->second->GetHardwareVersion();
-        if (!((hardwareVersion == QLA1_String && m_hardware_version == osa1394::QLA1)
-              || (hardwareVersion == DQLA_String && m_hardware_version == osa1394::DQLA)
-              || (hardwareVersion == dRA1_String && m_hardware_version == osa1394::dRA1))) {
+        if (!((hardwareVersion == QLA1_String && m_configuration.hardware_version == osa1394::QLA1)
+              || (hardwareVersion == DQLA_String && m_configuration.hardware_version == osa1394::DQLA)
+              || (hardwareVersion == dRA1_String && m_configuration.hardware_version == osa1394::dRA1))) {
             if (hardwareVersion == BCFG_String) {
                 CMN_LOG_CLASS_INIT_ERROR << "SetBoards: " << this->Name()
                                          << ", hardware version query reported BCFG (boot configuration)." << std::endl
@@ -776,7 +740,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
                                          << ", hardware version doesn't match value from configuration file for board: " << boardCounter
                                          << ", Id: " << static_cast<int>(board->second->GetBoardId())
                                          << ".  Hardware found: " << board->second->GetHardwareVersionString()
-                                         << ".  Configuration file value: " << osa1394::hardware_tToString(m_hardware_version) << std::endl;
+                                         << ".  Configuration file value: " << osa1394::hardware_tToString(m_configuration.hardware_version) << std::endl;
             }
             exit(EXIT_FAILURE);
         }
@@ -790,7 +754,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
             exit(EXIT_FAILURE);
         }
         std::string serialQLA;
-        if (m_hardware_version == osa1394::DQLA) {
+        if (m_configuration.hardware_version == osa1394::DQLA) {
             serialQLA = board->second->GetQLASerialNumber(1) +
                 ", " +  board->second->GetQLASerialNumber(2);
         }
@@ -945,12 +909,19 @@ void mtsRobot1394::ConvertState(void)
     EncoderBitsToPosition(mEncoderPositionBits,
                           m_measured_js.Position());
 
-    // Velocity from counts/sec to SI units
-    m_firmware_measured_js.Velocity().ElementwiseProductOf(mBitsToPositionScales, mEncoderVelocityPredictedCountsPerSec);
-
-    // Acceleration from counts/sec**2 to SI units
-    mActuatorEncoderAcceleration.ElementwiseProductOf(mBitsToPositionScales, mEncoderAccelerationCountsPerSecSec);
-    mEncoderAcceleration.Assign(mActuatorEncoderAcceleration);
+    // Velocities
+    const auto f_vel_end = m_firmware_measured_js.Velocity().end();
+    auto f_vel =  m_firmware_measured_js.Velocity().begin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto enc_vel_pred_cps = mEncoderVelocityPredictedCountsPerSec.cbegin();
+    auto enc_acc_pred_cpss = mEncoderAccelerationCountsPerSecSec.cbegin();
+    auto enc_acc = mEncoderAcceleration.begin();
+    for (; f_vel != f_vel_end;
+         ++f_vel, ++conf, ++enc_vel_pred_cps, ++enc_acc_pred_cpss, ++enc_acc) {
+        // Firmware
+        *f_vel =   conf->encoder.bits_to_position.scale * *enc_vel_pred_cps;
+        *enc_acc = conf->encoder.bits_to_position.scale * *enc_acc_pred_cpss;
+    }
 
     // Effort computation
     ActuatorBitsToCurrent(mActuatorCurrentBitsFeedback,
@@ -962,16 +933,15 @@ void mtsRobot1394::ConvertState(void)
 
     // Software based velocity estimation
     const double timeToZeroVelocity = 1.0 * cmn_s;
-    const vctIntVec::const_iterator end = mEncoderPositionBits.end();
+    const auto end = mEncoderPositionBits.cend();
     vctIntVec::const_iterator currentEncoder, previousEncoder;
-    vctDoubleVec::const_iterator currentTimestamp, bitsToPos;
+    vctDoubleVec::const_iterator currentTimestamp;
     vctDoubleVec::const_iterator encoderVelocity;
     vctDoubleVec::iterator lastChangeTimestamp, slope, velocity;
-    size_t index = 0;
+    conf = m_configuration.actuators.begin();
     for (currentEncoder = mEncoderPositionBits.begin(),
              previousEncoder = mPreviousEncoderPositionBits.begin(),
              currentTimestamp = mActuatorTimestamp.begin(),
-             bitsToPos = mBitsToPositionScales.begin(),
              lastChangeTimestamp = mActuatorTimestampChange.begin(),
              slope = mVelocitySlopeToZero.begin(),
              velocity = m_software_measured_js.Velocity().begin();
@@ -981,11 +951,10 @@ void mtsRobot1394::ConvertState(void)
          ++currentEncoder,
              ++previousEncoder,
              ++currentTimestamp,
-             ++bitsToPos,
+             ++conf,
              ++lastChangeTimestamp,
              ++slope,
-             ++velocity,
-             ++index) {
+             ++velocity) {
         // first see if there has been any change
         const int difference = (*currentEncoder) - (*previousEncoder);
         if (difference == 0) {
@@ -1000,15 +969,15 @@ void mtsRobot1394::ConvertState(void)
             // if we only have one bit change compute velocity since last change
             if ((difference == 1) || (difference == -1)) {
                 *velocity = (difference / (*lastChangeTimestamp))
-                    * (*bitsToPos);
+                    * (conf->encoder.bits_to_position.scale);
             } else {
                 if (difference > 1) {
                     // we know all but 1 bit difference happened in last Dt, other bit change happened between now and last change
                     *velocity = ((difference - 1.0) / (*currentTimestamp) + 1.0 / (*lastChangeTimestamp))
-                        * (*bitsToPos);
+                        * (conf->encoder.bits_to_position.scale);
                 } else {
                     *velocity = ((difference + 1.0) / (*currentTimestamp) - 1.0 / (*lastChangeTimestamp))
-                        * (*bitsToPos);
+                        * (conf->encoder.bits_to_position.scale);
                 }
             }
             // keep record of this change
@@ -1043,32 +1012,43 @@ void mtsRobot1394::ConvertState(void)
     }
 
     // Potentiometers
-    if (mPotentiometerType == 1) {
-        PotentiometerBitsToVoltage(mPotentiometerBits, mPotentiometerVoltage);
-        PotentiometerVoltageToPosition(mPotentiometerVoltage, m_raw_pot_measured_js.Position());
-    } else if (mPotentiometerType == 2) {
-        // dummy voltages
-        mPotentiometerVoltage.Assign(mPotentiometerBits);
-        auto raw = mPotentiometerBits.begin();
-        const auto end = mPotentiometerBits.end();
-        size_t index = 0;
-        auto si = m_raw_pot_measured_js.Position().begin();
-        for (; raw != end;
-             ++raw,
-                 ++index,
-                 ++si) {
-            // look up in table
-            *si = mPotentiometerLookupTable.Row(index).at(*raw);
+    switch (m_configuration.potentiometers.potentiometers_type) {
+    case osaPotentiometers1394Configuration::ANALOG:
+        {
+            PotentiometerBitsToVoltage(mPotentiometerBits, mPotentiometerVoltage);
+            PotentiometerVoltageToPosition(mPotentiometerVoltage, m_raw_pot_measured_js.Position());
         }
+        break;
+    case osaPotentiometers1394Configuration::DIGITAL:
+        {
+            mPotentiometerVoltage.Assign(mPotentiometerBits);
+            auto raw = mPotentiometerBits.cbegin();
+            const auto end = mPotentiometerBits.cend();
+            size_t index = 0;
+            auto si = m_raw_pot_measured_js.Position().begin();
+            for (; raw != end;
+                 ++raw,
+                     ++index,
+                     ++si) {
+                // look up in table
+                *si = mPotentiometerLookupTable.Row(index).at(*raw);
+            }
+        }
+        break;
+    default:
+        break;
     }
 
     // Potentiometers, convert to actuator space if the coupling matrix is defined
-    if (mPotentiometerCoupling.size() != 0) {
-        m_pot_measured_js.Position().ProductOf(mPotentiometerCoupling, m_raw_pot_measured_js.Position());
+    vctDoubleMat & coupling = m_configuration.potentiometers.coupling.ActuatorToJointPosition();
+    if (coupling.size() != 0) {
+        m_pot_measured_js.Position().ProductOf(coupling,
+                                               m_raw_pot_measured_js.Position());
     } else {
         m_pot_measured_js.Position().Assign(m_raw_pot_measured_js.Position());
     }
 }
+
 
 void mtsRobot1394::CheckState(void)
 {
@@ -1267,7 +1247,7 @@ void mtsRobot1394::CheckState(void)
 
 
     // For dRAC based arms, make sure the pots value are meaningfull
-    if (m_hardware_version == osa1394::dRA1 && !mCalibrationMode) {
+    if (m_configuration.hardware_version == osa1394::dRA1 && !mCalibrationMode) {
         bool foundMissingPotentiometer = false;
         for (const auto & potValue : m_pot_measured_js.Position()) {
             if (mtsRobot1394::IsMissingPotentiometerValue(potValue)) {
@@ -1302,34 +1282,32 @@ void mtsRobot1394::CheckState(void)
 
         bool statusChanged = false;
         bool error = false;
-        vctDoubleVec::const_iterator pot = m_pot_measured_js.Position().begin();
-        vctDynamicVectorRef<double>::const_iterator enc = encoderRef.begin();
-        const vctDoubleVec::const_iterator potEnd = m_pot_measured_js.Position().end();
-        vctDoubleVec::const_iterator potLatency = mPotentiometerToleranceLatency.begin();
-        vctDoubleVec::const_iterator potError = mPotentiometerToleranceDistance.begin();
-        vctDoubleVec::const_iterator potTimestamp = mActuatorTimestamp.begin(); // this is a bit approximative when there's coupling
-        vctDoubleVec::iterator potDuration = mPotentiometerErrorDuration.begin();
-        vctBoolVec::iterator potValid = mPotentiometerValid.begin();
+        auto pot = m_pot_measured_js.Position().cbegin();
+        const auto potEnd = m_pot_measured_js.Position().cend();
+        auto enc = encoderRef.cbegin();
+        auto tolerance = m_configuration.potentiometers.tolerances.cbegin();
+        auto potTimestamp = mActuatorTimestamp.cbegin();
+        auto potDuration = mPotentiometerErrorDuration.begin();
+        auto potValid = mPotentiometerValid.begin();
 
         for (;
              pot != potEnd;
              ++pot,
                  ++enc,
-                 ++potLatency,
-                 ++potError,
+                 ++tolerance,
                  ++potTimestamp,
                  ++potDuration,
                  ++potValid) {
             // if tolerance set to 0, disable check for that joint
-            if (*potError == 0.0) {
+            if (tolerance->distance == 0.0) {
                 *potValid = true;
             } else {
                 // check for error
                 double delta = std::abs(*pot - *enc);
-                if (delta > *potError) {
+                if (delta > tolerance->distance) {
                     *potDuration += *potTimestamp;
                     // check how long have we been off
-                    if (*potDuration > *potLatency) {
+                    if (*potDuration > tolerance->latency) {
                         // now we have a problem,
                         this->PowerOffSequenceOnError(false); // don't open safety relays
                         // maybe it's not new, used for reporting
@@ -1359,14 +1337,12 @@ void mtsRobot1394::CheckState(void)
                 warningMessage.append(encoderRef.ToString());
                 warningMessage.append("\npotentiomers:\n");
                 warningMessage.append(m_pot_measured_js.Position().ToString());
-                warningMessage.append("\ntolerance distance:\n");
-                warningMessage.append(mPotentiometerToleranceDistance.ToString());
                 warningMessage.append("\nvalid pots:\n");
                 warningMessage.append(mPotentiometerValid.ToString());
-                warningMessage.append("\ntolerance latency:\n");
-                warningMessage.append(mPotentiometerToleranceLatency.ToString());
                 warningMessage.append("\nerror duration:\n");
                 warningMessage.append(mPotentiometerErrorDuration.ToString());
+                warningMessage.append("\nconfiguration:\n");
+                warningMessage.append(m_configuration.potentiometers.HumanReadable());
                 mInterface->SendWarning(warningMessage);
                 cmnThrow(errorMessage);
             } else {
@@ -1527,7 +1503,7 @@ void mtsRobot1394::PowerOffSequence(const bool & openSafetyRelays)
 
 void mtsRobot1394::PowerOffSequenceOnError(const bool & openSafetyRelays)
 {
-    if (mUserExpectsPower && (m_hardware_version == osa1394::dRA1)) {
+    if (mUserExpectsPower && (m_configuration.hardware_version == osa1394::dRA1)) {
         this->Explain();
     }
     PowerOffSequence(openSafetyRelays);
@@ -1586,7 +1562,7 @@ void mtsRobot1394::WritePowerEnable(const bool & power)
 
 void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 {
-    if (m_hardware_version == osa1394::dRA1 && mCalibrationMode) {
+    if (m_configuration.hardware_version == osa1394::dRA1 && mCalibrationMode) {
         mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
         return;
     }
@@ -1598,7 +1574,7 @@ void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 
 void mtsRobot1394::SetActuatorAmpEnable(const vctBoolVec & enable)
 {
-    if (m_hardware_version == osa1394::dRA1 && mCalibrationMode) {
+    if (m_configuration.hardware_version == osa1394::dRA1 && mCalibrationMode) {
         mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
         return;
     }
@@ -1644,7 +1620,10 @@ void mtsRobot1394::SetEncoderPositionBits(const vctIntVec & bits)
 
 void mtsRobot1394::SetSingleEncoderPosition(const int index, const double pos)
 {
-    SetSingleEncoderPositionBits(index, pos / mBitsToPositionScales[index]);
+    int bits = pos
+        / m_configuration.actuators[index].encoder.bits_to_position.scale;
+    SetSingleEncoderPositionBits(index, bits);
+
 }
 
 void mtsRobot1394::SetSingleEncoderPositionBits(const int index, const int bits)
@@ -1728,6 +1707,7 @@ void mtsRobot1394::SetBrakeCurrent(const vctDoubleVec & currents)
     mBrakeCurrentCommand = clipped_amps;
 }
 
+
 void mtsRobot1394::SetBrakeCurrentBits(const vctIntVec & bits)
 {
     for (size_t i = 0; i < m_number_of_brakes; i++) {
@@ -1738,6 +1718,7 @@ void mtsRobot1394::SetBrakeCurrentBits(const vctIntVec & bits)
     mBrakeCurrentBitsCommand = bits;
 }
 
+
 void mtsRobot1394::BrakeRelease(void)
 {
     if (m_number_of_brakes != 0) {
@@ -1747,6 +1728,7 @@ void mtsRobot1394::BrakeRelease(void)
     }
 }
 
+
 void mtsRobot1394::BrakeEngage(void)
 {
     if (m_number_of_brakes != 0) {
@@ -1755,6 +1737,7 @@ void mtsRobot1394::BrakeEngage(void)
     }
 }
 
+
 void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(void)
 {
     vctDoubleVec actuatorPosition(m_number_of_actuators);
@@ -1762,74 +1745,87 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(void)
     CalibrateEncoderOffsets.Performed = true;
 }
 
+
 const vctDoubleVec & mtsRobot1394::ActuatorCurrentFeedback(void) const {
     return mActuatorCurrentFeedback;
 }
+
 
 const vctDoubleVec & mtsRobot1394::ActuatorCurrentCommand(void) const {
     return mActuatorCurrentCommand;
 }
 
+
 const vctDoubleVec & mtsRobot1394::ActuatorEffortCommand(void) const {
     return mActuatorEffortCommand;
 }
+
 
 const vctDoubleVec & mtsRobot1394::BrakeCurrentFeedback(void) const {
     return mBrakeCurrentFeedback;
 }
 
+
 const vctIntVec & mtsRobot1394::PotentiometerBits(void) const {
     return mPotentiometerBits;
 }
+
 
 const vctDoubleVec & mtsRobot1394::PotentiometerPosition(void) const {
     return m_pot_measured_js.Position();
 }
 
+
 const vctDoubleVec & mtsRobot1394::ActuatorTimestamp(void) const {
     return mActuatorTimestamp;
 }
+
 
 const vctDoubleVec & mtsRobot1394::BrakeTimestamp(void) const {
     return mBrakeTimestamp;
 }
 
-const vctDoubleVec & mtsRobot1394::ActuatorEncoderAcceleration(void) const {
-    return mActuatorEncoderAcceleration;
-}
 
 const vctDoubleVec & mtsRobot1394::EncoderAcceleration(void) const {
     return mEncoderAcceleration;
 }
 
+
 const prmStateJoint & mtsRobot1394::ActuatorJointState(void) const {
     return m_measured_js;
 }
+
 
 osaRobot1394Configuration mtsRobot1394::GetConfiguration(void) const {
     return m_configuration;
 }
 
+
 std::string mtsRobot1394::Name(void) const {
     return m_configuration.name;
 }
+
 
 size_t mtsRobot1394::NumberOfActuators(void) const {
     return m_number_of_actuators;
 }
 
+
 std::string mtsRobot1394::SerialNumber(void) const {
     return m_configuration.serial_number;
 }
+
 
 size_t mtsRobot1394::NumberOfBrakes(void) const {
     return m_number_of_brakes;
 }
 
+
 void mtsRobot1394::configuration_js(prmConfigurationJoint & jointConfig) const
 {
     jointConfig = m_configuration_js;
 }
+
 
 void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
 {
@@ -1844,90 +1840,101 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
     cmnDataCopy(m_raw_pot_measured_js.Name(), jointConfig.Name());
 }
 
+
 void mtsRobot1394::GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const
 {
     limits = mActuatorCurrentCommandLimits;
 }
 
+
 void mtsRobot1394::EncoderPositionToBits(const vctDoubleVec & pos, vctIntVec & bits) const
 {
-    const vctDoubleVec::const_iterator end = pos.end();
-    vctDoubleVec::const_iterator position = pos.begin();
-    vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
-    vctDoubleVec::const_iterator offset = mBitsToPositionOffsets.begin();
-    vctIntVec::iterator bit = bits.begin();
+    const auto end = pos.cend();
+    auto position = pos.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto bit = bits.begin();
     for (; position != end;
-         ++position,
-             ++scale,
-             ++offset,
-             ++bit) {
-        *bit = static_cast<int>((*position -*offset)/ *scale);
+         ++position, ++conf, ++bit) {
+        *bit = static_cast<int>((*position - conf->encoder.bits_to_position.offset)
+                                / conf->encoder.bits_to_position.scale);
     }
 }
+
 
 void mtsRobot1394::EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & pos) const
 {
-    const vctIntVec::const_iterator end = bits.end();
-    vctIntVec::const_iterator bit = bits.begin();
-    vctDoubleVec::const_iterator scale = mBitsToPositionScales.begin();
-    vctDoubleVec::const_iterator offset = mBitsToPositionOffsets.begin();
-    vctDoubleVec::iterator position = pos.begin();
+    const auto end = bits.cend();
+    auto bit = bits.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto position = pos.begin();
     for (; bit != end;
-         ++bit,
-             ++scale,
-             ++offset,
-             ++position) {
-        *position = *offset + static_cast<double>(*bit) * *scale;
+         ++bit, ++conf, ++position) {
+        *position = conf->encoder.bits_to_position.offset
+            + static_cast<double>(*bit) * conf->encoder.bits_to_position.scale;
     }
 }
 
-void mtsRobot1394::ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoubleVec & currents) const {
-    currents.ElementwiseProductOf(efforts, mEffortToCurrentScales);
+
+void mtsRobot1394::ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoubleVec & currents) const
+{
+    const auto end = efforts.cend();
+    auto effort = efforts.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto current = currents.begin();
+    for (; effort != end;
+         ++effort, ++conf, ++current) {
+        *current = *effort * conf->drive.effort_to_current.scale;
+    }
 }
+
 
 void mtsRobot1394::ActuatorCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const
 {
-    const vctDoubleVec::const_iterator end = currents.end();
-    vctDoubleVec::const_iterator current = currents.begin();
-    vctDoubleVec::const_iterator scale = mActuatorCurrentToBitsScales.begin();
-    vctDoubleVec::const_iterator offset = mActuatorCurrentToBitsOffsets.begin();
-    vctIntVec::iterator bit = bits.begin();
+    const auto end = currents.cend();
+    auto current = currents.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto bit = bits.begin();
     for (; current != end;
-         ++current,
-             ++scale,
-             ++offset,
-             ++bit) {
-        *bit = static_cast<int>(*current * *scale + *offset);
+         ++current, ++conf, ++bit) {
+        *bit = static_cast<int>(*current * conf->drive.current_to_bits.scale
+                                + conf->drive.current_to_bits.offset);
     }
 }
+
 
 void mtsRobot1394::ActuatorBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const
 {
-    const vctIntVec::const_iterator end = bits.end();
-    vctIntVec::const_iterator bit = bits.begin();
-    vctDoubleVec::const_iterator scale =  mActuatorBitsToCurrentScales.begin();
-    vctDoubleVec::const_iterator offset = mActuatorBitsToCurrentOffsets.begin();
-    vctDoubleVec::iterator current = currents.begin();
+    const auto end = bits.cend();
+    auto bit = bits.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto current = currents.begin();
     for (; bit != end;
-         ++bit,
-             ++scale,
-             ++offset,
-             ++current) {
-        *current = static_cast<double>(*bit) * *scale + *offset;
+         ++bit, ++conf, ++current) {
+        *current = static_cast<double>(*bit) * conf->drive.bits_to_current.scale
+            + conf->drive.bits_to_current.offset;
     }
 }
 
+
 void mtsRobot1394::ActuatorCurrentToEffort(const vctDoubleVec & currents, vctDoubleVec & efforts) const {
-    efforts.ElementwiseRatioOf(currents, mEffortToCurrentScales);
+    const auto end = currents.cend();
+    auto current = currents.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto effort = efforts.begin();
+    for (; current != end;
+         ++current, ++conf, ++effort) {
+        *effort = *current / conf->drive.effort_to_current.scale;
+    }
 }
+
 
 void mtsRobot1394::BrakeCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const
 {
-    const vctDoubleVec::const_iterator end = currents.end();
-    vctDoubleVec::const_iterator current = currents.begin();
-    vctDoubleVec::const_iterator scale = mBrakeCurrentToBitsScales.begin();
-    vctDoubleVec::const_iterator offset = mBrakeCurrentToBitsOffsets.begin();
-    vctIntVec::iterator bit = bits.begin();
+    const auto end = currents.cend();
+    auto current = currents.cbegin();
+    auto scale = mBrakeCurrentToBitsScales.cbegin();
+    auto offset = mBrakeCurrentToBitsOffsets.cbegin();
+    auto bit = bits.begin();
     for (; current != end;
          ++current,
              ++scale,
@@ -1937,13 +1944,14 @@ void mtsRobot1394::BrakeCurrentToBits(const vctDoubleVec & currents, vctIntVec &
     }
 }
 
+
 void mtsRobot1394::BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const
 {
-    const vctIntVec::const_iterator end = bits.end();
-    vctIntVec::const_iterator bit = bits.begin();
-    vctDoubleVec::const_iterator scale =  m_brakes_bits_to_current_scales.begin();
-    vctDoubleVec::const_iterator offset = m_brakes_bits_to_current_offsets.begin();
-    vctDoubleVec::iterator current = currents.begin();
+    const auto end = bits.cend();
+    auto bit = bits.cbegin();
+    auto scale =  m_brakes_bits_to_current_scales.cbegin();
+    auto offset = m_brakes_bits_to_current_offsets.cbegin();
+    auto current = currents.begin();
     for (; bit != end;
          ++bit,
              ++scale,
@@ -1953,27 +1961,34 @@ void mtsRobot1394::BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & cur
     }
 }
 
+
 void mtsRobot1394::PotentiometerBitsToVoltage(const vctIntVec & bits, vctDoubleVec & voltages) const
 {
-    const vctIntVec::const_iterator end = bits.end();
-    vctIntVec::const_iterator bit = bits.begin();
-    vctDoubleVec::const_iterator scale = mBitsToVoltageScales.begin();
-    vctDoubleVec::const_iterator offset = mBitsToVoltageOffsets.begin();
-    vctDoubleVec::iterator voltage = voltages.begin();
-
+    const auto end = bits.cend();
+    auto bit = bits.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto voltage = voltages.begin();
     for (; bit != end;
-         ++bit,
-             ++scale,
-             ++offset,
-             ++voltage) {
-        *voltage = static_cast<double>(*bit) * *scale + *offset;
+         ++bit, ++conf, ++voltage) {
+        *voltage =
+            static_cast<double>(*bit) * conf->potentiometer.bits_to_voltage.scale
+            + conf->potentiometer.bits_to_voltage.offset;
     }
 }
 
+
 void mtsRobot1394::PotentiometerVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const
 {
-    pos.ElementwiseProductOf(voltages, mVoltageToPositionScales);
-    pos.SumOf(pos, mVoltageToPositionOffsets);
+    const auto end = voltages.cend();
+    auto voltage = voltages.cbegin();
+    auto conf = m_configuration.actuators.cbegin();
+    auto position = pos.begin();
+    for (; voltage != end;
+         ++voltage, ++conf, ++position) {
+        *position =
+            *voltage * conf->potentiometer.voltage_to_position.scale
+            + conf->potentiometer.voltage_to_position.offset;
+    }
 }
 
 
