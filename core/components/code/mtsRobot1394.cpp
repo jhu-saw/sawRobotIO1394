@@ -604,11 +604,11 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
         m_configuration_js.Type().at(i) = actuator.joint_type;
 
-        mActuatorCurrentCommandLimits.at(i) = drive.current_command_limit;
+        mActuatorCurrentCommandLimits.at(i) = drive.maximum_current;
         m_configuration_js.PositionMin().at(i) = encoder.position_limits_soft.lower;
         m_configuration_js.PositionMax().at(i) = encoder.position_limits_soft.upper;
-        m_configuration_js.EffortMin().at(i) = -drive.current_command_limit / drive.effort_to_current.scale;
-        m_configuration_js.EffortMax().at(i) =  drive.current_command_limit / drive.effort_to_current.scale;
+        m_configuration_js.EffortMin().at(i) = -drive.maximum_current / drive.effort_to_current.scale;
+        m_configuration_js.EffortMax().at(i) =  drive.maximum_current / drive.effort_to_current.scale;
 
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
@@ -672,7 +672,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
             mBrakeCurrentToBitsOffsets[currentBrake]  = drive.current_to_bits.offset;
             m_brakes_bits_to_current_scales[currentBrake]   = drive.bits_to_current.scale;
             m_brakes_bits_to_current_offsets[currentBrake]  = drive.bits_to_current.offset;
-            mBrakeCurrentCommandLimits[currentBrake]  = drive.current_command_limit;
+            mBrakeCurrentCommandLimits[currentBrake]  = drive.maximum_current;
             // 120% of command current is in the acceptable range
             // Add 50 mA for a2d noise around 0
             mBrakeCurrentFeedbackLimits[currentBrake] = 1.2 * mBrakeCurrentCommandLimits[currentBrake] + (50.0 / 1000.0);

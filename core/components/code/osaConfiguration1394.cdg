@@ -73,7 +73,7 @@ class {
         visibility public;
     }
     member {
-        name current_command_limit;
+        name maximum_current;
         type double;
         default 0.0;
         visibility public;
@@ -409,13 +409,13 @@ class {
         default false;
     }
     member {
-        name debounce_threshold;
+        name debounce_time;
         type double;
         visibility public;
         default 0.0;
     }
     member {
-        name debounce_threshold_click;
+        name debounce_time_click;
         type double;
         visibility public;
         default 0.0;

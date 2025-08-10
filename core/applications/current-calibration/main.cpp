@@ -288,7 +288,7 @@ int main(int argc, char * argv[])
                   << std::endl;
     }
 
-    std::cout << "Status: robot created" << std::endl;
+    std::cout << "> Robot created" << std::endl;
 
     robot->SetWatchdogPeriod(300.0 * cmn_ms);
     port->close_all_relays();
@@ -298,15 +298,15 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    std::cout << "Status: power seems fine." << std::endl
+    std::cout << "> Power is fine" << std::endl
               << "Starting calibration..." << std::endl;
     Samples samplesFbErr = collectSamples();
     // display results
     std::cout << "Measured current error statistics" << std::endl
-              << "Status: average current feedback in mA: " << samplesFbErr.averageAllSamples << std::endl
-              << "Status: standard deviation in mA:       " << samplesFbErr.stdDeviation << std::endl
-              << "Status: kept " << samplesFbErr.validSamples << " samples out of " << samplesFbErr.totalSamples << std::endl
-              << "Status: new average in mA:              " << samplesFbErr.averageValidSamples << std::endl
+              << "Average current feedback in mA: " << samplesFbErr.averageAllSamples << std::endl
+              << "Standard deviation in mA:       " << samplesFbErr.stdDeviation << std::endl
+              << "New average in mA:              " << samplesFbErr.averageValidSamples << std::endl
+              << "Kept " << samplesFbErr.validSamples << " samples out of " << samplesFbErr.totalSamples << std::endl
               << std::endl;
 
     if (brakes) {
@@ -323,15 +323,15 @@ int main(int argc, char * argv[])
         }
     }
 
-    std::cout << "Status: power seems fine." << std::endl
+    std::cout << "> Power is fine" << std::endl
               << "Starting calibration..." << std::endl;
     Samples samplesCmdErr = collectSamples();
     // display results
     std::cout << "Commanded current error statistics" << std::endl
-              << "Status: average current feedback in mA: " << samplesCmdErr.averageAllSamples << std::endl
-              << "Status: standard deviation in mA:       " << samplesCmdErr.stdDeviation << std::endl
-              << "Status: kept " << samplesCmdErr.validSamples << " samples out of " << samplesCmdErr.totalSamples << std::endl
-              << "Status: new average in mA:              " << samplesCmdErr.averageValidSamples << std::endl
+              << "Average current feedback in mA: " << samplesCmdErr.averageAllSamples << std::endl
+              << "Standard deviation in mA:       " << samplesCmdErr.stdDeviation << std::endl
+              << "New average in mA:              " << samplesCmdErr.averageValidSamples << std::endl
+              << "Kept " << samplesCmdErr.validSamples << " samples out of " << samplesCmdErr.totalSamples << std::endl
               << std::endl;
 
     // disable power
@@ -344,8 +344,8 @@ int main(int argc, char * argv[])
     }
 
     // display results
-    std::cout << "Status: measured current offsets in mA: " << samplesFbErr.averageValidSamples << std::endl
-              << "Status: command current offsets in mA (corrected): " << averageValidSamples << std::endl
+    std::cout << "Measured current offsets in mA: " << samplesFbErr.averageValidSamples << std::endl
+              << "Command current offsets in mA:  " << averageValidSamples << std::endl
               << std::endl;
 
     // load json file
@@ -388,10 +388,10 @@ int main(int argc, char * argv[])
 
     // ask one last confirmation from user
     std::cout << std::endl << std::endl
-              << "Status: commanded current offsets in configuration file: " << previousCmdOffsets << std::endl
-              << "Status: new commanded current offsets:                       " << newCmdOffsets << std::endl
-              << "Status: measured current offsets in configuration file: " << previousFbOffsets << std::endl
-              << "Status: new measured current offsets:                       " << newFbOffsets << std::endl
+              << "Old commanded current offsets: " << previousCmdOffsets << std::endl
+              << "New commanded current offsets: " << newCmdOffsets << std::endl
+              << "Old measured current offsets:  " << previousFbOffsets << std::endl
+              << "New measured current offsets:  " << newFbOffsets << std::endl
               << std::endl;
 
     // save if needed
@@ -414,9 +414,11 @@ int main(int argc, char * argv[])
         }
 
         // rename old file and save in place
-        std::string currentDateTime;
-        osaGetDateTimeString(currentDateTime);
-        std::string newName = configFile + "-backup-" + currentDateTime;
+        const double abs_time = osaGetTime();
+        std::string date, time;
+        osaGetDateString(date, abs_time, '-');
+        osaGetTimeString(time, abs_time, ':');
+        const std::string newName = configFile + "-backup-" + date + "_" + time;
         cmnPath::RenameFile(configFile, newName);
         std::cout << "Existing IO config file has been renamed " << newName << std::endl;
 

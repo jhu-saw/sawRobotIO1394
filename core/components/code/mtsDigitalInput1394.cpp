@@ -130,8 +130,8 @@ void mtsDigitalInput1394::PollState(void)
     bool value = ((m_data->digital_input_bits & m_data->bit_mask)
                   ? (!m_configuration.pressed_value) : (m_configuration.pressed_value));
 
-    // No debounce needed
-    if (m_first_run || (m_configuration.debounce_threshold == 0.0)) {
+    // First run or no debounce needed
+    if (m_first_run || (m_configuration.debounce_time == 0.0)) {
         m_value = value;
         return;
     }
@@ -144,14 +144,14 @@ void mtsDigitalInput1394::PollState(void)
         }
     // count consecutive equal values
     } else {
-        if (m_debounce_counter < m_configuration.debounce_threshold) {
+        if (m_debounce_counter < m_configuration.debounce_time) {
             if (value == m_transition_value) {
                 m_debounce_counter += m_board->GetTimestamp() * m_board->GetFPGAClockPeriod();
             } else {
                 // click if button is now changed back and counter is short enough
-                if ((m_configuration.debounce_threshold_click != m_configuration.debounce_threshold) // click is activated
+                if ((m_configuration.debounce_time_click != m_configuration.debounce_time) // click is activated
                     && !value // input is "changed back"
-                    && (m_debounce_counter >  m_configuration.debounce_threshold_click) // pressed long enough
+                    && (m_debounce_counter >  m_configuration.debounce_time_click) // pressed long enough
                     ) {
                     if (m_state_table) {
                         m_event_payloads.clicked.SetTimestamp(m_state_table->GetTic());
