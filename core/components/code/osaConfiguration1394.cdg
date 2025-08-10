@@ -488,6 +488,7 @@ class {
         name robots;
         type std::vector<osaRobot1394Configuration>;
         visibility public;
+        default std::vector<osaRobot1394Configuration>();
     }
     member {
         name digital_inputs;
