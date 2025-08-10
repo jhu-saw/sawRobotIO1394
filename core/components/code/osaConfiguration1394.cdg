@@ -361,6 +361,7 @@ class {
     member {
         name potentiometers;
         type osaPotentiometers1394Configuration;
+        default osaPotentiometers1394Configuration();
         visibility public;
     }
 }

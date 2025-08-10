@@ -1040,7 +1040,7 @@ void mtsRobot1394::ConvertState(void)
     }
 
     // Potentiometers, convert to actuator space if the coupling matrix is defined
-    vctDoubleMat & coupling = m_configuration.potentiometers.coupling.ActuatorToJointPosition();
+    vctDoubleMat & coupling = m_configuration.potentiometers.coupling.JointToActuatorPosition();
     if (coupling.size() != 0) {
         m_pot_measured_js.Position().ProductOf(coupling,
                                                m_raw_pot_measured_js.Position());
