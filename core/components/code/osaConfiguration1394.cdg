@@ -26,7 +26,7 @@ class {
     member {
         name scale;
         type double;
-        default 1.0;
+        default 0.0;
         visibility public;
     }
     member {
@@ -61,6 +61,7 @@ class {
         name effort_to_current;
         type osaLinearFunction;
         visibility public;
+        default osaLinearFunction();
     }
     member {
         name current_to_bits;
@@ -125,6 +126,7 @@ class {
         name voltage_to_position;
         type osaLinearFunction;
         visibility public;
+        default osaLinearFunction();
     }
 }
 
@@ -187,6 +189,7 @@ class {
         name joint_type;
         type cmnJointType;
         visibility public;
+        default cmnJointType::CMN_JOINT_UNDEFINED;
     }
     member {
         name drive;
@@ -197,6 +200,7 @@ class {
         name encoder;
         type osaEncoder1394Configuration;
         visibility public;
+        default osaEncoder1394Configuration();
     }
     member {
         name potentiometer;
@@ -288,6 +292,7 @@ class {
         name tolerances;
         type std::vector<osaPotentiometerTolerance1394Configuration>;
         visibility public;
+        default std::vector<osaPotentiometerTolerance1394Configuration>();
     }
     member {
         name coupling;
@@ -389,19 +394,16 @@ class {
         name trigger_when_pressed;
         type bool;
         visibility public;
-        default false;
     }
     member {
         name trigger_when_released;
         type bool;
         visibility public;
-        default false;
     }
     member {
         name pressed_value;
         type bool;
         visibility public;
-        default true;
     }
     member {
         name skip_first_run;
@@ -446,11 +448,13 @@ class {
         name high_duration;
         type double;
         visibility public;
+        default 0.0;
     }
     member {
         name low_duration;
         type double;
         visibility public;
+        default 0.0;
     }
     member {
         name is_PWM;
@@ -461,6 +465,7 @@ class {
         name PWM_frequency;
         type double;
         visibility public;
+        default 0.0;
     }
 }
 

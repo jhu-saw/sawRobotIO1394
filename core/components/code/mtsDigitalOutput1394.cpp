@@ -47,6 +47,7 @@ mtsDigitalOutput1394::mtsDigitalOutput1394(const cmnGenericObject & owner,
     Configure(config);
 }
 
+
 mtsDigitalOutput1394::~mtsDigitalOutput1394()
 {
     if (m_data) {
@@ -54,10 +55,12 @@ mtsDigitalOutput1394::~mtsDigitalOutput1394()
     }
 }
 
+
 void mtsDigitalOutput1394::SetupStateTable(mtsStateTable & stateTable)
 {
     stateTable.AddData(m_value, m_configuration.name + "Value");
 }
+
 
 void mtsDigitalOutput1394::SetupProvidedInterface(mtsInterfaceProvided * interfaceProvided, mtsStateTable & stateTable)
 {
@@ -70,11 +73,13 @@ void mtsDigitalOutput1394::SetupProvidedInterface(mtsInterfaceProvided * interfa
     }
 }
 
+
 void mtsDigitalOutput1394::CheckState(void)
 {
     std::cerr << CMN_LOG_DETAILS
               << " --- nothing here?   Can we have outputs changed on us for no reason and we should emit event" << std::endl;
 }
+
 
 void mtsDigitalOutput1394::Configure(const osaDigitalOutput1394Configuration & config)
 {
@@ -84,6 +89,7 @@ void mtsDigitalOutput1394::Configure(const osaDigitalOutput1394Configuration & c
     // Set the value
     m_value = false;
 }
+
 
 void mtsDigitalOutput1394::SetBoard(AmpIO * board)
 {
@@ -96,6 +102,7 @@ void mtsDigitalOutput1394::SetBoard(AmpIO * board)
                               m_board->GetDoutCounts(m_configuration.low_duration));
 }
 
+
 void mtsDigitalOutput1394::PollState(void)
 {
     // Get the new value
@@ -105,20 +112,24 @@ void mtsDigitalOutput1394::PollState(void)
     m_value = (m_data->digital_output_bits & m_data->bit_mask);
 }
 
+
 const osaDigitalOutput1394Configuration & mtsDigitalOutput1394::Configuration(void) const
 {
     return m_configuration;
 }
+
 
 const std::string & mtsDigitalOutput1394::Name(void) const
 {
     return m_configuration.name;
 }
 
+
 const bool & mtsDigitalOutput1394::Value(void) const
 {
     return m_value;
 }
+
 
 void mtsDigitalOutput1394::SetValue(const bool & newValue)
 {
@@ -131,6 +142,7 @@ void mtsDigitalOutput1394::SetValue(const bool & newValue)
     }
     m_board->WriteDigitalOutput(0x0f, m_data->digital_output_bits);
 }
+
 
 void mtsDigitalOutput1394::SetPWMDutyCycle(const double & dutyCycle)
 {

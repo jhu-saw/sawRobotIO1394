@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-07
 
-  (C) Copyright 2013-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2013-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -96,7 +96,8 @@ int main(int argc, char ** argv)
         robotIO->Configure(configFile);
     }
 
-    componentManager->Connect("robotWidgetFactory", "RobotConfiguration", "robotIO", "Configuration");
+    componentManager->Connect(robotWidgetFactory->GetName(), "RobotConfiguration",
+                              robotIO->GetName(), "Configuration");
     robotWidgetFactory->Configure();
 
     // create the components

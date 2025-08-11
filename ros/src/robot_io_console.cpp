@@ -110,8 +110,8 @@ int main(int argc, char ** argv)
         robotIO->Configure(configFile);
     }
 
-    componentManager->Connect("robotWidgetFactory", "RobotConfiguration",
-                              "robotIO", "Configuration");
+    componentManager->Connect(robotWidgetFactory->GetName(), "RobotConfiguration",
+                              robotIO->GetName(), "Configuration");
     robotWidgetFactory->Configure();
 
     // ROS CRTK bridge

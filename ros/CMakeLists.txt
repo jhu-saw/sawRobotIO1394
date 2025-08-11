@@ -101,7 +101,7 @@ if (cisst_FOUND_AS_REQUIRED)
 
     install (
       TARGETS robot_io_console
-      RUNTIME DESTINATION lib
+      RUNTIME DESTINATION lib/${PROJECT_NAME}
       )
 
     install (
