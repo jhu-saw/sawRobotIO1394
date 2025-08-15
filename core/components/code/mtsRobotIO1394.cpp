@@ -576,35 +576,42 @@ const mtsDigitalInput1394 * mtsRobotIO1394::DigitalInput(const size_t index) con
     return m_digital_inputs.at(index);
 }
 
+
 void mtsRobotIO1394::GetNumberOfDigitalOutputs(size_t & placeHolder) const
 {
     placeHolder = m_digital_outputs.size();
 }
+
 
 void mtsRobotIO1394::GetNumberOfBoards(size_t & placeHolder) const
 {
     placeHolder = m_boards.size();
 }
 
+
 void mtsRobotIO1394::GetNumberOfRobots(size_t & placeHolder) const
 {
     placeHolder = m_robots.size();
 }
+
 
 mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
 {
     return m_robots.at(index);
 }
 
+
 const mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index) const
 {
     return m_robots.at(index);
 }
 
+
 std::string mtsRobotIO1394::DefaultPort(void)
 {
     return BasePort::DefaultPort();
 }
+
 
 void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
 {
@@ -615,6 +622,7 @@ void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
     }
 }
 
+
 void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
 {
     const size_t _num_robots = m_robots.size();
@@ -623,6 +631,7 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
         placeHolder[i] = m_robots[i]->NumberOfBrakes();
     }
 }
+
 
 void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
 {
@@ -640,42 +649,31 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
     // Construct a vector of boards relevant to this robot
     std::vector<osaActuatorMapping> actuatorBoards(config.number_of_actuators);
     std::vector<osaBrakeMapping> brakeBoards(config.number_of_brakes);
-    int currentBrake = 0;
 
     for (size_t i = 0; i < config.number_of_actuators; i++) {
-
-        // Board for the actuator
         int _board_id = config.actuators[i].board_id;
-
         // If the board hasn't been created, construct it and add it to the port
         if (m_boards.count(_board_id) == 0) {
             m_boards[_board_id] = new AmpIO(_board_id);
             m_port->AddBoard(m_boards[_board_id]);
         }
-
         // Add the board to the list of boards relevant to this robot
         actuatorBoards[i].board = m_boards[_board_id];
         actuatorBoards[i].board_id = _board_id;
         actuatorBoards[i].axis = config.actuators[i].axis_id;
+    }
 
-        // Board for the brake if any
-        osaAnalogBrake1394Configuration * brake = config.actuators[i].brake;
-        if (brake) {
-            // Board for the brake
-            _board_id = brake->board_id;
-
-            // If the board hasn't been created, construct it and add it to the port
-            if (m_boards.count(_board_id) == 0) {
-                m_boards[_board_id] = new AmpIO(_board_id);
-                m_port->AddBoard(m_boards[_board_id]);
-            }
-
-            // Add the board to the list of boards relevant to this robot
-            brakeBoards[currentBrake].board = m_boards[_board_id];
-            brakeBoards[currentBrake].board_id = _board_id;
-            brakeBoards[currentBrake].axis = brake->axis_id;
-            currentBrake++;
+    for (size_t i = 0; i < config.number_of_brakes; i++) {
+        int _board_id = config.brakes[i].board_id;
+        // If the board hasn't been created, construct it and add it to the port
+        if (m_boards.count(_board_id) == 0) {
+            m_boards[_board_id] = new AmpIO(_board_id);
+            m_port->AddBoard(m_boards[_board_id]);
         }
+        // Add the board to the list of boards relevant to this robot
+        brakeBoards[i].board = m_boards[_board_id];
+        brakeBoards[i].board_id = _board_id;
+        brakeBoards[i].axis = config.brakes[i].axis_id;
     }
 
     // Set the robot boards
@@ -685,6 +683,7 @@ void mtsRobotIO1394::AddRobot(mtsRobot1394 * robot)
     m_robots.push_back(robot);
     m_robots_by_name[config.name] = robot;
 }
+
 
 void mtsRobotIO1394::AddDigitalInput(mtsDigitalInput1394 * digitalInput)
 {

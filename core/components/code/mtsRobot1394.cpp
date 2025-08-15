@@ -251,7 +251,7 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
     robotInterface->AddCommandWrite(&mtsRobot1394::SetActuatorCurrent, this,
                                     "SetActuatorCurrent", mActuatorCurrentCommand);
     robotInterface->AddCommandRead(&mtsRobot1394::GetActuatorCurrentCommandLimits, this,
-                                   "GetActuatorCurrentMax", mActuatorCurrentCommandLimits);
+                                   "GetActuatorCurrentMax", vctDoubleVec());
     robotInterface->AddCommandRead(&mtsRobot1394::configuration_js, this,
                                    "configuration_js", m_configuration_js);
     robotInterface->AddCommandWrite(&mtsRobot1394::configure_js, this,
@@ -414,8 +414,8 @@ bool mtsRobot1394::CheckConfiguration(void)
         && (NumberOfActuators() > 2)) {
         const int first_offset = m_configuration.actuators[0].drive.current_to_bits.offset;
         bool allEqual = true;
-        for (const auto & act : m_configuration.actuators) {
-            allEqual &= (first_offset == act.drive.current_to_bits.offset);
+        for (const auto & actuator : m_configuration.actuators) {
+            allEqual &= (first_offset == actuator.drive.current_to_bits.offset);
         }
         if (allEqual) {
             CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: all currents to bits offsets are equal, please calibrate the current offsets for arm: "
@@ -581,7 +581,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     // actuator names
     cmnDataCopy(m_raw_pot_measured_js.Name(), m_measured_js.Name());
 
-    mActuatorCurrentCommandLimits.SetSize(m_number_of_actuators);
     mActuatorCurrentFeedbackLimits.SetSize(m_number_of_actuators);
     mPotentiometerErrorDuration.SetSize(m_number_of_actuators);
     mPotentiometerValid.SetSize(m_number_of_actuators);
@@ -591,7 +590,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
     mActuatorTemperature.SetSize(m_number_of_actuators);
 
-    m_number_of_brakes = 0;
     mBrakeReleasing = false;
 
     // Construct property vectors
@@ -603,8 +601,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
         const osaEncoder1394Configuration & encoder = actuator.encoder;
 
         m_configuration_js.Type().at(i) = actuator.joint_type;
-
-        mActuatorCurrentCommandLimits.at(i) = drive.maximum_current;
         m_configuration_js.PositionMin().at(i) = encoder.position_limits_soft.lower;
         m_configuration_js.PositionMax().at(i) = encoder.position_limits_soft.upper;
         m_configuration_js.EffortMin().at(i) = -drive.maximum_current / drive.effort_to_current.scale;
@@ -612,17 +608,12 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
 
         // 120% of command current is in the acceptable range
         // Add 50 mA for non motorized actuators due to a2d noise
-        mActuatorCurrentFeedbackLimits.at(i) = 1.2 * mActuatorCurrentCommandLimits.at(i) + (50.0 / 1000.0);
+        mActuatorCurrentFeedbackLimits.at(i) = 1.2 * actuator.drive.maximum_current + (50.0 / 1000.0);
 
         // Initialize state vectors
         m_measured_js.Position().at(i) = 0.0;
         mActuatorCurrentCommand.at(i) = 0.0;
         mActuatorCurrentFeedback.at(i) = 0.0;
-
-        // Count number of brakes
-        if (actuator.brake) {
-            m_number_of_brakes++;
-        }
     }
 
     // check if pots are digital
@@ -640,11 +631,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mBrakeInfo.resize(m_number_of_brakes);
     mBrakeReleasingTimer.resize(m_number_of_brakes);
 
-    mBrakeCurrentToBitsScales.SetSize(m_number_of_brakes);
-    mBrakeCurrentToBitsOffsets.SetSize(m_number_of_brakes);
-    m_brakes_bits_to_current_scales.SetSize(m_number_of_brakes);
-    m_brakes_bits_to_current_offsets.SetSize(m_number_of_brakes);
-    mBrakeCurrentCommandLimits.SetSize(m_number_of_brakes);
     mBrakeCurrentFeedbackLimits.SetSize(m_number_of_brakes);
     mBrakeAmpStatus.SetSize(m_number_of_brakes);
     mBrakeAmpEnable.SetSize(m_number_of_brakes);
@@ -654,42 +640,19 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mBrakeCurrentCommand.SetSize(m_number_of_brakes);
     mBrakeCurrentFeedback.SetSize(m_number_of_brakes);
     mBrakeTemperature.SetSize(m_number_of_brakes);
-    mBrakeReleaseCurrent.SetSize(m_number_of_brakes);
-    mBrakeReleaseTime.SetSize(m_number_of_brakes);
-    mBrakeReleasedCurrent.SetSize(m_number_of_brakes);
-    mBrakeEngagedCurrent.SetSize(m_number_of_brakes);
 
     // Construct property vectors for brakes
-    size_t currentBrake = 0;
-    for (size_t i = 0; i < m_number_of_actuators; i++) {
-        const osaActuator1394Configuration & actuator = config.actuators.at(i);
-
-        // Count number of brakes
-        if (actuator.brake) {
-            const osaAnalogBrake1394Configuration * brake = actuator.brake;
-            const osaDrive1394Configuration & drive = brake->drive;
-            mBrakeCurrentToBitsScales[currentBrake]   = drive.current_to_bits.scale;
-            mBrakeCurrentToBitsOffsets[currentBrake]  = drive.current_to_bits.offset;
-            m_brakes_bits_to_current_scales[currentBrake]   = drive.bits_to_current.scale;
-            m_brakes_bits_to_current_offsets[currentBrake]  = drive.bits_to_current.offset;
-            mBrakeCurrentCommandLimits[currentBrake]  = drive.maximum_current;
-            // 120% of command current is in the acceptable range
-            // Add 50 mA for a2d noise around 0
-            mBrakeCurrentFeedbackLimits[currentBrake] = 1.2 * mBrakeCurrentCommandLimits[currentBrake] + (50.0 / 1000.0);
-
-            mBrakeReleaseCurrent[currentBrake]  = brake->release_current;
-            mBrakeReleaseTime[currentBrake]     = brake->release_time;
-            mBrakeReleasedCurrent[currentBrake] = brake->released_current;
-            mBrakeEngagedCurrent[currentBrake]  = brake->engaged_current;
-
-            // Initialize defaults
-            mBrakeCurrentCommand[currentBrake] = 0.0;
-            mBrakeCurrentFeedback[currentBrake] = 0.0;
-
-            currentBrake++;
-        }
+    for (size_t i = 0; i < m_number_of_brakes; i++) {
+        const osaDrive1394Configuration & drive = config.brakes.at(i).drive;
+        // 120% of command current is in the acceptable range
+        // Add 50 mA for a2d noise around 0
+        mBrakeCurrentFeedbackLimits[i] = 1.2 * drive.maximum_current + (50.0 / 1000.0);
+        // Initialize defaults
+        mBrakeCurrentCommand[i] = 0.0;
+        mBrakeCurrentFeedback[i] = 0.0;
     }
 }
+
 
 void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoards,
                              const std::vector<osaBrakeMapping> & brakeBoards)
@@ -1231,12 +1194,12 @@ void mtsRobot1394::CheckState(void)
     if (mBrakeReleasing) {
         bool allReleased = true;
         // check how much time per brake, set all to high (release current)
-        mBrakeCurrentCommand.Assign(mBrakeReleaseCurrent);
         mBrakeReleasingTimer.Add(mBrakeTimestamp);
         for (size_t index = 0; index < m_number_of_brakes; ++index) {
-            if (mBrakeReleasingTimer[index] > mBrakeReleaseTime[index]) {
+            mBrakeCurrentCommand[index] = m_configuration.brakes[index].release_current;
+            if (mBrakeReleasingTimer[index] >  m_configuration.brakes[index].release_time) {
                 // lower to releaseD current
-                mBrakeCurrentCommand[index] = mBrakeReleasedCurrent[index];
+                mBrakeCurrentCommand[index] = m_configuration.brakes[index].released_current;
             } else {
                 allReleased = false;
             }
@@ -1635,20 +1598,36 @@ void mtsRobot1394::SetSingleEncoderPositionBits(const int index, const int bits)
     mVelocitySlopeToZero.Element(index) = 0.0;
 }
 
+
 void mtsRobot1394::ClipActuatorEffort(vctDoubleVec & efforts)
 {
     efforts.ElementwiseClipIn(m_configuration_js.EffortMax());
 }
 
+
 void mtsRobot1394::ClipActuatorCurrent(vctDoubleVec & currents)
 {
-    currents.ElementwiseClipIn(mActuatorCurrentCommandLimits);
+    auto current = currents.begin();
+    for (const auto & actuator : m_configuration.actuators) {
+        *current = std::clamp(*current,
+                              - actuator.drive.maximum_current,
+                              actuator.drive.maximum_current);
+        ++current;
+    }
 }
+
 
 void mtsRobot1394::ClipBrakeCurrent(vctDoubleVec & currents)
 {
-    currents.ElementwiseClipIn(mBrakeCurrentCommandLimits);
+    auto current = currents.begin();
+    for (const auto & brake : m_configuration.brakes) {
+        *current = std::clamp(*current,
+                              - brake.drive.maximum_current,
+                              brake.drive.maximum_current);
+        ++current;
+    }
 }
+
 
 void mtsRobot1394::SetActuatorEffort(const vctDoubleVec & efforts)
 {
@@ -1724,7 +1703,13 @@ void mtsRobot1394::BrakeRelease(void)
     if (m_number_of_brakes != 0) {
         mBrakeReleasing = true;
         mBrakeReleasingTimer.SetAll(0.0);
-        SetBrakeCurrent(mBrakeReleaseCurrent);
+        vctDoubleVec currents(m_configuration.number_of_brakes);
+        auto current = currents.begin();
+        for (const auto & brake : m_configuration.brakes) {
+            *current = brake.release_current;
+            ++current;
+        }
+        SetBrakeCurrent(currents);
     }
 }
 
@@ -1733,7 +1718,13 @@ void mtsRobot1394::BrakeEngage(void)
 {
     if (m_number_of_brakes != 0) {
         mBrakeReleasing = false;
-        SetBrakeCurrent(mBrakeEngagedCurrent);
+        vctDoubleVec currents(m_configuration.number_of_brakes);
+        auto current = currents.begin();
+        for (const auto & brake : m_configuration.brakes) {
+            *current = brake.engaged_current;
+            ++current;
+        }
+        SetBrakeCurrent(currents);
     }
 }
 
@@ -1843,7 +1834,11 @@ void mtsRobot1394::configure_js(const prmConfigurationJoint & jointConfig)
 
 void mtsRobot1394::GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const
 {
-    limits = mActuatorCurrentCommandLimits;
+    auto limit = limits.begin();
+    for (const auto & actuator : m_configuration.actuators) {
+        *limit = actuator.drive.maximum_current;
+        ++limit;
+    }
 }
 
 
@@ -1892,12 +1887,12 @@ void mtsRobot1394::ActuatorCurrentToBits(const vctDoubleVec & currents, vctIntVe
 {
     const auto end = currents.cend();
     auto current = currents.cbegin();
-    auto conf = m_configuration.actuators.cbegin();
+    auto actuator = m_configuration.actuators.cbegin();
     auto bit = bits.begin();
     for (; current != end;
-         ++current, ++conf, ++bit) {
-        *bit = static_cast<int>(*current * conf->drive.current_to_bits.scale
-                                + conf->drive.current_to_bits.offset);
+         ++current, ++actuator, ++bit) {
+        *bit = static_cast<int>(*current * actuator->drive.current_to_bits.scale
+                                + actuator->drive.current_to_bits.offset);
     }
 }
 
@@ -1906,12 +1901,12 @@ void mtsRobot1394::ActuatorBitsToCurrent(const vctIntVec & bits, vctDoubleVec & 
 {
     const auto end = bits.cend();
     auto bit = bits.cbegin();
-    auto conf = m_configuration.actuators.cbegin();
+    auto actuator = m_configuration.actuators.cbegin();
     auto current = currents.begin();
     for (; bit != end;
-         ++bit, ++conf, ++current) {
-        *current = static_cast<double>(*bit) * conf->drive.bits_to_current.scale
-            + conf->drive.bits_to_current.offset;
+         ++bit, ++actuator, ++current) {
+        *current = static_cast<double>(*bit) * actuator->drive.bits_to_current.scale
+            + actuator->drive.bits_to_current.offset;
     }
 }
 
@@ -1932,15 +1927,12 @@ void mtsRobot1394::BrakeCurrentToBits(const vctDoubleVec & currents, vctIntVec &
 {
     const auto end = currents.cend();
     auto current = currents.cbegin();
-    auto scale = mBrakeCurrentToBitsScales.cbegin();
-    auto offset = mBrakeCurrentToBitsOffsets.cbegin();
+    auto brake = m_configuration.brakes.cbegin();
     auto bit = bits.begin();
     for (; current != end;
-         ++current,
-             ++scale,
-             ++offset,
-             ++bit) {
-        *bit = static_cast<int>(*current * *scale + *offset);
+         ++current, ++brake, ++bit) {
+        *bit = static_cast<int>(*current * brake->drive.current_to_bits.scale
+                                + brake->drive.current_to_bits.offset);
     }
 }
 
@@ -1949,15 +1941,12 @@ void mtsRobot1394::BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & cur
 {
     const auto end = bits.cend();
     auto bit = bits.cbegin();
-    auto scale =  m_brakes_bits_to_current_scales.cbegin();
-    auto offset = m_brakes_bits_to_current_offsets.cbegin();
+    auto brake = m_configuration.brakes.cbegin();
     auto current = currents.begin();
     for (; bit != end;
-         ++bit,
-             ++scale,
-             ++offset,
-             ++current) {
-        *current = static_cast<double>(*bit) * *scale + *offset;
+         ++bit, ++brake, ++current) {
+        *current = static_cast<double>(*bit) * brake->drive.bits_to_current.scale
+            + brake->drive.bits_to_current.offset;
     }
 }
 
@@ -1966,13 +1955,13 @@ void mtsRobot1394::PotentiometerBitsToVoltage(const vctIntVec & bits, vctDoubleV
 {
     const auto end = bits.cend();
     auto bit = bits.cbegin();
-    auto conf = m_configuration.actuators.cbegin();
+    auto actuator = m_configuration.actuators.cbegin();
     auto voltage = voltages.begin();
     for (; bit != end;
-         ++bit, ++conf, ++voltage) {
+         ++bit, ++actuator, ++voltage) {
         *voltage =
-            static_cast<double>(*bit) * conf->potentiometer.bits_to_voltage.scale
-            + conf->potentiometer.bits_to_voltage.offset;
+            static_cast<double>(*bit) * actuator->potentiometer->bits_to_voltage.scale
+            + actuator->potentiometer->bits_to_voltage.offset;
     }
 }
 
@@ -1981,13 +1970,13 @@ void mtsRobot1394::PotentiometerVoltageToPosition(const vctDoubleVec & voltages,
 {
     const auto end = voltages.cend();
     auto voltage = voltages.cbegin();
-    auto conf = m_configuration.actuators.cbegin();
+    auto actuator = m_configuration.actuators.cbegin();
     auto position = pos.begin();
     for (; voltage != end;
-         ++voltage, ++conf, ++position) {
+         ++voltage, ++actuator, ++position) {
         *position =
-            *voltage * conf->potentiometer.voltage_to_position.scale
-            + conf->potentiometer.voltage_to_position.offset;
+            *voltage * actuator->potentiometer->voltage_to_position.scale
+            + actuator->potentiometer->voltage_to_position.offset;
     }
 }
 

@@ -131,7 +131,7 @@ class {
 }
 
 class {
-    name osaAnalogBrake1394Configuration;
+    name osaBrake1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
@@ -143,6 +143,7 @@ class {
         name axis_id;
         type int;
         visibility public;
+        default -1;
     }
     member {
         name drive;
@@ -184,6 +185,7 @@ class {
         name axis_id;
         type int;
         visibility public;
+        default -1;
     }
     member {
         name joint_type;
@@ -206,13 +208,7 @@ class {
         name potentiometer;
         type osaPotentiometer1394Configuration;
         visibility public;
-    }
-    member {
-        name brake;
-        type osaAnalogBrake1394Configuration *;
-        visibility public;
-        default nullptr;
-        is-data false;
+        use-shared-pointer true;
     }
 }
 
@@ -224,6 +220,7 @@ class {
         name axis_id;
         type int;
         visibility public;
+        default -1;
     }
     member {
         name distance;
@@ -354,13 +351,18 @@ class {
         visibility public;
     }
     member {
+        name actuators;
+        type std::vector<osaActuator1394Configuration>;
+        visibility public;
+    }
+    member {
         name number_of_brakes;
         type size_t;
         visibility public;
     }
     member {
-        name actuators;
-        type std::vector<osaActuator1394Configuration>;
+        name brakes;
+        type std::vector<osaBrake1394Configuration>;
         visibility public;
     }
     member {

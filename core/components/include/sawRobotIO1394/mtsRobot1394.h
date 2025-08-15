@@ -285,14 +285,6 @@ namespace sawRobotIO1394 {
 
         //! Vectors of actuator properties
         vctDoubleVec
-            mBrakeCurrentToBitsScales,
-            mBrakeCurrentToBitsOffsets,
-            m_brakes_bits_to_current_scales,
-            m_brakes_bits_to_current_offsets;
-
-        vctDoubleVec
-            mActuatorCurrentCommandLimits,
-            mBrakeCurrentCommandLimits,
             mActuatorCurrentFeedbackLimits, // limit used to trigger error
             mBrakeCurrentFeedbackLimits,    // limit used to trigger error
             mPotentiometersToEncodersTolerance;       // maximum error between encoders and pots
@@ -359,11 +351,7 @@ namespace sawRobotIO1394 {
             mPotentiometerErrorDuration,
             mBrakeCurrentFeedback,
             mActuatorTemperature,
-            mBrakeTemperature,
-            mBrakeReleaseCurrent,
-            mBrakeReleaseTime,
-            mBrakeReleasedCurrent,
-            mBrakeEngagedCurrent;
+            mBrakeTemperature;
 
         double mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
 
