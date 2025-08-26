@@ -3,6 +3,7 @@
 
 inline-header {
 #include <set>
+#include <memory>
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnJointType.h>
 #include <cisstVector/vctDynamicMatrixTypes.h>
@@ -462,6 +463,7 @@ class {
         name is_PWM;
         type bool;
         visibility public;
+        default false;
     }
     member {
         name PWM_frequency;

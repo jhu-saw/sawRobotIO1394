@@ -18,6 +18,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <cmath>
 #include <cctype>
+#include <algorithm>
 
 #include <cisstCommon/cmnPath.h>
 
@@ -518,6 +519,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     m_configuration = config;
 
     m_number_of_actuators = m_configuration.actuators.size();
+    m_number_of_brakes = m_configuration.brakes.size();
 
     // Low-level API
     mActuatorInfo.resize(m_number_of_actuators);

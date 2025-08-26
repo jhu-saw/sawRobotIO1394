@@ -12,6 +12,8 @@
 cmake_minimum_required (VERSION 3.16)
 project (sawRobotIO1394 VERSION 2.3.0)
 
+set(CMAKE_CXX_STANDARD 17)
+
 set (REQUIRED_CISST_LIBRARIES
      cisstCommon
      cisstVector
