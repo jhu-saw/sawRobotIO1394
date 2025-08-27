@@ -81,7 +81,7 @@ int main(int argc, char ** argv)
     if (options.IsSet("firewire-protocol")) {
         robotIO->SetProtocol(protocol);
     }
-    robotIO->SetCalibrationMode(options.IsSet("calibration-mode"));
+    robotIO->set_calibration_mode(options.IsSet("calibration-mode"));
 
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
 

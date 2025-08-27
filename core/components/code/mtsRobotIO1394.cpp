@@ -229,15 +229,21 @@ void mtsRobotIO1394::Init(const std::string & port)
     StateTable.PeriodStats.SetCallback(&mtsRobotIO1394::IntervalStatisticsCallback, this);
 }
 
+
 void mtsRobotIO1394::SkipConfigurationCheck(const bool skip)
 {
     m_skip_configuration_check = skip;
 }
 
-void mtsRobotIO1394::SetCalibrationMode(const bool & mode)
+
+void mtsRobotIO1394::set_calibration_mode(const bool & mode)
 {
     m_calibration_mode = mode;
+    for (auto & robot : m_robots) {
+        robot->set_calibration_mode(mode);
+    }
 }
+
 
 void mtsRobotIO1394::Configure(const std::string & filename)
 {
@@ -280,7 +286,8 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     // Add all the robots
     for (const auto & configRobot : config.robots) {
         // Create a new robot
-        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot, m_calibration_mode);
+        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot);
+        robot->set_calibration_mode(m_calibration_mode);
         // Check the configuration if needed
         if (!m_skip_configuration_check) {
             if (!robot->CheckConfiguration()) {

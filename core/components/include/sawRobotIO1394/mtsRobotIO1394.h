@@ -79,7 +79,7 @@ public:
     void Init(const std::string & port);
 
     void SkipConfigurationCheck(const bool skip); // must be called before Configure
-    void SetCalibrationMode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
+    void set_calibration_mode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
     void Configure(const std::string & filename) override;
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);

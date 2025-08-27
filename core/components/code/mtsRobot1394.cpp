@@ -38,10 +38,8 @@ http://www.cisst.org/cisst/license.txt.
 using namespace sawRobotIO1394;
 
 mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
-                           const osaRobot1394Configuration & config,
-                           const bool calibrationMode):
+                           const osaRobot1394Configuration & config):
     OwnerServices(owner.Services()),
-    mCalibrationMode(calibrationMode),
     // IO Structures
     mActuatorInfo(),
     m_unique_boards(),
@@ -61,7 +59,6 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mCurrentSafetyViolationsCounter(0),
     mCurrentSafetyViolationsMaximum(100)
 {
-    this->mCalibrationMode = calibrationMode;
     this->Configure(config);
 }
 
@@ -365,6 +362,12 @@ void mtsRobot1394::UsePotentiometersForSafetyCheck(const bool & usePotentiometer
     mPotentiometerValid.SetAll(true);
     // trigger mts event
     EventTriggers.UsePotentiometersForSafetyCheck(usePotentiometersForSafetyCheck);
+}
+
+
+void mtsRobot1394::set_calibration_mode(const bool & mode)
+{
+    m_calibration_mode = mode;
 }
 
 
@@ -1047,7 +1050,7 @@ void mtsRobot1394::CheckState(void)
             if (*enabled) {
                 actual_limit = *limit;
             } else {
-                if (mCalibrationMode || !mPowerEnable) {
+                if (m_calibration_mode || !mPowerEnable) {
                     actual_limit = 0.2; // noise + poor calibration
                 } else {
                     actual_limit = 0.1; // 100 mA for noise in a2d
@@ -1212,7 +1215,7 @@ void mtsRobot1394::CheckState(void)
 
 
     // For dRAC based arms, make sure the pots value are meaningfull
-    if (m_configuration.hardware_version == osa1394::dRA1 && !mCalibrationMode) {
+    if (m_configuration.hardware_version == osa1394::dRA1 && !m_calibration_mode) {
         bool foundMissingPotentiometer = false;
         for (const auto & potValue : m_pot_measured_js.Position()) {
             if (mtsRobot1394::IsMissingPotentiometerValue(potValue)) {
@@ -1274,7 +1277,9 @@ void mtsRobot1394::CheckState(void)
                     // check how long have we been off
                     if (*potDuration > tolerance->latency) {
                         // now we have a problem,
-                        this->PowerOffSequenceOnError(false); // don't open safety relays
+                        if (!m_calibration_mode) {
+                            this->PowerOffSequenceOnError(false); // don't open safety relays
+                        }
                         // maybe it's not new, used for reporting
                         if (*potValid) {
                             // this is new
@@ -1296,7 +1301,9 @@ void mtsRobot1394::CheckState(void)
         // if status has changed
         if (statusChanged) {
             if (error) {
-                this->PowerOffSequenceOnError(false /* do not open safety relays */);
+                if (!m_calibration_mode) {
+                    this->PowerOffSequenceOnError(false /* do not open safety relays */);
+                }
                 std::string errorMessage = "IO: " + this->Name() + ": inconsistency between encoders and potentiometers";
                 std::string warningMessage = errorMessage + "\nencoders:\n";
                 warningMessage.append(encoderRef.ToString());
@@ -1306,10 +1313,12 @@ void mtsRobot1394::CheckState(void)
                 warningMessage.append(mPotentiometerValid.ToString());
                 warningMessage.append("\nerror duration:\n");
                 warningMessage.append(mPotentiometerErrorDuration.ToString());
-                warningMessage.append("\nconfiguration:\n");
-                warningMessage.append(m_configuration.potentiometers.HumanReadable());
-                mInterface->SendWarning(warningMessage);
-                cmnThrow(errorMessage);
+                if (!m_calibration_mode) {
+                    mInterface->SendError(warningMessage);
+                    cmnThrow(errorMessage);
+                } else {
+                    mInterface->SendStatus(warningMessage);
+                }
             } else {
                 CMN_LOG_CLASS_RUN_VERBOSE << "IO: " << this->Name()
                                           << ": check between encoders and potentiomenters, recovery.  Valid pots:" << std::endl
@@ -1527,7 +1536,7 @@ void mtsRobot1394::WritePowerEnable(const bool & power)
 
 void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 {
-    if (m_configuration.hardware_version == osa1394::dRA1 && mCalibrationMode) {
+    if (m_configuration.hardware_version == osa1394::dRA1 && m_calibration_mode) {
         mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
         return;
     }
@@ -1539,7 +1548,7 @@ void mtsRobot1394::SetActuatorAmpEnable(const bool & enable)
 
 void mtsRobot1394::SetActuatorAmpEnable(const vctBoolVec & enable)
 {
-    if (m_configuration.hardware_version == osa1394::dRA1 && mCalibrationMode) {
+    if (m_configuration.hardware_version == osa1394::dRA1 && m_calibration_mode) {
         mInterface->SendWarning("IO: " + this->Name() + " can't power actuator since we're in calibration mode");
         return;
     }

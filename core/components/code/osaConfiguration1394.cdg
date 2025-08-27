@@ -365,6 +365,7 @@ class {
         name brakes;
         type std::vector<osaBrake1394Configuration>;
         visibility public;
+        default std::vector<osaBrake1394Configuration>();
     }
     member {
         name potentiometers;
