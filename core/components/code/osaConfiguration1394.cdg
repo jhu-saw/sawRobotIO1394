@@ -209,7 +209,6 @@ class {
         name potentiometer;
         type osaPotentiometer1394Configuration;
         visibility public;
-        use-shared-pointer true;
     }
 }
 

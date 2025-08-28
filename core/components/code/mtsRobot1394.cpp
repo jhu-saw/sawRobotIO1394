@@ -1971,8 +1971,8 @@ void mtsRobot1394::PotentiometerBitsToVoltage(const vctIntVec & bits, vctDoubleV
     for (; bit != end;
          ++bit, ++actuator, ++voltage) {
         *voltage =
-            static_cast<double>(*bit) * actuator->potentiometer->bits_to_voltage.scale
-            + actuator->potentiometer->bits_to_voltage.offset;
+            static_cast<double>(*bit) * actuator->potentiometer.bits_to_voltage.scale
+            + actuator->potentiometer.bits_to_voltage.offset;
     }
 }
 
@@ -1986,8 +1986,8 @@ void mtsRobot1394::PotentiometerVoltageToPosition(const vctDoubleVec & voltages,
     for (; voltage != end;
          ++voltage, ++actuator, ++position) {
         *position =
-            *voltage * actuator->potentiometer->voltage_to_position.scale
-            + actuator->potentiometer->voltage_to_position.offset;
+            *voltage * actuator->potentiometer.voltage_to_position.scale
+            + actuator->potentiometer.voltage_to_position.offset;
     }
 }
 
