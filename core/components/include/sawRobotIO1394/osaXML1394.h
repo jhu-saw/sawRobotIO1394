@@ -39,14 +39,11 @@ namespace sawRobotIO1394 {
     }
 
     void CISST_EXPORT osaXML1394ConfigurePort(const std::string & filename,
-                                              osaPort1394Configuration & config,
-                                              const bool & calibrationMode);
+                                              osaPort1394Configuration & config);
 
     bool CISST_EXPORT osaXML1394ConfigureRobot(cmnXMLPath & xmlConfig,
                                                const int robotIndex,
-                                               osaRobot1394Configuration & robot,
-                                               const cmnPath & configPath,
-                                               const bool & calibrationMode);
+                                               osaRobot1394Configuration & robot);
 
     bool CISST_EXPORT osaXML1394ConfigureCoupling(cmnXMLPath & xmlConfig,
                                                   const int robotIndex,

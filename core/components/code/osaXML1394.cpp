@@ -18,42 +18,17 @@ http://www.cisst.org/cisst/license.txt.
 
 
 #include <sawRobotIO1394/osaXML1394.h>
-#include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnPath.h>
 
 namespace sawRobotIO1394 {
 
-    bool osaXML1394CheckUnitVsType(const cmnJointType & type, const std::string & unit,
-                                   const bool onlyIO, const std::string & path)
-    {
-        if (type == CMN_JOINT_REVOLUTE) {
-            if (!osaUnitIsDistanceRevolute(unit) && !onlyIO) {
-                CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                   << "\", must be rad or deg but found \"" << unit << "\"" << std::endl;
-                return false;
-            }
-        } else if (type == CMN_JOINT_PRISMATIC) {
-            if (!osaUnitIsDistancePrismatic(unit) && !onlyIO) {
-                CMN_LOG_INIT_ERROR << "Configure: invalid unit for \"" << path
-                                   << "\", must be mm, cm or m but found \"" << unit << "\"" << std::endl;
-                return false;
-            }
-        }
-        return true;
-    }
-
     void osaXML1394ConfigurePort(const std::string & filename,
-                                 osaPort1394Configuration & config,
-                                 const bool & calibrationMode)
+                                 osaPort1394Configuration & config)
     {
         cmnXMLPath xmlConfig;
         xmlConfig.SetInputSource(filename);
 
-        // save the path to the config file so we can load other files
-        // in same directory
-        cmnPath configPath(cmnPath::GetWorkingDirectory());
         std::string configDir = filename.substr(0, filename.find_last_of('/'));
-        configPath.Add(configDir, cmnPath::HEAD);
 
         // get an check version number
         int version;
@@ -89,9 +64,10 @@ namespace sawRobotIO1394 {
 
         for (int i = 0; i < numRobots; i++) {
             osaRobot1394Configuration robot;
-
+            // save the files name so we can find other files relative to this one
+            robot.Path.push_back(configDir);
             // Store the robot in the config if it's succesfully parsed
-            if (osaXML1394ConfigureRobot(xmlConfig, i + 1, robot, configPath, calibrationMode)) {
+            if (osaXML1394ConfigureRobot(xmlConfig, i + 1, robot)) {
                 config.Robots.push_back(robot);
             } else {
                 CMN_LOG_INIT_WARNING << "ConfigurePort: failed to configure robot from file \""
@@ -161,12 +137,9 @@ namespace sawRobotIO1394 {
 
     bool osaXML1394ConfigureRobot(cmnXMLPath & xmlConfig,
                                   const int robotIndex,
-                                  osaRobot1394Configuration & robot,
-                                  const cmnPath & configPath,
-                                  const bool & calibrationMode)
+                                  osaRobot1394Configuration & robot)
     {
         bool good = true;
-        std::string unit;
         char path[256];
         const char * context = "Config";
 
@@ -223,7 +196,7 @@ namespace sawRobotIO1394 {
             robot.HasEncoderPreload = true;
         }
 
-        sprintf(path, "Robot[%d]/@SN", robotIndex);
+        sprintf(path, "Robot[%d]/@SerialNumber", robotIndex);
         robot.SerialNumber = "";
         good &= osaXML1394GetValue(xmlConfig, context, path, robot.SerialNumber, false); // not required
 
@@ -231,34 +204,34 @@ namespace sawRobotIO1394 {
             osaActuator1394Configuration actuator;
             int actuatorIndex = i + 1;
 
-            sprintf(path, "Robot[%d]/Actuator[%d]/@BoardID", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.BoardID);
-            if ((actuator.BoardID < 0) || (actuator.BoardID >= (int)MAX_BOARDS)) {
-                CMN_LOG_INIT_ERROR << "Configure: invalid board number " << actuator.BoardID
+            sprintf(path, "Robot[%d]/Actuator[%d]/@BoardId", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.BoardId);
+            if ((actuator.BoardId < 0) || (actuator.BoardId >= (int)MAX_BOARDS)) {
+                CMN_LOG_INIT_ERROR << "Configure: invalid board number " << actuator.BoardId
                                    << " for board " << i << std::endl;
                 return false;
             }
 
-            sprintf(path, "Robot[%d]/Actuator[%d]/@AxisID", robotIndex, actuatorIndex);
-            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.AxisID);
-            if ((actuator.AxisID < 0) || (actuator.AxisID >= (int)MAX_AXES)) {
-                CMN_LOG_INIT_ERROR << "Configure: invalid axis number " << actuator.AxisID
+            sprintf(path, "Robot[%d]/Actuator[%d]/@AxisId", robotIndex, actuatorIndex);
+            good &= osaXML1394GetValue(xmlConfig, context, path, actuator.AxisId);
+            if ((actuator.AxisId < 0) || (actuator.AxisId >= (int)MAX_AXES)) {
+                CMN_LOG_INIT_ERROR << "Configure: invalid axis number " << actuator.AxisId
                                    << " for actuator " << i << std::endl;
                 return false;
             }
 
             std::string actuatorType = "";
-            sprintf(path, "Robot[%d]/Actuator[%d]/@Type", robotIndex, actuatorIndex);
+            sprintf(path, "Robot[%d]/Actuator[%d]/@JointType", robotIndex, actuatorIndex);
             xmlConfig.GetXMLValue(context, path, actuatorType);
             if (actuatorType == "") {
-                CMN_LOG_INIT_WARNING << "Configure: no actuator type specified " << actuator.AxisID
+                CMN_LOG_INIT_WARNING << "Configure: no actuator type specified " << actuator.AxisId
                                      << " for actuator " << i << " set to Revolute by default" << std::endl;
-                actuatorType = "Revolute";
+                actuatorType = "REVOLUTE";
             }
 
-            if (actuatorType == "Revolute") {
+            if (actuatorType == "REVOLUTE") {
                 actuator.JointType = CMN_JOINT_REVOLUTE;
-            } else if (actuatorType == "Prismatic") {
+            } else if (actuatorType == "PRISMATIC") {
                 actuator.JointType = CMN_JOINT_PRISMATIC;
             }
 
@@ -274,7 +247,7 @@ namespace sawRobotIO1394 {
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/BitsToFeedbackAmps/@Offset", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.BitsToCurrent.Offset);
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/Drive/NmToAmps/@Scale", robotIndex, actuatorIndex);
+            sprintf(path, "Robot[%i]/Actuator[%d]/Drive/EffortToCurrent/@Scale", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Drive.EffortToCurrent.Scale, !robot.OnlyIO);
 
             sprintf(path, "Robot[%i]/Actuator[%d]/Drive/MaxCurrent/@Value", robotIndex, actuatorIndex);
@@ -289,11 +262,11 @@ namespace sawRobotIO1394 {
                 actuator.Brake = brake;
                 robot.NumberOfBrakes++;
 
-                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/@BoardID", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->BoardID);
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/@BoardId", robotIndex, actuatorIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->BoardId);
 
-                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/@AxisID", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->AxisID);
+                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/@AxisId", robotIndex, actuatorIndex);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->AxisId);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogBrake/AmpsToBits/@Scale", robotIndex, actuatorIndex);
                 good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Brake->Drive.CurrentToBits.Scale);
@@ -348,141 +321,46 @@ namespace sawRobotIO1394 {
                 actuator.Encoder.BitsToPosition.Scale = 0.0;
             }
 
-            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/BitsToPosSI/@Unit", robotIndex, actuatorIndex);
-            unit = "none";
-            good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-            good &= osaXML1394CheckUnitVsType(actuator.JointType, unit, robot.OnlyIO, path);
-            actuator.Encoder.BitsToPosition.Unit = unit;
-
             // encoder soft limits
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/PositionLimitsSoft/@Lower", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.PositionLimitsSoft.Lower, !robot.OnlyIO);
             sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/PositionLimitsSoft/@Upper", robotIndex, actuatorIndex);
             good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Encoder.PositionLimitsSoft.Upper, !robot.OnlyIO);
-            sprintf(path, "Robot[%i]/Actuator[%d]/Encoder/PositionLimitsSoft/@Unit", robotIndex, actuatorIndex);
-            unit = "none";
-            good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-            good &= osaXML1394CheckUnitVsType(actuator.JointType, unit, robot.OnlyIO, path);
-            actuator.Encoder.PositionLimitsSoft.Unit = unit;
 
             // potentiometers
             // set default type to 0, i.e. not defined
-            actuator.Pot.Type = 0;
+            actuator.Potentiometer.Type = 0;
 
             // analog pots for Classic with QLA/FPGA, look for AnalogIn
             sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn", robotIndex, actuatorIndex);
             int analogPot;
             xmlConfig.GetXMLValue(context, path, analogPot, -1);
             if (analogPot != -1) {
-                actuator.Pot.Type = 1;
+                actuator.Potentiometer.Type = 1;
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Scale", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Scale);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Potentiometer.BitsToVoltage.Scale);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/BitsToVolts/@Offset", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.BitsToVoltage.Offset);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Potentiometer.BitsToVoltage.Offset);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Scale", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Scale, !robot.OnlyIO);
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Potentiometer.VoltageToPosition.Scale, !robot.OnlyIO);
 
                 sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Offset", robotIndex, actuatorIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Pot.SensorToPosition.Offset, !robot.OnlyIO);
-
-                sprintf(path, "Robot[%i]/Actuator[%d]/AnalogIn/VoltsToPosSI/@Unit", robotIndex, actuatorIndex);
-                unit = "none";
-                good &= osaXML1394GetValue(xmlConfig, context, path, unit, !robot.OnlyIO);
-                good &= osaXML1394CheckUnitVsType(actuator.JointType, unit, robot.OnlyIO, path);
-                actuator.Pot.SensorToPosition.Unit = unit;
+                good &= osaXML1394GetValue(xmlConfig, context, path, actuator.Potentiometer.VoltageToPosition.Offset, !robot.OnlyIO);
             }
             // Add the actuator
             robot.Actuators.push_back(actuator);
         }
 
-        // if potType is not set, check if a LookupTable is available (digital pots on Si arms)
-        if (!calibrationMode) {
-            std::string potentiometerLookupTable;
-            vctDoubleMat lookupTable;
-            sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
-            if (xmlConfig.GetXMLValue(context, path, potentiometerLookupTable)) {
-                // make sure the filename has the serial number in it
-                // to prevent mismatch
-                if (robot.SerialNumber == "") {
-                    CMN_LOG_INIT_ERROR << "The robot serial number must be defined to use a potentiometer lookup table for "
-                                       << robot.Name << std::endl;
-                    return false;
-                }
-                const std::string::size_type serialNumberFound
-                    = potentiometerLookupTable.find(robot.SerialNumber);
-                if (serialNumberFound == std::string::npos) {
-                    CMN_LOG_INIT_ERROR << "The potentiometer lookup table file name \""
-                                       << potentiometerLookupTable << "\" for "
-                                       << robot.Name << " doesn't contain the serial number ("
-                                       << robot.SerialNumber << ").  You're likely using the wrong lookup file"
-                                       << std::endl;
-                    return false;
-                }
-                // load the file
-                std::string filename = configPath.Find(potentiometerLookupTable);
-                if (filename == "") {
-                    CMN_LOG_INIT_ERROR << "Unable to find the potentiometer lookup table file \""
-                                       << potentiometerLookupTable << "\" for "
-                                       << robot.Name << " in path " << configPath << std::endl;
-                    return false;
-                }
-                try {
-                    std::ifstream jsonStream;
-                    Json::Value jsonValue;
-                    Json::Reader jsonReader;
-
-                    jsonStream.open(filename.c_str());
-                    if (!jsonReader.parse(jsonStream, jsonValue)) {
-                        CMN_LOG_INIT_ERROR << "Error found while parsing \""
-                                           << filename << "\":"
-                                           << jsonReader.getFormattedErrorMessages();
-                        return false;
-                    }
-                    // check the serial number in the file
-                    std::string inFileSerial = jsonValue["serial"].asString();
-                    if (inFileSerial != robot.SerialNumber) {
-                        CMN_LOG_INIT_ERROR << "Serial number found lookup table file ("
-                                           << inFileSerial << ") doesn't match the arm one ("
-                                           << robot.SerialNumber << ")" << std::endl;
-                        return false;
-                    }
-                    cmnDataJSON<vctDoubleMat>::DeSerializeText(lookupTable, jsonValue["lookup"]);
-                    // make sure the table size makes sense
-                    if ((lookupTable.rows() != robot.Actuators.size())
-                        || (lookupTable.cols() == 0)) {
-                        CMN_LOG_INIT_ERROR << "Size of lookup table for " << robot.Name
-                                           << " from " << potentiometerLookupTable
-                                           << " doesn't match the number of actuators, found "
-                                           << lookupTable.rows() << " but was expecting " << robot.Actuators.size()
-                                           << std::endl;
-                        return false;
-                    }
-                    // set actuator type for all actuators
-                    for (size_t index = 0;
-                         index < robot.Actuators.size();
-                         ++index) {
-                        robot.Actuators.at(index).Pot.Type = 2;
-                        robot.Actuators.at(index).Pot.LookupTable = lookupTable.Row(index);
-                    }
-                    // for logs
-                    CMN_LOG_INIT_VERBOSE << "Loaded potentiometer lookup table from file \""
-                                         << filename << "\" for arm " << robot.Name
-                                         << " (" << robot.SerialNumber << ")" << std::endl;
-                } catch (...) {
-                    CMN_LOG_INIT_ERROR << "Error found while parsing \""
-                                       << potentiometerLookupTable << "\", make sure the file is in JSON format."
-                                       << std::endl;
-                    return false;
-                }
-            }
-        }
+        // check if a LookupTableFile is available (digital pots on Si arms)
+        sprintf(path,"Robot[%d]/Potentiometers/@LookupTable", robotIndex);
+        xmlConfig.GetXMLValue(context, path, robot.Potentiometers.LookupTableFile);
 
         // load pot tolerances
         for (int potIndex = 0; potIndex < robot.NumberOfActuators; ++potIndex) {
-            osaPotTolerance1394Configuration pot;
+            osaPotentiometerTolerance1394Configuration pot;
             int xmlPotIndex = potIndex + 1;
             // check that axis index is valid
             int axis = -12345;
@@ -500,25 +378,14 @@ namespace sawRobotIO1394 {
                                        << robotIndex << "(" << robot.Name << ")" << std::endl;
                     good = false;
                 }
-                pot.AxisID = axis;
+                pot.AxisId = axis;
                 // get data
                 sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Distance", robotIndex, xmlPotIndex);
                 good &= osaXML1394GetValue(xmlConfig, context, path, pot.Distance);
                 sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Latency", robotIndex, xmlPotIndex);
                 good &= osaXML1394GetValue(xmlConfig, context, path, pot.Latency);
-                // convert to proper units
-                sprintf(path, "Robot[%i]/Potentiometers/Tolerance[%d]/@Unit", robotIndex, xmlPotIndex);
-                good &= osaXML1394GetValue(xmlConfig, context, path, unit);
-                if (osaUnitIsDistance(unit)) {
-                    pot.Distance *= osaUnitToSIFactor(unit);
-                } else {
-                    CMN_LOG_INIT_ERROR << "Configure: invalid <Potentiometers><Tolerance Unit=\"\"> must be rad, deg, mm, m but found \""
-                                       << unit << "\" for Axis " << axis << " for robot "
-                                       << robotIndex << "(" << robot.Name << ")" << std::endl;
-                    good = false;
-                }
             }
-            robot.PotTolerances.push_back(pot);
+            robot.Potentiometers.Tolerances.push_back(pot);
             // send warning just to make sure user understands safety check is effectively disabled for this axis
             if ((pot.Distance == 0.0) || (pot.Latency == 0.0)) {
                 CMN_LOG_INIT_WARNING << "Configure: potentiometer to encoder latency ("
@@ -548,7 +415,7 @@ namespace sawRobotIO1394 {
         if (coupling != -1) {
             if (!osaXML1394ConfigureCouplingMatrix(xmlConfig, path,
                                                    robot.NumberOfActuators, robot.NumberOfActuators,
-                                                   robot.PotCoupling.JointToActuatorPosition())) {
+                                                   robot.Potentiometers.Coupling.JointToActuatorPosition())) {
                 return false;
             }
         } // has actuator coupling
@@ -607,10 +474,10 @@ namespace sawRobotIO1394 {
         //Check there is digital input entry. Return boolean result for success/fail.
         sprintf(path,"DigitalIn[%i]/@Name", inputIndex);
         tagsFound &= xmlConfig.GetXMLValue(context, path, digitalInput.Name);
-        sprintf(path,"DigitalIn[%i]/@BoardID", inputIndex);
-        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalInput.BoardID);
-        sprintf(path,"DigitalIn[%i]/@BitID", inputIndex);
-        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalInput.BitID);
+        sprintf(path,"DigitalIn[%i]/@BoardId", inputIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalInput.BoardId);
+        sprintf(path,"DigitalIn[%i]/@BitId", inputIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalInput.BitId);
 
         if (!tagsFound) {
             CMN_LOG_INIT_ERROR << "Configuration for " << path << " failed. Stopping config." << std::endl;
@@ -690,10 +557,10 @@ namespace sawRobotIO1394 {
         // Check there is digital output entry. Return boolean result for success/fail.
         sprintf(path,"DigitalOut[%i]/@Name", outputIndex);
         tagsFound &= xmlConfig.GetXMLValue(context, path, digitalOutput.Name);
-        sprintf(path,"DigitalOut[%i]/@BoardID", outputIndex);
-        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalOutput.BoardID);
-        sprintf(path,"DigitalOut[%i]/@BitID", outputIndex);
-        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalOutput.BitID);
+        sprintf(path,"DigitalOut[%i]/@BoardId", outputIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalOutput.BoardId);
+        sprintf(path,"DigitalOut[%i]/@BitId", outputIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, digitalOutput.BitId);
 
         if (!tagsFound) {
             CMN_LOG_INIT_ERROR << "Configuration for " << path << " failed. Stopping config." << std::endl;
@@ -728,8 +595,8 @@ namespace sawRobotIO1394 {
         // Check there is digital output entry. Return boolean result for success/fail.
         sprintf(path,"DallasChip[%i]/@Name", dallasIndex);
         tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.Name);
-        sprintf(path,"DallasChip[%i]/@BoardID", dallasIndex);
-        tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.BoardID);
+        sprintf(path,"DallasChip[%i]/@BoardId", dallasIndex);
+        tagsFound &= xmlConfig.GetXMLValue(context, path, dallasChip.BoardId);
 
         if (!tagsFound) {
             CMN_LOG_INIT_ERROR << "Configuration for " << path << " failed. Stopping config." << std::endl;

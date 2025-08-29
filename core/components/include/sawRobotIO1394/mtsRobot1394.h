@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2024 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -54,10 +54,10 @@ namespace sawRobotIO1394 {
         //@}
 
         mtsRobot1394(const cmnGenericObject & owner,
-                     const osaRobot1394Configuration & config,
-                     const bool calibrationMode = false);
+                     const osaRobot1394Configuration & config);
         ~mtsRobot1394();
 
+        void LoadPotentiometerLookupTable(void);
         void Configure(const osaRobot1394Configuration & config);
 
         bool SetupStateTables(const size_t stateTableSize,
@@ -80,7 +80,7 @@ namespace sawRobotIO1394 {
                                      vctDoubleVec & joints) const;
 
         /*! \name Bias Calibration */
-        void CalibrateEncoderOffsetsFromPots(const int & numberOfSamples);
+        void CalibrateEncoderOffsetsFromPotentiometers(const int & numberOfSamples);
 
 
         /** \name Lifecycle
@@ -128,8 +128,9 @@ namespace sawRobotIO1394 {
         void SetSingleEncoderPosition(const int index, const double pos = 0);
         void SetSingleEncoderPositionBits(const int index, const int bits = 0);
 
-        //! Pots to encoder safety check
-        void UsePotsForSafetyCheck(const bool & usePotsForSafetyCheck);
+        //! Potentiometers to encoder safety check
+        void UsePotentiometersForSafetyCheck(const bool & usePotentiometersForSafetyCheck);
+        void set_calibration_mode(const bool & mode);
 
         //! Actuator Control
         void SetActuatorEffort(const vctDoubleVec & efforts);
@@ -201,8 +202,8 @@ namespace sawRobotIO1394 {
         const vctDoubleVec & ActuatorCurrentCommand(void) const;
         const vctDoubleVec & ActuatorEffortCommand(void) const;
         const vctDoubleVec & BrakeCurrentFeedback(void) const;
-        const vctIntVec & PotBits(void) const;
-        const vctDoubleVec & PotPosition(void) const;
+        const vctIntVec & PotentiometerBits(void) const;
+        const vctDoubleVec & PotentiometerPosition(void) const;
         const vctDoubleVec & ActuatorTimestamp(void) const;
         const vctDoubleVec & BrakeTimestamp(void) const;
         const vctDoubleVec & ActuatorEncoderAcceleration(void) const;
@@ -224,7 +225,7 @@ namespace sawRobotIO1394 {
 
         /** \name Bias Calibration Functions
          *\{**/
-        void CalibrateEncoderOffsetsFromPots(void);
+        void CalibrateEncoderOffsetsFromPotentiometers(void);
         /**}**/
 
         /** \name Conversion Functions
@@ -247,8 +248,8 @@ namespace sawRobotIO1394 {
         void BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const;
 
         //! Conversions for potentiometers
-        void PotBitsToVoltage(const vctIntVec & bits, vctDoubleVec & voltages) const;
-        void PotVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const;
+        void PotentiometerBitsToVoltage(const vctIntVec & bits, vctDoubleVec & voltages) const;
+        void PotentiometerVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const;
         /**}**/
 
         /*! Utility functions to define an missing potentiometer value
@@ -257,8 +258,8 @@ namespace sawRobotIO1394 {
           position.  It's the value used in the pot to position lookup
           table for unreachable pot indices. */
         //@{
-        static double GetMissingPotValue(void);
-        static bool IsMissingPotValue(const double & potValue);
+        static double GetMissingPotentiometerValue(void);
+        static bool IsMissingPotentiometerValue(const double & potValue);
         //@}
 
     protected:
@@ -266,20 +267,17 @@ namespace sawRobotIO1394 {
         void ClipActuatorCurrent(vctDoubleVec & currents);
         void ClipBrakeCurrent(vctDoubleVec & currents);
 
-        bool mCalibrationMode;
+        bool m_calibration_mode;
 
         //! Board Objects
         std::vector<osaActuatorMapping> mActuatorInfo;
         std::vector<osaBrakeMapping> mBrakeInfo;
-        std::map<int, AmpIO*> mUniqueBoards;
+        std::map<int, AmpIO*> m_unique_boards;
 
         //! Robot Configuration
-        osaRobot1394Configuration mConfiguration;
-        std::string mName;
-        size_t mNumberOfActuators;
-        size_t mNumberOfBrakes;
-        std::string mSerialNumber;
-        bool mHasEncoderPreload;
+        osaRobot1394Configuration m_configuration;
+        size_t m_number_of_actuators;
+        size_t m_number_of_brakes;
 
         // state of brakes
         bool mBrakeReleasing;
@@ -287,35 +285,13 @@ namespace sawRobotIO1394 {
 
         //! Vectors of actuator properties
         vctDoubleVec
-            mEffortToCurrentScales,
-            mActuatorCurrentToBitsScales,
-            mBrakeCurrentToBitsScales,
-            mActuatorCurrentToBitsOffsets,
-            mBrakeCurrentToBitsOffsets,
-            mActuatorBitsToCurrentScales,
-            mBrakeBitsToCurrentScales,
-            mActuatorBitsToCurrentOffsets,
-            mBrakeBitsToCurrentOffsets,
-            mBitsToPositionScales,
-            mBitsToPositionOffsets, // this is used only if the hardware doesn't allow encoder pre-loading
-            mBitsToVoltageScales,
-            mBitsToVoltageOffsets,
-            mSensorToPositionScales,
-            mSensorToPositionOffsets;
-
-        vctDoubleVec
-            mActuatorCurrentCommandLimits,
-            mBrakeCurrentCommandLimits,
             mActuatorCurrentFeedbackLimits, // limit used to trigger error
             mBrakeCurrentFeedbackLimits,    // limit used to trigger error
-            mPotsToEncodersTolerance;       // maximum error between encoders and pots
+            mPotentiometersToEncodersTolerance;       // maximum error between encoders and pots
 
         //! Robot type
-        osa1394::HardwareType mHardwareVersion;
         prmConfigurationJoint m_configuration_js;
-        int mPotType = 0; // 0 for undefined, 1 for analog, 2 for digital (dVRK S)
-        vctDoubleMat mPotCoupling;
-        bool mUsePotsForSafetyCheck;
+        bool mUsePotentiometersForSafetyCheck;
 
         //! State Members
         bool
@@ -342,17 +318,16 @@ namespace sawRobotIO1394 {
             mBrakeAmpStatus,
             mActuatorAmpEnable,
             mBrakeAmpEnable,
-            mPotValid,
+            mPotentiometerValid,
             mPreviousEncoderOverflow,
             mEncoderOverflow,
             mDigitalInputs,
             mEncoderChannelsA;
 
         vctIntVec
-            mPotBits,
+            mPotentiometerBits,
             mEncoderPositionBits,
             mPreviousEncoderPositionBits;
-            // mEncoderDPositionBits;
 
         vctIntVec
             mActuatorCurrentBitsCommand,
@@ -363,31 +338,24 @@ namespace sawRobotIO1394 {
         vctDoubleVec
             mActuatorTimestamp,
             mBrakeTimestamp,
-            mPotVoltage,
+            mPotentiometerVoltage,
             mActuatorTimestampChange, // software velocity: cumulated time since last encoder changed
             mVelocitySlopeToZero,     // software velocity: slope used to reduced velocity to zero when no encoder count change
             mEncoderVelocityPredictedCountsPerSec, // velocity based on FPGA velocity estimation, including prediction
             mEncoderAccelerationCountsPerSecSec,   // acceleration based on FPGA measurement (firmware rev 6)
             mEncoderAcceleration,                  // acceleration in SI units (firmware rev 6)
-            mActuatorEncoderAcceleration,
             mActuatorCurrentCommand,
             mBrakeCurrentCommand,
             mActuatorEffortCommand,
             mActuatorCurrentFeedback,
-            mPotToleranceLatency,
-            mPotToleranceDistance,
-            mPotErrorDuration,
+            mPotentiometerErrorDuration,
             mBrakeCurrentFeedback,
             mActuatorTemperature,
-            mBrakeTemperature,
-            mBrakeReleaseCurrent,
-            mBrakeReleaseTime,
-            mBrakeReleasedCurrent,
-            mBrakeEngagedCurrent;
+            mBrakeTemperature;
 
         double mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
 
-        vctDynamicVector<vctDoubleVec> mPotLookupTable;
+        vctDoubleMat mPotentiometerLookupTable;
 
         size_t
             mCurrentSafetyViolationsCounter,
@@ -399,8 +367,8 @@ namespace sawRobotIO1394 {
         double
             mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
 
-        mtsStateTable * mStateTableRead;
-        mtsStateTable * mStateTableWrite;
+        mtsStateTable * m_state_table_read = nullptr;
+        mtsStateTable * m_state_table_write = nullptr;
         bool mUserExpectsPower = false;
         double mPoweringStartTime;
 
@@ -416,12 +384,12 @@ namespace sawRobotIO1394 {
             mtsFunctionWrite WatchdogTimeoutStatus;
             mtsFunctionWrite WatchdogPeriod;
             mtsFunctionWrite BiasEncoder;
-            mtsFunctionWrite UsePotsForSafetyCheck;
+            mtsFunctionWrite UsePotentiometersForSafetyCheck;
         } EventTriggers;
 
         struct {
-            int SamplesFromPots = 0;
-            int SamplesFromPotsRequested;
+            int SamplesFromPotentiometers = 0;
+            int SamplesFromPotentiometersRequested;
             bool Performed = false;
             int PostCalibrationCounter = -1; // -1: nothing to do, 0: emit event, anything else: decrement
         } CalibrateEncoderOffsets;

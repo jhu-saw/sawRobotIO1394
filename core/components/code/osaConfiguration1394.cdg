@@ -3,6 +3,7 @@
 
 inline-header {
 #include <set>
+#include <memory>
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnJointType.h>
 #include <cisstVector/vctDynamicMatrixTypes.h>
@@ -15,43 +16,6 @@ class AmpIO;
 namespace sawRobotIO1394 {
     const size_t MAX_BOARDS = 16;
     const size_t MAX_AXES = 10;
-
-    inline bool osaUnitIsDistance(const std::string & unit) {
-        // make sure this is properly sorted?
-        static const std::set<std::string> keywords {"cm", "deg", "m", "mm", "rad"};
-        return keywords.find(unit) != keywords.end();
-    }
-
-    inline bool osaUnitIsDistanceRevolute(const std::string & unit) {
-        // make sure this is properly sorted?
-        static const std::set<std::string> keywords {"deg", "rad"};
-        return keywords.find(unit) != keywords.end();
-    }
-
-    inline bool osaUnitIsDistancePrismatic(const std::string & unit) {
-        // make sure this is properly sorted?
-        static const std::set<std::string> keywords {"cm", "m", "mm"};
-        return keywords.find(unit) != keywords.end();
-    }
-
-    inline double osaUnitToSIFactor(const std::string & unit) {
-        // make sure this is properly sorted?
-        static const std::map<std::string, double> factors {
-            { "A",   1.0},
-            { "cm",  cmn_cm},
-            { "deg", cmnPI_180},
-            { "m",   cmn_m},
-            { "mA",  1.000},
-            { "mm",  cmn_mm},
-            { "rad", 1.0},
-            { "none", 1.0}
-        };
-        const auto factor = factors.find(unit);
-        if (factor != factors.end()) {
-            return factor->second;
-        }
-        return 0.0;
-    }
 } // namespace sawRobotIO1394
 
 } // inline-header
@@ -61,20 +25,15 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Scale;
-        type double;
-        default 1.0;
-        visibility public;
-    }
-    member {
-        name Offset;
+        name scale;
         type double;
         default 0.0;
         visibility public;
     }
     member {
-        name Unit;
-        type std::string;
+        name offset;
+        type double;
+        default 0.0;
         visibility public;
     }
 }
@@ -84,18 +43,13 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Lower;
+        name lower;
         type double;
         visibility public;
     }
     member {
-        name Upper;
+        name upper;
         type double;
-        visibility public;
-    }
-    member {
-        name Unit;
-        type std::string;
         visibility public;
     }
 }
@@ -105,22 +59,23 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name EffortToCurrent;
+        name effort_to_current;
+        type osaLinearFunction;
+        visibility public;
+        default osaLinearFunction();
+    }
+    member {
+        name current_to_bits;
         type osaLinearFunction;
         visibility public;
     }
     member {
-        name CurrentToBits;
+        name bits_to_current;
         type osaLinearFunction;
         visibility public;
     }
     member {
-        name BitsToCurrent;
-        type osaLinearFunction;
-        visibility public;
-    }
-    member {
-        name CurrentCommandLimit;
+        name maximum_current;
         type double;
         default 0.0;
         visibility public;
@@ -132,7 +87,7 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     enum {
-        name VelocitySourceType;
+        name velocity_source_t;
         enum-value {
             name FIRMWARE;
             description firmware;
@@ -143,85 +98,76 @@ class {
         }
     }
     member {
-        name BitsToPosition;
+        name bits_to_position;
         type osaLinearFunction;
         visibility public;
     }
     member {
-        name PositionLimitsSoft;
+        name position_limits_soft;
         type osaLimits;
         visibility public;
     }
     member {
-        name VelocitySource;
-        type osaEncoder1394Configuration::VelocitySourceType;
+        name velocity_source;
+        type osaEncoder1394Configuration::velocity_source_t;
         visibility public;
     }
 }
 
 class {
-    name osaPot1394Configuration;
+    name osaPotentiometer1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Type;
-        type int;
-        visibility public;
-        description  1 for analog pots, 2 for digital pots;
-    }
-    member {
-        name BitsToVoltage;
+        name bits_to_voltage;
         type osaLinearFunction;
         visibility public;
     }
     member {
-        name SensorToPosition;
+        name voltage_to_position;
         type osaLinearFunction;
         visibility public;
-    }
-    member {
-        name LookupTable;
-        type vctDoubleVec;
-        visibility public;
+        default osaLinearFunction();
     }
 }
 
 class {
-    name osaAnalogBrake1394Configuration;
+    name osaBrake1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
     member {
-        name AxisID;
+        name axis_id;
         type int;
         visibility public;
+        default -1;
     }
     member {
-        name Drive;
+        name drive;
         type osaDrive1394Configuration;
         visibility public;
     }
     member {
-        name ReleaseCurrent;
+        name release_current;
         type double;
         visibility public;
     }
     member {
-        name ReleaseTime;
+        name release_time;
         type double;
         visibility public;
     }
     member {
-        name ReleasedCurrent;
+        name released_current;
         type double;
         visibility public;
     }
     member {
-        name EngagedCurrent;
+        name engaged_current;
         type double;
         visibility public;
     }
@@ -232,60 +178,57 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
     member {
-        name AxisID;
+        name axis_id;
         type int;
         visibility public;
+        default -1;
     }
     member {
-        name JointType;
+        name joint_type;
         type cmnJointType;
         visibility public;
+        default cmnJointType::CMN_JOINT_UNDEFINED;
     }
     member {
-        name Drive;
+        name drive;
         type osaDrive1394Configuration;
         visibility public;
     }
     member {
-        name Encoder;
+        name encoder;
         type osaEncoder1394Configuration;
         visibility public;
+        default osaEncoder1394Configuration();
     }
     member {
-        name Pot;
-        type osaPot1394Configuration;
+        name potentiometer;
+        type osaPotentiometer1394Configuration;
         visibility public;
-    }
-    member {
-        name Brake;
-        type osaAnalogBrake1394Configuration *;
-        visibility public;
-        default nullptr;
-        is-data false;
     }
 }
 
 class {
-    name osaPotTolerance1394Configuration;
+    name osaPotentiometerTolerance1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name AxisID;
+        name axis_id;
         type int;
         visibility public;
+        default -1;
     }
     member {
-        name Distance;
+        name distance;
         type double;
         visibility public;
     }
     member {
-        name Latency;
+        name latency;
         type double;
         visibility public;
     }
@@ -294,7 +237,7 @@ class {
 class {
     name osa1394;
     enum {
-        name HardwareType;
+        name hardware_t;
         enum-value {
             name HARDWARE_UNDEFINED;
             description Undefined;
@@ -315,65 +258,119 @@ class {
 }
 
 class {
+    name osaPotentiometers1394Configuration;
+    namespace sawRobotIO1394;
+    attribute CISST_EXPORT;
+    enum {
+        name potentiometer_type_t;
+        enum-value {
+            name UNDEFINED;
+            description undefined;
+        }
+        enum-value {
+            name NONE;
+            description none;
+        }
+        enum-value {
+            name ANALOG;
+            description analog;
+        }
+        enum-value {
+            name DIGITAL;
+            description digital;
+        }
+    }
+    member {
+        name potentiometers_type;
+        type osaPotentiometers1394Configuration::potentiometer_type_t;
+        visibility public;
+    }
+    member {
+        name tolerances;
+        type std::vector<osaPotentiometerTolerance1394Configuration>;
+        visibility public;
+        default std::vector<osaPotentiometerTolerance1394Configuration>();
+    }
+    member {
+        name coupling;
+        type prmActuatorJointCoupling;
+        default prmActuatorJointCoupling();
+        visibility public;
+        description Matrix to convert potentiometer to actuators.  E.g. on dVRK MTMsm the potentiometers are mounted on the joints;
+    }
+    member {
+        name lookup_table_file;
+        type std::string;
+        visibility public;
+        default "";
+    }
+}
+
+class {
     name osaRobot1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
 
     member {
-        name Name;
+        name name;
         type std::string;
         visibility public;
     }
     member {
-        name HardwareVersion;
-        type osa1394::HardwareType;
+        name hardware_version;
+        type osa1394::hardware_t;
         default osa1394::HARDWARE_UNDEFINED;
         visibility public;
     }
     member {
-        name NumberOfActuators;
-        type int;
-        default 0;
-        visibility public;
-    }
-    member {
-        name SerialNumber;
+        name serial_number;
         type std::string;
         visibility public;
     }
     member {
-        name NumberOfBrakes;
-        type int;
-        default 0;
+        name path;
+        type std::vector<std::string>;
+        default std::vector<std::string>();
         visibility public;
     }
     member {
-        name OnlyIO;
+        name only_IO;
         type bool;
         default false;
         visibility public;
     }
     member {
-        name HasEncoderPreload;
+        name has_encoder_preload;
         type bool;
         default false;
         visibility public;
     }
     member {
-        name Actuators;
+        name number_of_actuators;
+        type size_t;
+        visibility public;
+    }
+    member {
+        name actuators;
         type std::vector<osaActuator1394Configuration>;
         visibility public;
     }
     member {
-        name PotTolerances;
-        type std::vector<osaPotTolerance1394Configuration>;
+        name number_of_brakes;
+        type size_t;
         visibility public;
     }
     member {
-        name PotCoupling;
-        type prmActuatorJointCoupling;
+        name brakes;
+        type std::vector<osaBrake1394Configuration>;
         visibility public;
-        description Matrix to convert potentiometer to actuators.  E.g. on dVRK MTMsm the potentiometers are mounted on the joints;
+        default std::vector<osaBrake1394Configuration>();
+    }
+    member {
+        name potentiometers;
+        type osaPotentiometers1394Configuration;
+        default osaPotentiometers1394Configuration();
+        visibility public;
     }
 }
 
@@ -382,50 +379,52 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Name;
+        name name;
         type std::string;
         visibility public;
     }
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
     member {
-        name BitID;
+        name bit_id;
         type int;
         visibility public;
     }
     member {
-        name TriggerWhenPressed;
+        name trigger_when_pressed;
         type bool;
         visibility public;
     }
     member {
-        name TriggerWhenReleased;
+        name trigger_when_released;
         type bool;
         visibility public;
     }
     member {
-        name PressedValue;
+        name pressed_value;
         type bool;
         visibility public;
     }
     member {
-        name SkipFirstRun;
+        name skip_first_run;
         type bool;
         visibility public;
         default false;
     }
     member {
-        name DebounceThreshold;
+        name debounce_time;
         type double;
         visibility public;
+        default 0.0;
     }
     member {
-        name DebounceThresholdClick;
+        name debounce_time_click;
         type double;
         visibility public;
+        default 0.0;
     }
 }
 
@@ -434,39 +433,43 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Name;
+        name name;
         type std::string;
         visibility public;
     }
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
     member {
-        name BitID;
+        name bit_id;
         type int;
         visibility public;
     }
     member {
-        name HighDuration;
+        name high_duration;
         type double;
         visibility public;
+        default 0.0;
     }
     member {
-        name LowDuration;
+        name low_duration;
         type double;
         visibility public;
+        default 0.0;
     }
     member {
-        name IsPWM;
+        name is_PWM;
         type bool;
         visibility public;
+        default false;
     }
     member {
-        name PWMFrequency;
+        name PWM_frequency;
         type double;
         visibility public;
+        default 0.0;
     }
 }
 
@@ -475,12 +478,12 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Name;
+        name name;
         type std::string;
         visibility public;
     }
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
@@ -491,24 +494,28 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Robots;
+        name robots;
         type std::vector<osaRobot1394Configuration>;
         visibility public;
+        default std::vector<osaRobot1394Configuration>();
     }
     member {
-        name DigitalInputs;
+        name digital_inputs;
         type std::vector<osaDigitalInput1394Configuration>;
         visibility public;
+        default std::vector<osaDigitalInput1394Configuration>();
     }
     member {
-        name DigitalOutputs;
+        name digital_outputs;
         type std::vector<osaDigitalOutput1394Configuration>;
         visibility public;
+        default std::vector<osaDigitalOutput1394Configuration>();
     }
     member {
-        name DallasChips;
+        name dallas_chips;
         type std::vector<osaDallasChip1394Configuration>;
         visibility public;
+        default std::vector<osaDallasChip1394Configuration>();
     }
 }
 
@@ -517,19 +524,19 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Board;
+        name board;
         type AmpIO *;
         visibility public;
         default nullptr;
         is-data false;
     }
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
     member {
-        name Axis;
+        name axis;
         type int;
         visibility public;
     }
@@ -540,19 +547,19 @@ class {
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
     member {
-        name Board;
+        name board;
         type AmpIO *;
         visibility public;
         default nullptr;
         is-data false;
     }
     member {
-        name BoardID;
+        name board_id;
         type int;
         visibility public;
     }
     member {
-        name Axis;
+        name axis;
         type int;
         visibility public;
     }

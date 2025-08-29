@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -38,34 +38,33 @@ public:
 
 protected:
 
-    std::ostream * mMessageStream = nullptr; // Stream provided to the low level boards for messages, redirected to cmnLogger
+    std::ostream * m_message_stream = nullptr; // Stream provided to the low level boards for messages, redirected to cmnLogger
 
-    BasePort * mPort = nullptr;
+    BasePort * m_port = nullptr;
 
-    double mWatchdogPeriod = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
-    bool mSkipConfigurationCheck = false;
-    bool mCalibrationMode = false;
-    std::string mSaveConfigurationJSON = "";
+    double m_watchdog_period = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
+    bool m_skip_configuration_check = false;
+    bool m_calibration_mode = false;
 
-    std::map<int, AmpIO*> mBoards;
+    std::map<int, AmpIO*> m_boards;
     typedef std::map<int, AmpIO*>::iterator board_iterator;
     typedef std::map<int, AmpIO*>::const_iterator board_const_iterator;
 
-    std::vector<sawRobotIO1394::mtsRobot1394*> mRobots;
-    std::map<std::string, sawRobotIO1394::mtsRobot1394*> mRobotsByName;
+    std::vector<sawRobotIO1394::mtsRobot1394*> m_robots;
+    std::map<std::string, sawRobotIO1394::mtsRobot1394*> m_robots_by_name;
 
-    std::vector<sawRobotIO1394::mtsDigitalInput1394*> mDigitalInputs;
-    std::map<std::string, sawRobotIO1394::mtsDigitalInput1394*> mDigitalInputsByName;
+    std::vector<sawRobotIO1394::mtsDigitalInput1394*> m_digital_inputs;
+    std::map<std::string, sawRobotIO1394::mtsDigitalInput1394*> m_digital_inputs_by_name;
 
-    std::vector<sawRobotIO1394::mtsDigitalOutput1394*> mDigitalOutputs;
-    std::map<std::string, sawRobotIO1394::mtsDigitalOutput1394*> mDigitalOutputsByName;
+    std::vector<sawRobotIO1394::mtsDigitalOutput1394*> m_digital_outputs;
+    std::map<std::string, sawRobotIO1394::mtsDigitalOutput1394*> m_digital_outputs_by_name;
 
-    std::vector<sawRobotIO1394::mtsDallasChip1394*> mDallasChips;
-    std::map<std::string, sawRobotIO1394::mtsDallasChip1394*> mDallasChipsByName;
+    std::vector<sawRobotIO1394::mtsDallasChip1394*> m_dallas_chips;
+    std::map<std::string, sawRobotIO1394::mtsDallasChip1394*> m_dallas_chips_by_name;
 
     // state tables for statistics
-    mtsStateTable * mStateTableRead;
-    mtsStateTable * mStateTableWrite;
+    mtsStateTable * m_state_table_read;
+    mtsStateTable * m_state_table_write;
 
     ///////////// Public Class Methods ///////////////////////////
 public:
@@ -80,8 +79,7 @@ public:
     void Init(const std::string & port);
 
     void SkipConfigurationCheck(const bool skip); // must be called before Configure
-    void SetCalibrationMode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
-    void SaveConfigurationJSON(const std::string & filename); // must be called before Configure
+    void set_calibration_mode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
     void Configure(const std::string & filename) override;
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
@@ -130,7 +128,7 @@ protected:
 
     void IntervalStatisticsCallback(void);
 private:
-    double mTimeLastTimingWarning = 0.0;
+    double m_time_last_timing_warning = 0.0;
 
 private:
     // Make uncopyable
