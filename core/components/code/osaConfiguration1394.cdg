@@ -209,6 +209,7 @@ class {
         name potentiometer;
         type osaPotentiometer1394Configuration;
         visibility public;
+        default osaPotentiometer1394Configuration();
     }
 }
 

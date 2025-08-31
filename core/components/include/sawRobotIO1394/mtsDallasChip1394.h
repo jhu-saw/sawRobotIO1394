@@ -50,8 +50,7 @@ namespace sawRobotIO1394 {
         }
         //@}
 
-        mtsDallasChip1394(const cmnGenericObject & owner,
-                             const osaDallasChip1394Configuration & config);
+        mtsDallasChip1394(const cmnGenericObject & owner);
         ~mtsDallasChip1394();
 
         const std::string ToolTypeUndefined = "UNDEFINED";

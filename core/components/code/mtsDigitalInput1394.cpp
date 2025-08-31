@@ -37,8 +37,7 @@ namespace sawRobotIO1394 {
 
 using namespace sawRobotIO1394;
 
-mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
-                                         const osaDigitalInput1394Configuration & config):
+mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner):
     m_owner_services(owner.Services())
 {
     m_data = new mtsDigitalInput1394Data;
@@ -50,7 +49,6 @@ mtsDigitalInput1394::mtsDigitalInput1394(const cmnGenericObject & owner,
     m_event_payloads.released.SetValid(true);
     m_event_payloads.clicked.SetType(prmEventButton::CLICKED);
     m_event_payloads.clicked.SetValid(true);
-    Configure(config);
 }
 
 mtsDigitalInput1394::~mtsDigitalInput1394()

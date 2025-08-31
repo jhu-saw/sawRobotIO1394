@@ -27,11 +27,9 @@ http://www.cisst.org/cisst/license.txt.
 
 using namespace sawRobotIO1394;
 
-mtsDallasChip1394::mtsDallasChip1394(const cmnGenericObject & owner,
-                                     const osaDallasChip1394Configuration & config):
+mtsDallasChip1394::mtsDallasChip1394(const cmnGenericObject & owner):
     m_owner_services(owner.Services())
 {
-    Configure(config);
 }
 
 mtsDallasChip1394::~mtsDallasChip1394()

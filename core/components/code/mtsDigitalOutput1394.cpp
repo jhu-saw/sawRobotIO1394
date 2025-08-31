@@ -37,14 +37,12 @@ namespace sawRobotIO1394 {
 
 using namespace sawRobotIO1394;
 
-mtsDigitalOutput1394::mtsDigitalOutput1394(const cmnGenericObject & owner,
-                                           const osaDigitalOutput1394Configuration & config):
+mtsDigitalOutput1394::mtsDigitalOutput1394(const cmnGenericObject & owner):
     m_owner_services(owner.Services()),
     m_data(0),
     m_value(false)
 {
     m_data = new mtsDigitalOutput1394Data;
-    Configure(config);
 }
 
 

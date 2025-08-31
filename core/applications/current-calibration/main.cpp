@@ -366,10 +366,10 @@ int main(int argc, char * argv[])
     vctDoubleVec previousCmdOffsets(numberOfAxis, 0.0);
     vctDoubleVec previousCmdScales(numberOfAxis, 0.0);
     vctDoubleVec previousFbOffsets(numberOfAxis, 0.0);
-    std::string drive = brakes ? "brake": "drive";
+    std::string what = brakes ? "brakes": "actuators";
 
     for (int index = 0; index < static_cast<int>(numberOfAxis); ++index) {
-        const Json::Value & jsonDrive = jsonConfig["robots"][0]["actuators"][index][drive];
+        const Json::Value & jsonDrive = jsonConfig["robots"][0][what][index]["drive"];
         previousCmdOffsets[index] = jsonDrive["current_to_bits"]["offset"].asDouble();
         previousCmdScales[index] =  jsonDrive["current_to_bits"]["scale"].asDouble();
         previousFbOffsets[index] =  jsonDrive["bits_to_current"]["offset"].asDouble();
@@ -408,7 +408,7 @@ int main(int argc, char * argv[])
         vctDoubleVec newFbOffsetsInt(newFbOffsets);
 
         for (int index = 0; index < static_cast<int>(numberOfAxis); ++index) {
-            Json::Value & jsonDrive = jsonConfig["robots"][0]["actuators"][index][drive];
+            Json::Value & jsonDrive = jsonConfig["robots"][0][what][index]["drive"];
             jsonDrive["current_to_bits"]["offset"] = newCmdOffsets[index];
             jsonDrive["bits_to_current"]["offset"] = newFbOffsets[index];
         }

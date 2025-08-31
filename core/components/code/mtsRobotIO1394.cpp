@@ -286,8 +286,9 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     // Add all the robots
     for (const auto & configRobot : config.robots) {
         // Create a new robot
-        mtsRobot1394 * robot = new mtsRobot1394(*this, configRobot);
+        mtsRobot1394 * robot = new mtsRobot1394(*this);
         robot->set_calibration_mode(m_calibration_mode);
+        robot->Configure(configRobot);
         // Check the configuration if needed
         if (!m_skip_configuration_check) {
             if (!robot->CheckConfiguration()) {
@@ -313,7 +314,8 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     // Add all the digital inputs
     for (const auto & configInput : config.digital_inputs) {
         // Create a new digital input
-        mtsDigitalInput1394 * digitalInput = new mtsDigitalInput1394(*this, configInput);
+        mtsDigitalInput1394 * digitalInput = new mtsDigitalInput1394(*this);
+        digitalInput->Configure(configInput);
         // Set up the cisstMultiTask interfaces
         if (!this->SetupDigitalInput(digitalInput)) {
             delete digitalInput;
@@ -325,7 +327,8 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     // Add all the digital outputs
     for (const auto & configOutput : config.digital_outputs) {
         // Create a new digital input
-        mtsDigitalOutput1394 * digitalOutput = new mtsDigitalOutput1394(*this, configOutput);
+        mtsDigitalOutput1394 * digitalOutput = new mtsDigitalOutput1394(*this);
+        digitalOutput->Configure(configOutput);
         // Set up the cisstMultiTask interfaces
         if (!this->SetupDigitalOutput(digitalOutput)) {
             delete digitalOutput;
@@ -336,8 +339,9 @@ void mtsRobotIO1394::Configure(const std::string & filename)
 
     // Add all the Dallas chips
     for (const auto & configDallas : config.dallas_chips) {
-        // Create a new digital input
-        mtsDallasChip1394 * dallasChip = new mtsDallasChip1394(*this, configDallas);
+        // Create a new Dallas chip
+        mtsDallasChip1394 * dallasChip = new mtsDallasChip1394(*this);
+        dallasChip->Configure(configDallas);
         // Set up the cisstMultiTask interfaces
         if (!this->SetupDallasChip(dallasChip)) {
             delete dallasChip;

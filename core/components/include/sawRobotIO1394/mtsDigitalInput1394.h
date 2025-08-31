@@ -51,8 +51,7 @@ namespace sawRobotIO1394 {
         }
         //@}
 
-        mtsDigitalInput1394(const cmnGenericObject & owner,
-                            const osaDigitalInput1394Configuration & config);
+        mtsDigitalInput1394(const cmnGenericObject & owner);
         ~mtsDigitalInput1394();
 
         void SetupStateTable(mtsStateTable & stateTable);

@@ -53,8 +53,7 @@ namespace sawRobotIO1394 {
         }
         //@}
 
-        mtsRobot1394(const cmnGenericObject & owner,
-                     const osaRobot1394Configuration & config);
+        mtsRobot1394(const cmnGenericObject & owner);
         ~mtsRobot1394();
 
         void LoadPotentiometerLookupTable(void);
@@ -267,7 +266,7 @@ namespace sawRobotIO1394 {
         void ClipActuatorCurrent(vctDoubleVec & currents);
         void ClipBrakeCurrent(vctDoubleVec & currents);
 
-        bool m_calibration_mode;
+        bool m_calibration_mode = false;
 
         //! Board Objects
         std::vector<osaActuatorMapping> mActuatorInfo;

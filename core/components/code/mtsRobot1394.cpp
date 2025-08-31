@@ -37,8 +37,7 @@ http://www.cisst.org/cisst/license.txt.
 
 using namespace sawRobotIO1394;
 
-mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
-                           const osaRobot1394Configuration & config):
+mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     OwnerServices(owner.Services()),
     // IO Structures
     mActuatorInfo(),
@@ -59,7 +58,6 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner,
     mCurrentSafetyViolationsCounter(0),
     mCurrentSafetyViolationsMaximum(100)
 {
-    this->Configure(config);
 }
 
 mtsRobot1394::~mtsRobot1394()
@@ -622,7 +620,8 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     }
 
     // check if pots are digital
-    if (config.potentiometers.potentiometers_type == osaPotentiometers1394Configuration::DIGITAL) {
+    if (!m_calibration_mode
+        && (config.potentiometers.potentiometers_type == osaPotentiometers1394Configuration::DIGITAL)) {
         if (m_configuration.potentiometers.lookup_table_file != "") {
             LoadPotentiometerLookupTable();
         } else {
@@ -989,17 +988,19 @@ void mtsRobot1394::ConvertState(void)
         break;
     case osaPotentiometers1394Configuration::DIGITAL:
         {
-            mPotentiometerVoltage.Assign(mPotentiometerBits);
-            auto raw = mPotentiometerBits.cbegin();
-            const auto end = mPotentiometerBits.cend();
-            size_t index = 0;
-            auto si = m_raw_pot_measured_js.Position().begin();
-            for (; raw != end;
-                 ++raw,
-                     ++index,
-                     ++si) {
-                // look up in table
-                *si = mPotentiometerLookupTable.Row(index).at(*raw);
+            if (!m_calibration_mode) {
+                mPotentiometerVoltage.Assign(mPotentiometerBits);
+                auto raw = mPotentiometerBits.cbegin();
+                const auto end = mPotentiometerBits.cend();
+                size_t index = 0;
+                auto si = m_raw_pot_measured_js.Position().begin();
+                for (; raw != end;
+                     ++raw,
+                         ++index,
+                         ++si) {
+                    // look up in table
+                    *si = mPotentiometerLookupTable.Row(index).at(*raw);
+                }
             }
         }
         break;
