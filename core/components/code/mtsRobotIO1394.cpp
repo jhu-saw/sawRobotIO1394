@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2024 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -252,24 +252,41 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     osaPort1394Configuration config;
 
     try {
-        std::ifstream jsonStream;
-        Json::Value jsonConfig;
-        Json::Reader jsonReader;
+        std::ifstream json_stream;
+        Json::Value json_config;
+        Json::Reader json_reader;
 
-        jsonStream.open(filename.c_str());
-        if (!jsonReader.parse(jsonStream, jsonConfig)) {
+        json_stream.open(filename.c_str());
+        if (!json_reader.parse(json_stream, json_config)) {
             CMN_LOG_CLASS_INIT_ERROR << "Configure " << this->GetName()
                                      << ": failed to parse configuration file \""
                                      << filename << "\"\n"
-                                     << jsonReader.getFormattedErrorMessages();
+                                     << json_reader.getFormattedErrorMessages();
+            exit(EXIT_FAILURE);
+        }
+
+        // id & version check
+        const std::string id = json_config["$id"].asString();
+        const std::string id_expected = "saw-robot-io.schema.json";
+        if (id != id_expected) {
+            CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
+                                     << " has incorrect or missing $id, found \"" << id
+                                     << "\", expected \"" << id_expected << "\"" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        const std::string version = json_config["$version"].asString();
+        if (version != "6") {
+            CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
+                                     << " has incorrect or missing $version, found \"" << version
+                                     << "\", expected \"6\"" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         // base component configuration
-        mtsComponent::ConfigureJSON(jsonConfig);
+        mtsComponent::ConfigureJSON(json_config);
 
         // using cmnData traits
-        cmnDataJSON<osaPort1394Configuration>::DeSerializeText(config, jsonConfig);
+        cmnDataJSON<osaPort1394Configuration>::DeSerializeText(config, json_config);
 
         CMN_LOG_CLASS_INIT_VERBOSE << "Configure " << this->GetName()
                                    << ": content of configuration file" << std::endl
