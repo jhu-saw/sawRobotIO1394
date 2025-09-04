@@ -92,7 +92,7 @@ int main(int argc, char ** argv)
     if (options.IsSet("firewire-protocol")) {
         robotIO->SetProtocol(protocol);
     }
-    robotIO->SetCalibrationMode(options.IsSet("calibration-mode"));
+    robotIO->set_calibration_mode(options.IsSet("calibration-mode"));
     componentManager->AddComponent(robotIO);
 
     // create a Qt application
@@ -110,8 +110,8 @@ int main(int argc, char ** argv)
         robotIO->Configure(configFile);
     }
 
-    componentManager->Connect("robotWidgetFactory", "RobotConfiguration",
-                              "robotIO", "Configuration");
+    componentManager->Connect(robotWidgetFactory->GetName(), "RobotConfiguration",
+                              robotIO->GetName(), "Configuration");
     robotWidgetFactory->Configure();
 
     // ROS CRTK bridge

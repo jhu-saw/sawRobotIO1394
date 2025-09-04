@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-11-06
 
-  (C) Copyright 2014-2018 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -37,13 +37,13 @@ namespace sawRobotIO1394 {
           name and level of detail of another class, e.g. the class that
           owns this map.  To set the "Owner", use the method SetOwner
           after the cmnNamedMap is constructed. */
-        const cmnClassServicesBase * OwnerServices;
+        const cmnClassServicesBase * m_owner_services;
 
         /*! Method used to emulate the cmnGenericObject interface used by
           CMN_LOG_CLASS macros. */
         //@{
         inline const cmnClassServicesBase * Services(void) const {
-            return this->OwnerServices;
+            return this->m_owner_services;
         }
 
         inline cmnLogger::StreamBufType * GetLogMultiplexer(void) const {
@@ -51,8 +51,7 @@ namespace sawRobotIO1394 {
         }
         //@}
 
-        mtsDigitalOutput1394(const cmnGenericObject & owner,
-                             const osaDigitalOutput1394Configuration & config);
+        mtsDigitalOutput1394(const cmnGenericObject & owner);
         ~mtsDigitalOutput1394();
 
         void SetupStateTable(mtsStateTable & stateTable);
@@ -74,14 +73,12 @@ namespace sawRobotIO1394 {
 
 
     protected:
-        mtsFunctionWrite Button;    // The event function for button, will return prmEventButton
-        AmpIO * mBoard;              // Board Assignment
-        mtsDigitalOutput1394Data * mData; // Internal data using AmpIO types
-        osaDigitalOutput1394Configuration mConfiguration;
-        std::string mName;
-        int mBitID;                  // Board assigned bitID for this Digital Output
+    // mtsFunctionWrite m_button;    // The event function for button, will return prmEventButton
+        AmpIO * m_board;             // Board Assignment
+        mtsDigitalOutput1394Data * m_data; // Internal data using AmpIO types
+        osaDigitalOutput1394Configuration m_configuration;
         // State data
-        bool mValue;                     // Current read value
+        bool m_value;                // Current read value
     };
 
 } // namespace sawRobotIO1394

@@ -5,7 +5,7 @@
   Author(s):  Anton Deguet
   Created on: 2014-01-09
 
-  (C) Copyright 2014-2022 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2014-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -72,7 +72,7 @@ plotObject::plotObject(mtsRobotIO1394 * port,
     mFrame->show();
 
     mPreviousEncoderPosition.ForceAssign(mRobot->ActuatorJointState().Position());
-    mPreviousPotPosition.ForceAssign(mRobot->PotPosition());
+    mPreviousPotPosition.ForceAssign(mRobot->PotentiometerPosition());
 
     startTimer(0); // in ms, 0 is as fast as possible
 }
@@ -105,7 +105,7 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     mEncoderDxFilteredSignal->AppendPoint(vct2(mElapsedTime, mFilterElementwiseProduct.SumOfElements()));
 
     // pot velocity dx / dt
-    mPotDx.ForceAssign(mRobot->PotPosition());
+    mPotDx.ForceAssign(mRobot->PotentiometerPosition());
     mPotDx.Subtract(mPreviousPotPosition);
     mPotDx.ElementwiseDivide(mRobot->ActuatorTimestamp());
     mPotDxSignal->AppendPoint((vct2(mElapsedTime,
@@ -116,5 +116,5 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
 
     // save previous state
     mPreviousEncoderPosition.Assign(mRobot->ActuatorJointState().Position());
-    mPreviousPotPosition.Assign(mRobot->PotPosition());
+    mPreviousPotPosition.Assign(mRobot->PotentiometerPosition());
 }

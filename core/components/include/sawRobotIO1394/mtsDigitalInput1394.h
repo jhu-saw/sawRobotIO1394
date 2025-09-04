@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Jonathan Bohren
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2023 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -37,13 +37,13 @@ namespace sawRobotIO1394 {
           name and level of detail of another class, e.g. the class that
           owns this map.  To set the "Owner", use the method SetOwner
           after the cmnNamedMap is constructed. */
-        const cmnClassServicesBase * OwnerServices;
+        const cmnClassServicesBase * m_owner_services;
 
         /*! Method used to emulate the cmnGenericObject interface used by
           CMN_LOG_CLASS macros. */
         //@{
         inline const cmnClassServicesBase * Services(void) const {
-            return this->OwnerServices;
+            return this->m_owner_services;
         }
 
         inline cmnLogger::StreamBufType * GetLogMultiplexer(void) const {
@@ -51,8 +51,7 @@ namespace sawRobotIO1394 {
         }
         //@}
 
-        mtsDigitalInput1394(const cmnGenericObject & owner,
-                            const osaDigitalInput1394Configuration & config);
+        mtsDigitalInput1394(const cmnGenericObject & owner);
         ~mtsDigitalInput1394();
 
         void SetupStateTable(mtsStateTable & stateTable);
@@ -73,31 +72,24 @@ namespace sawRobotIO1394 {
         const bool & PreviousValue(void) const;
 
     protected:
-        mtsFunctionWrite Button;    // The event function for button, will return prmEventButton
-        AmpIO * mBoard = nullptr;   // Board Assignment
-        mtsDigitalInput1394Data * mData = nullptr; // Internal data using AmpIO types
-        osaDigitalInput1394Configuration mConfiguration;
-        std::string mName;
-        int mBitID;                  // Board assigned bitID for this Digital Input
-        bool mPressedValue;          // Boolean Flag for Active High(true)/Active Low(false)
-        bool mTriggerPress;          // Boolean Flag for Press Trigger Setting
-        bool mTriggerRelease;        // Boolean Flag for Release Trigger Setting
-        double mDebounceThreshold;   // 0, no debounce required otherwise time in seconds
-        double mDebounceThresholdClick; // Quick transition, i.e. single click
+        mtsFunctionWrite m_button;    // The event function for button, will return prmEventButton
+        AmpIO * m_board = nullptr;   // Board Assignment
+        mtsDigitalInput1394Data * m_data = nullptr; // Internal data using AmpIO types
+        osaDigitalInput1394Configuration m_configuration;
 
         // State data
-        bool mFirstRun = true;
-        bool mValue;                    // Current read value
-        bool mTransitionValue;          // For debouncing
-        bool mPreviousValue = false;    // Saved value from the previous read
-        double mDebounceCounter = -1.0; // time in seconds with constant value
-        mtsStateTable * mStateTable = nullptr;
+        bool m_first_run = true;
+        bool m_value;                     // Current read value
+        bool m_transition_value;          // For debouncing
+        bool m_previous_value = false;    // Saved value from the previous read
+        double m_debounce_counter = -1.0; // time in seconds with constant value
+        mtsStateTable * m_state_table = nullptr;
 
         struct {
-            prmEventButton Pressed;
-            prmEventButton Released;
-            prmEventButton Clicked;
-        } mEventPayloads;
+            prmEventButton pressed;
+            prmEventButton released;
+            prmEventButton clicked;
+        } m_event_payloads;
     };
 
 } // namespace sawRobotIO1394

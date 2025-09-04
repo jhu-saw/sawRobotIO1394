@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
         std::cerr << "Caught exception: " << e.what() << std::endl;
     }
     // preload encoders
-    robot->CalibrateEncoderOffsetsFromPots();
+    robot->CalibrateEncoderOffsetsFromPotentiometers();
 
     std::cout << "Starting data collection." << std::endl;
 

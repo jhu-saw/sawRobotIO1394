@@ -27,11 +27,9 @@ http://www.cisst.org/cisst/license.txt.
 
 using namespace sawRobotIO1394;
 
-mtsDallasChip1394::mtsDallasChip1394(const cmnGenericObject & owner,
-                                     const osaDallasChip1394Configuration & config):
-    OwnerServices(owner.Services())
+mtsDallasChip1394::mtsDallasChip1394(const cmnGenericObject & owner):
+    m_owner_services(owner.Services())
 {
-    Configure(config);
 }
 
 mtsDallasChip1394::~mtsDallasChip1394()
@@ -40,17 +38,17 @@ mtsDallasChip1394::~mtsDallasChip1394()
 
 void mtsDallasChip1394::SetupStateTable(mtsStateTable & stateTable)
 {
-    stateTable.AddData(mToolType, "ToolType");
+    stateTable.AddData(m_tool_type, "ToolType");
 }
 
 void mtsDallasChip1394::SetupProvidedInterface(mtsInterfaceProvided * interfaceProvided,
                                                mtsStateTable & stateTable)
 {
-    mInterface = interfaceProvided;
-    mInterface->AddMessageEvents();
-    mInterface->AddCommandReadState(stateTable, this->mToolType, "GetToolType");
-    mInterface->AddCommandVoid(&mtsDallasChip1394::TriggerRead, this, "TriggerRead");
-    mInterface->AddEventWrite(ToolTypeEvent, "ToolType", ToolTypeUndefined);
+    m_interface = interfaceProvided;
+    m_interface->AddMessageEvents();
+    m_interface->AddCommandReadState(stateTable, this->m_tool_type, "GetToolType");
+    m_interface->AddCommandVoid(&mtsDallasChip1394::TriggerRead, this, "TriggerRead");
+    m_interface->AddEventWrite(m_tool_type_event, "ToolType", ToolTypeUndefined);
 }
 
 void mtsDallasChip1394::CheckState(void)
@@ -62,10 +60,9 @@ void mtsDallasChip1394::CheckState(void)
 void mtsDallasChip1394::Configure(const osaDallasChip1394Configuration & config)
 {
     // Store configuration
-    mConfiguration = config;
-    mName = config.Name;
-    mToolType = ToolTypeUndefined;
-    mWaiting = false;
+    m_configuration = config;
+    m_tool_type = ToolTypeUndefined;
+    m_waiting = false;
 }
 
 void mtsDallasChip1394::SetBoard(AmpIO * board)
@@ -73,12 +70,12 @@ void mtsDallasChip1394::SetBoard(AmpIO * board)
     if (board == 0) {
         cmnThrow(this->Name() + ": invalid board pointer.");
     }
-    mBoard = board;
+    m_board = board;
 }
 
 void mtsDallasChip1394::PollState(void)
 {
-    if (!mWaiting) {
+    if (!m_waiting) {
         return;
     }
     TriggerRead();
@@ -86,17 +83,17 @@ void mtsDallasChip1394::PollState(void)
 
 const osaDallasChip1394Configuration & mtsDallasChip1394::Configuration(void) const
 {
-    return mConfiguration;
+    return m_configuration;
 }
 
 const std::string & mtsDallasChip1394::Name(void) const
 {
-    return mName;
+    return m_configuration.name;
 }
 
 const std::string & mtsDallasChip1394::ToolType(void) const
 {
-    return mToolType;
+    return m_tool_type;
 }
 
 void mtsDallasChip1394::TriggerToolTypeEvent(const unsigned int & model,
@@ -112,10 +109,10 @@ void mtsDallasChip1394::TriggerToolTypeEvent(const unsigned int & model,
     toolType << sanitizedName
              << ":" << model
              << "[" << version << "]";
-    mToolType.Data = toolType.str();
+    m_tool_type = toolType.str();
     // send info
-    mInterface->SendStatus(mName + ": found tool type \"" + mToolType.Data + "\"");
-    ToolTypeEvent(mToolType);
+    m_interface->SendStatus(m_name + ": found tool type \"" + m_tool_type + "\"");
+    m_tool_type_event(m_tool_type);
 }
 
 void mtsDallasChip1394::TriggerRead(void)
@@ -124,38 +121,38 @@ void mtsDallasChip1394::TriggerRead(void)
     uint8_t version;
     std::string name;
     AmpIO::DallasStatus status
-        = mBoard->DallasReadTool(model, version, name);
+        = m_board->DallasReadTool(model, version, name);
     switch (status) {
     case AmpIO::DALLAS_OK:
         TriggerToolTypeEvent(model, version, name);
-        mWaiting = false;
+        m_waiting = false;
         break;
     case AmpIO::DALLAS_IO_ERROR:
-        mInterface->SendError(mName + ": tool read IO error");
-        mWaiting = false;
+        m_interface->SendError(m_name + ": tool read IO error");
+        m_waiting = false;
         break;
     case AmpIO::DALLAS_WAIT:
         // check if we were not already waiting
-        if (!mWaiting) {
-            mInterface->SendStatus(mName + ": requested tool read");
-            mWaiting = true;
+        if (!m_waiting) {
+            m_interface->SendStatus(m_name + ": requested tool read");
+            m_waiting = true;
         }
         break;
     case AmpIO::DALLAS_NONE:
-        mInterface->SendError(mName + ": tool read not supported on this system (hardware or firmware too old)");
-        mWaiting = false;
+        m_interface->SendError(m_name + ": tool read not supported on this system (hardware or firmware too old)");
+        m_waiting = false;
         break;
     case AmpIO::DALLAS_TIMEOUT:
-        mInterface->SendError(mName + ": tool read timeout");
-        mWaiting = false;
+        m_interface->SendError(m_name + ": tool read timeout");
+        m_waiting = false;
         break;
     case AmpIO::DALLAS_DATA_ERROR:
-        mInterface->SendError(mName + ": tool read received some unexpected data");
-        mWaiting = false;
+        m_interface->SendError(m_name + ": tool read received some unexpected data");
+        m_waiting = false;
         break;
     default:
-        mInterface->SendError(mName + ": tool read unknown error");
-        mWaiting = false;
+        m_interface->SendError(m_name + ": tool read unknown error");
+        m_waiting = false;
         break;
     }
 }
