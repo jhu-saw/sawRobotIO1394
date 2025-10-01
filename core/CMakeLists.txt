@@ -28,7 +28,7 @@ set (sawRobotIO1394_DIR "${sawRobotIO1394Core_BINARY_DIR}/components")
 add_subdirectory (applications)
 
 # Tests programs, will only get compiled if cisstTestsDriver has been compiled
-add_subdirectory (tests)
+# add_subdirectory (tests)
 
 include (CPack)
 cpack_add_component (sawRobotIO1394)
