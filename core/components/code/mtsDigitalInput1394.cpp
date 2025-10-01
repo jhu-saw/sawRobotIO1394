@@ -18,6 +18,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
+#include <cisstMultiTask/mtsManagerLocal.h>
 #include <cisstParameterTypes/prmEventButton.h>
 
 #include <sawRobotIO1394/mtsDigitalInput1394.h>
@@ -75,21 +76,18 @@ void mtsDigitalInput1394::CheckState(void)
     // Send appropriate events if the value changed in the last update
     // Check if value has changed
     if (m_first_run || (m_value != m_previous_value)) {
+        const double now = mtsManagerLocal::GetInstance()->GetTimeServer().GetRelativeTime();
         // Check if the value is equal to the value when the digital input is considered pressed
         if (m_value) {
             // Emit a press event if specified in config
             if (m_configuration.trigger_when_pressed) {
-                if (m_state_table) {
-                    m_event_payloads.pressed.SetTimestamp(m_state_table->GetTic());
-                }
+                m_event_payloads.pressed.SetTimestamp(now);
                 m_button(m_event_payloads.pressed);
             }
         } else {
             // Emit a release event if specified in config
             if (m_configuration.trigger_when_released) {
-                if (m_state_table) {
-                    m_event_payloads.released.SetTimestamp(m_state_table->GetTic());
-                }
+                m_event_payloads.released.SetTimestamp(now);
                 m_button(m_event_payloads.released);
             }
         }
