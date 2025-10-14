@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides, Anton Deguet
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2024 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -412,6 +412,7 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(const int & numberO
 
 bool mtsRobot1394::CheckConfiguration(void)
 {
+    // current calibration
     if ((m_configuration.hardware_version != osa1394::dRA1)
         && (NumberOfActuators() > 2)) {
         const int first_offset = m_configuration.actuators[0].drive.current_to_bits.offset;
@@ -424,6 +425,16 @@ bool mtsRobot1394::CheckConfiguration(void)
                                      << this->Name() << std::endl;
             return false;
         }
+    }
+    // MTM gripper calibration
+    if (!m_calibration_mode
+        && (m_configuration.hardware_version != osa1394::dRA1)
+        && (NumberOfActuators() == 1)
+        && (m_configuration.actuators[0].potentiometer.voltage_to_position.scale == 0.0)
+        && (m_configuration.actuators[0].potentiometer.voltage_to_position.offset == 0.0)) {
+        CMN_LOG_CLASS_INIT_ERROR << "CheckConfiguration: both scale and offset are set to zero, please calibrate gripper for MTM: "
+                                 << this->Name() << std::endl;
+        return false;
     }
     return true;
 }
@@ -1771,6 +1782,11 @@ const vctDoubleVec & mtsRobot1394::BrakeCurrentFeedback(void) const {
 
 const vctIntVec & mtsRobot1394::PotentiometerBits(void) const {
     return mPotentiometerBits;
+}
+
+
+const vctDoubleVec & mtsRobot1394::PotentiometerVoltage(void) const {
+    return mPotentiometerVoltage;
 }
 
 
