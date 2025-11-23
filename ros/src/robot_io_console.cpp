@@ -76,6 +76,9 @@ int main(int argc, char ** argv)
     options.AddOptionMultipleValues("m", "component-manager",
                                     "JSON files to configure component manager",
                                     cmnCommandLineOptions::OPTIONAL_OPTION, &managerConfig);
+    options.AddOptionNoValue("D", "dark-mode",
+                             "replaces the default Qt palette with darker colors");
+
 
     if (!options.Parse(argc, argv, std::cerr)) {
         return -1;
@@ -98,6 +101,9 @@ int main(int argc, char ** argv)
     // create a Qt application
     QApplication application(argc, argv);
     cmnQt::QApplicationExitsOnCtrlC();
+    if (options.IsSet("dark-mode")) {
+        cmnQt::SetDarkMode();
+    }
 
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
     componentManager->AddComponent(robotWidgetFactory);
