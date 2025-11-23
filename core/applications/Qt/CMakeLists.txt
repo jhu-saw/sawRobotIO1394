@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2009-2024 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2009-2025 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -15,6 +15,7 @@ project (sawRobotIO1394QtConsole VERSION 2.3.0)
 # create a list of required cisst libraries
 set (REQUIRED_CISST_LIBRARIES
   cisstCommon
+  cisstCommonQt
   cisstVector
   cisstVectorQt
   cisstOSAbstraction

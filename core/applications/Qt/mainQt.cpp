@@ -1,7 +1,7 @@
 /* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-    */
 /* ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab: */
-/*
 
+/*
   Author(s):  Zihan Chen, Anton Deguet
   Created on: 2013-02-07
 
@@ -14,7 +14,6 @@ no warranty.  The complete license can be found in license.txt and
 http://www.cisst.org/cisst/license.txt.
 
 --- end cisst license ---
-
 */
 
 // system
@@ -22,12 +21,12 @@ http://www.cisst.org/cisst/license.txt.
 // cisst/saw
 #include <cisstCommon/cmnPath.h>
 #include <cisstCommon/cmnCommandLineOptions.h>
+#include <cisstCommon/cmnQt.h>
 #include <cisstMultiTask/mtsQtWidgetComponent.h>
 #include <cisstMultiTask/mtsManagerLocal.h>
 #include <sawRobotIO1394/mtsRobotIO1394.h>
 #include <sawRobotIO1394/mtsRobotIO1394QtWidgetFactory.h>
 
-// Qt includes
 #include <QApplication>
 
 int main(int argc, char ** argv)
@@ -37,8 +36,6 @@ int main(int argc, char ** argv)
     cmnLogger::SetMaskDefaultLog(CMN_LOG_ALLOW_ALL);
     cmnLogger::AddChannel(std::cerr, CMN_LOG_ALLOW_ERRORS_AND_WARNINGS);
 
-    // create a Qt application
-    QApplication application(argc, argv);
 
     // parse options
     cmnCommandLineOptions options;
@@ -47,6 +44,8 @@ int main(int argc, char ** argv)
     std::list<std::string> configFiles;
     std::string robotName = "Robot";
     double periodInSeconds = 1.0 * cmn_ms;
+    std::list<std::string> managerConfig;
+
     options.AddOptionMultipleValues("c", "config",
                                     "configuration file",
                                     cmnCommandLineOptions::REQUIRED_OPTION, &configFiles);
@@ -65,6 +64,12 @@ int main(int argc, char ** argv)
     options.AddOptionNoValue("C", "calibration-mode",
                              "run in calibration mode, doesn't require lookup table for pots/encoder on Si arms",
                              cmnCommandLineOptions::OPTIONAL_OPTION);
+    options.AddOptionMultipleValues("m", "component-manager",
+                                    "JSON files to configure component manager",
+                                    cmnCommandLineOptions::OPTIONAL_OPTION, &managerConfig);
+    options.AddOptionNoValue("D", "dark-mode",
+                             "replaces the default Qt palette with darker colors");
+
 
     if (!options.Parse(argc, argv, std::cerr)) {
         return -1;
@@ -82,10 +87,16 @@ int main(int argc, char ** argv)
         robotIO->SetProtocol(protocol);
     }
     robotIO->set_calibration_mode(options.IsSet("calibration-mode"));
+    componentManager->AddComponent(robotIO);
+
+    // create a Qt application
+    QApplication application(argc, argv);
+    cmnQt::QApplicationExitsOnCtrlC();
+    if (options.IsSet("dark-mode")) {
+        cmnQt::SetDarkMode();
+    }
 
     mtsRobotIO1394QtWidgetFactory * robotWidgetFactory = new mtsRobotIO1394QtWidgetFactory("robotWidgetFactory");
-
-    componentManager->AddComponent(robotIO);
     componentManager->AddComponent(robotWidgetFactory);
 
     for (const auto & configFile : configFiles) {
@@ -100,11 +111,15 @@ int main(int argc, char ** argv)
                               robotIO->GetName(), "Configuration");
     robotWidgetFactory->Configure();
 
-    // create the components
-    componentManager->CreateAllAndWait(2.0 * cmn_s);
+    // custom user components
+    if (!componentManager->ConfigureJSON(managerConfig)) {
+        CMN_LOG_INIT_ERROR << "Configure: failed to configure component-manager, check cisstLog for error messages" << std::endl;
+        return -1;
+    }
 
-    // start the periodic Run
-    componentManager->StartAllAndWait(2.0 * cmn_s);
+    // create and start all components
+    componentManager->CreateAllAndWait(5.0 * cmn_s);
+    componentManager->StartAllAndWait(5.0 * cmn_s);
 
     // run Qt app
     application.exec();
