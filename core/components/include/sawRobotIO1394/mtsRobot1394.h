@@ -59,6 +59,10 @@ namespace sawRobotIO1394 {
         void LoadPotentiometerLookupTable(void);
         void Configure(const osaRobot1394Configuration & config);
 
+        void SetHwSimulation(const bool & hwSimulation){
+            mHwSimulation = hwSimulation;
+        }
+
         bool SetupStateTables(const size_t stateTableSize,
                               mtsStateTable * & stateTableRead,
                               mtsStateTable * & stateTableWrite);
@@ -399,6 +403,9 @@ namespace sawRobotIO1394 {
 
     public:
         mtsInterfaceProvided * mInterface;
+
+    private:
+        bool mHwSimulation = false;
     };
 
 } // namespace sawRobotIO1394
