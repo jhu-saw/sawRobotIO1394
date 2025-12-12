@@ -412,6 +412,13 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(const int & numberO
 
 bool mtsRobot1394::CheckConfiguration(void)
 {
+    if (mHwSimulation)
+    {
+        CMN_LOG_CLASS_INIT_WARNING << "CheckConfiguration: skipping configuration check for simulated hardware for arm: "
+                                   << this->Name() << std::endl;
+        return true;
+    }
+
     // current calibration
     if ((m_configuration.hardware_version != osa1394::dRA1)
         && (NumberOfActuators() > 2)) {
@@ -1062,7 +1069,9 @@ void mtsRobot1394::CheckState(void)
             if (*enabled) {
                 actual_limit = *limit;
             } else {
-                if (m_calibration_mode || !mPowerEnable) {
+                if(mHwSimulation){
+                    actual_limit = std::numeric_limits<double>::max(); // no limit in hw simulation when amp is disabled
+                } else if (m_calibration_mode || !mPowerEnable) {
                     actual_limit = 0.2; // noise + poor calibration
                 } else {
                     actual_limit = 0.1; // 100 mA for noise in a2d
