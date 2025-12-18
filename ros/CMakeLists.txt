@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.16)
-project (saw_robot_io_1394_ros VERSION 2.3.0)
+project (saw_robot_io_1394_ros VERSION 2.4.0)
 
 # first test for ROS1
 set (ROS1_depends cisst_ros_crtk roscpp roslib)
@@ -68,7 +68,7 @@ if (cisst_FOUND_AS_REQUIRED)
   cisst_set_output_path ()
 
   # sawRobotIO1394 has been compiled within cisst, we should find it automatically
-  find_package (sawRobotIO1394 2.2.0)
+  find_package (sawRobotIO1394 2.4.0)
 
   if (sawRobotIO1394_FOUND)
 

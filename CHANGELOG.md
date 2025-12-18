@@ -1,7 +1,22 @@
 Change log
 ==========
 
-2.3.0 (2014-08-30)
+2.4.0 (2025-12-18)
+==================
+
+* API changes:
+  * Dropped support for XML configuration files, now uses JSON
+* Deprecated features:
+  * CMake required version is 3.16
+* New features:
+  * Support multiple IOs
+  * Check configuration file version and Id
+  * Dedicated ROS bridge library with read-only and read-write modes
+  * IO separate ROS node
+* Bug fixes:
+  * Software fix for firmware bug on Si controllers loosing communication with ESPM
+
+2.3.0 (2024-08-30)
 ==================
 
 * API changes:
@@ -15,7 +30,7 @@ Change log
 * Bug fixes:
   * Re-added check on number of applications using FireWire port
 
-2.2.1 (2013-12-29)
+2.2.1 (2023-12-29)
 ==================
 
 * API changes:
