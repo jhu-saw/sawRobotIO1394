@@ -178,6 +178,9 @@ void mtsRobotIO1394::Init(const std::string & port)
         exit(EXIT_FAILURE);
     }
 
+    // store if the port is simulated hardware
+    m_is_hw_simulated = (m_port->GetPortType() == BasePort::PORT_SIMULATION);
+
     mtsInterfaceProvided * mainInterface = AddInterfaceProvided("MainInterface");
     if (mainInterface) {
         mainInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfBoards, this, "GetNumberOfBoards");
@@ -304,6 +307,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     for (const auto & configRobot : config.robots) {
         // Create a new robot
         mtsRobot1394 * robot = new mtsRobot1394(*this);
+        robot->SetHwSimulation(m_is_hw_simulated);
         robot->set_calibration_mode(m_calibration_mode);
         robot->Configure(configRobot);
         // Check the configuration if needed

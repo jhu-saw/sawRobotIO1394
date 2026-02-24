@@ -41,6 +41,7 @@ protected:
     std::ostream * m_message_stream = nullptr; // Stream provided to the low level boards for messages, redirected to cmnLogger
 
     BasePort * m_port = nullptr;
+    bool m_is_hw_simulated = false;
 
     double m_watchdog_period = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
     bool m_skip_configuration_check = false;
@@ -107,6 +108,8 @@ public:
     void GetNumberOfRobots(size_t & placeHolder) const;
     sawRobotIO1394::mtsRobot1394 * Robot(const size_t index);
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
+
+    bool IsHardwareSimulated(void) { return m_is_hw_simulated; }
 
     static std::string DefaultPort(void);
     void close_all_relays(void);
