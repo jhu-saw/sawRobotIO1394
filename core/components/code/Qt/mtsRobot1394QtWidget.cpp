@@ -69,6 +69,7 @@ mtsRobot1394QtWidget::mtsRobot1394QtWidget(const mtsComponentConstructorNameAndU
 
 void mtsRobot1394QtWidget::Init(void)
 {
+    this->AddTag("UI");
     DummyValueWhenNotConnected = 0;
     LastEnableState.SetSize(NumberOfActuators);
     LastEnableState.SetAll(false);

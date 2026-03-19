@@ -35,6 +35,7 @@ mtsRobotIO1394QtWidgetFactory::mtsRobotIO1394QtWidgetFactory(const std::string &
     mButtonsWidget(0),
     BuildWidgetsCalled(false)
 {
+    this->AddTag("UI");
     // This function will make the required interface to be connected with
     // the provided interface of mtsRobotIO1394 named Configure with predefined function names.
     RobotConfigureInterface = AddInterfaceRequired("RobotConfiguration");
