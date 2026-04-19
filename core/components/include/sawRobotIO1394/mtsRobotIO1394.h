@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2026 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -132,6 +132,7 @@ protected:
     void IntervalStatisticsCallback(void);
 private:
     double m_time_last_timing_warning = 0.0;
+    size_t m_read_all_boards_errors = 0;
 
 private:
     // Make uncopyable

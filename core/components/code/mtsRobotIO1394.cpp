@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2026 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -468,30 +468,51 @@ void mtsRobotIO1394::PreRead(void)
 void mtsRobotIO1394::Read(void)
 {
     // Read from all boards on the port
-    m_port->ReadAllBoards();
+    try {
+        m_port->ReadAllBoards();
 
-    // Poll the state for each robot
-    for (auto & robot : m_robots) {
-        // Poll the board validity
-        robot->PollValidity();
+        // Poll the state for each robot
+        for (auto & robot : m_robots) {
+            // Poll the board validity
+            robot->PollValidity();
 
-        // Poll this robot's state
-        robot->PollState();
+            // Poll this robot's state
+            robot->PollState();
 
-        // Convert bits to usable numbers
-        robot->ConvertState();
-    }
-    // Poll the state for each digital input
-    for (auto & input : m_digital_inputs) {
-        input->PollState();
-    }
-    // Poll the state for each digital output
-    for (auto & output : m_digital_outputs) {
-        output->PollState();
-    }
-    // Poll the state for each Dallas chip
-    for (auto & dallas: m_dallas_chips) {
-        dallas->PollState();
+            // Convert bits to usable numbers
+            robot->ConvertState();
+        }
+        // Poll the state for each digital input
+        for (auto & input : m_digital_inputs) {
+            input->PollState();
+        }
+        // Poll the state for each digital output
+        for (auto & output : m_digital_outputs) {
+            output->PollState();
+        }
+        // Poll the state for each Dallas chip
+        for (auto & dallas: m_dallas_chips) {
+            dallas->PollState();
+        }
+        m_read_all_boards_errors = 0;
+    } catch (std::exception & e) {
+        m_read_all_boards_errors++;
+        for (auto & robot : m_robots) {
+            robot->mInterface->SendWarning("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors)
+                                           + ", error message: " + e.what());
+        }
+        if (m_read_all_boards_errors >= 3) {
+            cmnThrow("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors)
+                     + ", last error message: " + e.what());
+        }
+    } catch (...) {
+        m_read_all_boards_errors++;
+        for (auto & robot : m_robots) {
+            robot->mInterface->SendWarning("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors));
+        }
+        if (m_read_all_boards_errors >= 3) {
+            cmnThrow("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors));
+        }
     }
 }
 
@@ -502,12 +523,12 @@ void mtsRobotIO1394::PostRead(void)
     for (auto & robot : m_robots) {
         try {
             robot->CheckState();
-        } catch (std::exception & stdException) {
-            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": standard exception \"" << stdException.what() << "\"" << std::endl;
-            robot->mInterface->SendError("IO exception: " + robot->Name() + ", " + stdException.what());
+        } catch (std::exception & e) {
+            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": standard exception \"" << e.what() << "\"" << std::endl;
+            robot->mInterface->SendError("PostRead: " + robot->Name() + ", " + e.what());
         } catch (...) {
             CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": unknown exception" << std::endl;
-            robot->mInterface->SendError("IO unknown exception: " + robot->Name());
+            robot->mInterface->SendError("PostRead: unknown exception: " + robot->Name());
         }
         robot->AdvanceReadStateTable();
     }
@@ -554,9 +575,9 @@ void mtsRobotIO1394::Run(void)
     PreRead();
     try {
         Read();
-    } catch (std::exception & stdException) {
+    } catch (std::exception & e) {
         gotException = true;
-        message = this->Name + ": standard exception \"" + stdException.what() + "\"";
+        message = this->Name + ": standard exception \"" + e.what() + "\"";
     } catch (...) {
         gotException = true;
         message = this->Name + ": unknown exception";
