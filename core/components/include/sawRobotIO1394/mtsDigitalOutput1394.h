@@ -22,7 +22,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmEventButton.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
 
-#include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
+#include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h> 
 
 // Always include last
 #include <sawRobotIO1394/sawRobotIO1394Export.h>

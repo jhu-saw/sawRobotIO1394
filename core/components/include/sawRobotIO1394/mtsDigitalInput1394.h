@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsDigitalInput1394_h
 #define _mtsDigitalInput1394_h
 
+#include <cisstMultiTask/mtsFunctionWrite.h>
 #include <cisstParameterTypes/prmEventButton.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
 

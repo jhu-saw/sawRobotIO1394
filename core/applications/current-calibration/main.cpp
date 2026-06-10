@@ -33,19 +33,20 @@ http://www.cisst.org/cisst/license.txt.
 using namespace sawRobotIO1394;
 
 enum PowerType {ALL, BOARD, ACTUATOR, BRAKE};
+
 bool brakes;
 mtsRobot1394 * robot;
 mtsRobotIO1394 * port;
-vctDoubleVec zeros;
+Eigen::VectorXd zeros;
 size_t numberOfAxis = 0;
 
 // Struct to hold sample readings
 struct Samples {
-    vctDoubleVec averageAllSamples;
-    vctDoubleVec stdDeviation;
+    Eigen::VectorXd averageAllSamples;
+    Eigen::VectorXd stdDeviation;
     size_t validSamples;
     size_t totalSamples;
-    vctDoubleVec averageValidSamples;
+    Eigen::VectorXd averageValidSamples;
 };
 
 bool enablePower(PowerType type) {
@@ -101,14 +102,14 @@ bool enablePower(PowerType type) {
         return false;
     }
     if (brakes && (type == ALL || type == BRAKE)) {
-        if (!robot->BrakeAmpStatus().All()) {
+        if (!robot->BrakeAmpStatus().all()) {
             std::cerr << "Error: failed to turn on brake amplifiers:" << std::endl
                       << " - status:  " << robot->BrakeAmpStatus() << std::endl
                       << " - desired: " << robot->BrakeAmpEnable() << std::endl;
             return false;
         }
     } else if (!brakes && (type == ALL || type == ACTUATOR)) {
-        if (!robot->ActuatorAmpStatus().All()) {
+        if (!robot->ActuatorAmpStatus().all()) {
             std::cerr << "Error: failed to turn on actuator amplifiers" << std::endl
                       << " - status: "  << robot->ActuatorAmpStatus() << std::endl
                       << " - desired: " << robot->ActuatorAmpEnable() << std::endl;
@@ -121,12 +122,12 @@ bool enablePower(PowerType type) {
 Samples collectSamples(void) {
     // collect samples
     const size_t totalSamples = 50000;
-    std::vector<vctDoubleVec> samples;
+    std::vector<Eigen::VectorXd> samples;
     samples.resize(totalSamples);
-    vctDoubleVec sumSamples, averageAllSamples;
-    sumSamples.SetSize(numberOfAxis);
-    averageAllSamples.SetSize(numberOfAxis);
-    sumSamples.SetAll(0.0);
+    Eigen::VectorXd sumSamples, averageAllSamples;
+    sumSamples.resize(numberOfAxis);
+    averageAllSamples.resize(numberOfAxis);
+    sumSamples.fill(0.0);
     for (size_t index = 0; index < totalSamples; ++index) {
         // write to make sure watchdog is not tripped
         if (brakes) {
@@ -137,12 +138,12 @@ Samples collectSamples(void) {
         port->Write();
         port->Read();
         if (brakes) {
-            samples[index].ForceAssign(robot->BrakeCurrentFeedback());
+            samples[index] = robot->BrakeCurrentFeedback();
         } else {
-            samples[index].ForceAssign(robot->ActuatorCurrentFeedback());
+            samples[index] = robot->ActuatorCurrentFeedback();
         }
-        samples[index].Multiply(1000.0); // convert all values to mA to be easier to read
-        sumSamples.Add(samples[index]);
+        samples[index] *= 1000.0; // convert all values to mA to be easier to read
+        sumSamples += samples[index];
         if ((index % 1000) == 0) {
             std::cerr << ".";
         }
@@ -151,40 +152,35 @@ Samples collectSamples(void) {
     port->Write();
 
     // compute simple average
-    averageAllSamples.Assign(sumSamples);
-    averageAllSamples.Divide(totalSamples);
+    averageAllSamples = sumSamples;
+    averageAllSamples /= totalSamples;
 
     // compute standard deviation
-    vctDoubleVec sumDifferencesSquared(numberOfAxis);
-    sumDifferencesSquared.Zeros(); // Force to zero
-    vctDoubleVec difference(numberOfAxis);
+    Eigen::VectorXd sumDifferencesSquared = Eigen::VectorXd::Zero(numberOfAxis);
+    Eigen::VectorXd difference(numberOfAxis);
     for (size_t index = 0; index < totalSamples; ++index) {
-        difference.DifferenceOf(samples[index], averageAllSamples);
-        sumDifferencesSquared.AddElementwiseProductOf(difference, difference);
+        difference = samples[index] - averageAllSamples;
+        sumDifferencesSquared += difference.cwiseAbs2();
     }
-    vctDoubleVec stdDeviation(sumDifferencesSquared);
-    stdDeviation.Divide(totalSamples);
-    for (size_t index = 0; index < stdDeviation.size(); ++index) {
+    Eigen::VectorXd stdDeviation = sumDifferencesSquared / totalSamples;
+    for (size_t index = 0; index < (size_t)stdDeviation.size(); ++index) {
         stdDeviation[index] = sqrt(stdDeviation[index]);
     }
 
     // eliminate outliers
-    vctDoubleVec lower(numberOfAxis);
-    lower.DifferenceOf(averageAllSamples, stdDeviation);
-    vctDoubleVec upper(numberOfAxis);
-    upper.SumOf(averageAllSamples, stdDeviation);
+    Eigen::VectorXd lower = averageAllSamples - stdDeviation;
+    Eigen::VectorXd upper = averageAllSamples + stdDeviation;
     size_t validSamples = 0;
-    vctDoubleVec averageValidSamples(numberOfAxis);
-    sumSamples.SetAll(0.0);
+    sumSamples.setZero();
     for (size_t index = 0; index < totalSamples; ++index) {
-        if (samples[index].ElementwiseLesserOrEqual(upper).All()
-            && samples[index].ElementwiseGreaterOrEqual(lower).All()) {
-            sumSamples.Add(samples[index]);
+        if ((samples[index].array() <= upper.array()).all()
+            && (samples[index].array() >= lower.array()).all()) {
+            sumSamples += samples[index];
             validSamples++;
         }
     }
-    averageValidSamples.Assign(sumSamples);
-    averageValidSamples.Divide(validSamples);
+
+    Eigen::VectorXd averageValidSamples = sumSamples / validSamples;
 
     Samples curSamples;
     curSamples.averageAllSamples = averageAllSamples;
@@ -268,8 +264,8 @@ int main(int argc, char * argv[])
         brakes = false;
         numberOfAxis = robot->NumberOfActuators();
     }
-    zeros.SetSize(numberOfAxis);
-    zeros.SetAll(0.0);
+    zeros.resize(numberOfAxis);
+    zeros.fill(0.0);
 
     // make sure we have at least one set of pots values
     try {
@@ -338,7 +334,7 @@ int main(int argc, char * argv[])
     robot->PowerOffSequence();
 
     // correct cmd (commanded) using corrected fb (feedback)
-    vctDoubleVec averageValidSamples(numberOfAxis);
+    Eigen::VectorXd averageValidSamples(numberOfAxis);
     for (size_t ind = 0; ind < numberOfAxis; ++ind){
         averageValidSamples[ind] = samplesCmdErr.averageValidSamples[ind] - samplesFbErr.averageValidSamples[ind];
     }
@@ -363,9 +359,9 @@ int main(int argc, char * argv[])
     jsonStream.close();
 
     // query previous current offset and scales
-    vctDoubleVec previousCmdOffsets(numberOfAxis, 0.0);
-    vctDoubleVec previousCmdScales(numberOfAxis, 0.0);
-    vctDoubleVec previousFbOffsets(numberOfAxis, 0.0);
+    Eigen::VectorXd previousCmdOffsets = Eigen::VectorXd::Zero(numberOfAxis);
+    Eigen::VectorXd previousCmdScales = Eigen::VectorXd::Zero(numberOfAxis);
+    Eigen::VectorXd previousFbOffsets = Eigen::VectorXd::Zero(numberOfAxis);
     std::string what = brakes ? "brakes": "actuators";
 
     for (int index = 0; index < static_cast<int>(numberOfAxis); ++index) {
@@ -375,16 +371,12 @@ int main(int argc, char * argv[])
         previousFbOffsets[index] =  jsonDrive["bits_to_current"]["offset"].asDouble();
     }
 
-    // compute new offsets
-    vctDoubleVec newCmdOffsets(numberOfAxis);
-    newCmdOffsets.Assign(averageValidSamples);
-    newCmdOffsets.Divide(-1000.0); // convert back to Amps and negate
-    newCmdOffsets.ElementwiseMultiply(previousCmdScales);
-    newCmdOffsets.Add(previousCmdOffsets);
+    // compute new offsets - first convert back to Amps and negate
+    Eigen::VectorXd newCmdOffsets = averageValidSamples / (-1000.0);
+    newCmdOffsets.array() *= previousCmdScales.array();
+    newCmdOffsets += previousCmdOffsets;
 
-    vctDoubleVec newFbOffsets(numberOfAxis);
-    newFbOffsets.Assign(previousFbOffsets);
-    newFbOffsets.Subtract(samplesFbErr.averageValidSamples / 1000.0);
+    Eigen::VectorXd newFbOffsets = previousFbOffsets - samplesFbErr.averageValidSamples / 1000.0;
 
     // ask one last confirmation from user
     std::cout << std::endl << std::endl
@@ -404,9 +396,6 @@ int main(int argc, char * argv[])
         key = cmnGetChar();
     }
     if ((key == 'y') || (key == 'Y')) {
-        vctIntVec newCmdOffsetsInt(newCmdOffsets);
-        vctDoubleVec newFbOffsetsInt(newFbOffsets);
-
         for (int index = 0; index < static_cast<int>(numberOfAxis); ++index) {
             Json::Value & jsonDrive = jsonConfig["robots"][0][what][index]["drive"];
             jsonDrive["current_to_bits"]["offset"] = newCmdOffsets[index];

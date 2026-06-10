@@ -29,15 +29,14 @@ plotObject::plotObject(mtsRobotIO1394 * port,
     mElapsedTime(0.0),
     mFilterSize(6)
 {
-    mSavitzkyGolayCoeff = nmrSavitzkyGolay(2, // 4 degrees polynomial
+    const Eigen::VectorXd savitzky_golay_coeffs = nmrSavitzkyGolay(2, // 4 degrees polynomial
                                           0, // no derivative
                                           mFilterSize - 1, // nb left samples
                                           0 // nb right samples
                                           );
 
-    mHistory.SetSize(mFilterSize);
-    mHistory.SetAll(0.0);
-    mFilterElementwiseProduct.SetSize(mFilterSize);
+    mHistory.resize(mFilterSize);
+    mHistory.fill(0.0);
 
     mFrame = new QFrame();
     mLayout = new QVBoxLayout();
@@ -48,31 +47,31 @@ plotObject::plotObject(mtsRobotIO1394 * port,
     mVelocityScale = mPlot->AddScale("encoder-velocities");
 
     mEncoderDtSignal = mVelocityScale->AddSignal("encoder-dt");
-    mEncoderDtSignal->SetColor(vct3(1.0, 0.0, 0.0));
+    mEncoderDtSignal->SetColor(Eigen::Vector3d(1.0, 0.0, 0.0));
     std::cout << "red:   encoder-dt" << std::endl;
 
     mEncoderDxSignal = mVelocityScale->AddSignal("encoder-dx");
-    mEncoderDxSignal->SetColor(vct3(0.0, 1.0, 0.0));
+    mEncoderDxSignal->SetColor(Eigen::Vector3d(0.0, 1.0, 0.0));
     std::cout << "green: encoder-dx" << std::endl;
 
     mEncoderDxFilteredSignal = mVelocityScale->AddSignal("encoder-dx-filtered");
-    mEncoderDxFilteredSignal->SetColor(vct3(7.0, 7.0, 0.0));
+    mEncoderDxFilteredSignal->SetColor(Eigen::Vector3d(7.0, 7.0, 0.0));
     std::cout << "yellow: encoder-dx-filtered" << std::endl;
 
     mPotDxSignal = mVelocityScale->AddSignal("pot-dx");
-    mPotDxSignal->SetColor(vct3(1.0, 1.0, 1.0));
+    mPotDxSignal->SetColor(Eigen::Vector3d(1.0, 1.0, 1.0));
     std::cout << "white: pot-dx" << std::endl;
 
     mZeroVelocity = mVelocityScale->AddSignal("zero");
-    mZeroVelocity->SetColor(vct3(0.2, 0.2, 0.2));
+    mZeroVelocity->SetColor(Eigen::Vector3d(0.2, 0.2, 0.2));
     std::cout << "gray:  zero" << std::endl;
 
     mFrame->setLayout(mLayout);
     mFrame->resize(1200, 600);
     mFrame->show();
 
-    mPreviousEncoderPosition.ForceAssign(mRobot->ActuatorJointState().Position());
-    mPreviousPotPosition.ForceAssign(mRobot->PotentiometerPosition());
+    mPreviousEncoderPosition = mRobot->ActuatorJointState().Position();
+    mPreviousPotPosition = mRobot->PotentiometerPosition();
 
     startTimer(0); // in ms, 0 is as fast as possible
 }
@@ -82,16 +81,16 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     mPort->Read();
     // get time and plot 0 value
     mElapsedTime += mRobot->ActuatorTimestamp()[mActuatorIndex];
-    mZeroVelocity->AppendPoint(vct2(mElapsedTime, 0.005)); // slight offset to avoid overlap
+    mZeroVelocity->AppendPoint(Eigen::Vector2d(mElapsedTime, 0.005)); // slight offset to avoid overlap
 
     // encoder dt
-    mEncoderDtSignal->AppendPoint(vct2(mElapsedTime,
+    mEncoderDtSignal->AppendPoint(Eigen::Vector2d(mElapsedTime,
                                        mRobot->ActuatorJointState().Velocity()[mActuatorIndex]));
     // encoder velocity dx / dt
-    mEncoderDx.ForceAssign(mRobot->ActuatorJointState().Position());
-    mEncoderDx.Subtract(mPreviousEncoderPosition);
-    mEncoderDx.ElementwiseDivide(mRobot->ActuatorTimestamp());
-    mEncoderDxSignal->AppendPoint((vct2(mElapsedTime,
+    mEncoderDx = mRobot->ActuatorJointState().Position();
+    mEncoderDx -= mPreviousEncoderPosition;
+    mEncoderDx /= mRobot->ActuatorTimestamp().array();
+    mEncoderDxSignal->AppendPoint((Eigen::Vector2d(mElapsedTime,
                                         mEncoderDx[mActuatorIndex])));
 
     // filtered dx / dt
@@ -101,20 +100,20 @@ void plotObject::timerEvent(QTimerEvent * CMN_UNUSED(event))
     }
     mHistory[mFilterSize - 1] = mEncoderDx[mActuatorIndex];
     // apply filter
-    mFilterElementwiseProduct.ElementwiseProductOf(mSavitzkyGolayCoeff, mHistory);
-    mEncoderDxFilteredSignal->AppendPoint(vct2(mElapsedTime, mFilterElementwiseProduct.SumOfElements()));
+    double filtered_value = mSavitzkyGolayCoeff.cwiseProduct(mHistory).sum();
+    mEncoderDxFilteredSignal->AppendPoint(Eigen::Vector2d(mElapsedTime, filtered_value));
 
     // pot velocity dx / dt
-    mPotDx.ForceAssign(mRobot->PotentiometerPosition());
-    mPotDx.Subtract(mPreviousPotPosition);
-    mPotDx.ElementwiseDivide(mRobot->ActuatorTimestamp());
-    mPotDxSignal->AppendPoint((vct2(mElapsedTime,
+    mPotDx = mRobot->PotentiometerPosition();
+    mPotDx -= mPreviousPotPosition;
+    mPotDx /= mRobot->ActuatorTimestamp().array();
+    mPotDxSignal->AppendPoint((Eigen::Vector2d(mElapsedTime,
                                     mPotDx[mActuatorIndex])));
 
     // update plot
     mPlot->update();
 
     // save previous state
-    mPreviousEncoderPosition.Assign(mRobot->ActuatorJointState().Position());
-    mPreviousPotPosition.Assign(mRobot->PotentiometerPosition());
+    mPreviousEncoderPosition = mRobot->ActuatorJointState().Position();
+    mPreviousPotPosition = mRobot->PotentiometerPosition();
 }

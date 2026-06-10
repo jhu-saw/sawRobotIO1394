@@ -20,9 +20,6 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _plotObject_h
 #define _plotObject_h
 
-// system
-#include <iostream>
-
 // cisst/saw
 #include <sawRobotIO1394/mtsRobotIO1394.h>
 #include <sawRobotIO1394/mtsRobot1394.h>
@@ -61,15 +58,14 @@ protected:
     int mActuatorIndex;
 
     double mElapsedTime;
-    vctDoubleVec mPreviousEncoderPosition;
-    vctDoubleVec mEncoderDx;
-    vctDoubleVec mPreviousPotPosition;
-    vctDoubleVec mPotDx;
+    Eigen::ArrayXd mPreviousEncoderPosition;
+    Eigen::ArrayXd mEncoderDx;
+    Eigen::ArrayXd mPreviousPotPosition;
+    Eigen::ArrayXd mPotDx;
 
     size_t mFilterSize;
-    vctDoubleVec mSavitzkyGolayCoeff;
-    vctDoubleVec mHistory;
-    vctDoubleVec mFilterElementwiseProduct;
+    Eigen::ArrayXd mSavitzkyGolayCoeff;
+    Eigen::ArrayXd mHistory;
 };
 
 #endif // _plotObject_h

@@ -19,6 +19,9 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsRobot1394_h
 #define _mtsRobot1394_h
 
+#include <cisstMultiTask/mtsFunctionWrite.h>
+#include <cisstMultiTask/mtsStateTable.h>
+
 #include <cisstParameterTypes/prmMaskedVector.h>
 #include <cisstParameterTypes/prmInputData.h>
 #include <cisstParameterTypes/prmConfigurationJoint.h>
@@ -27,6 +30,8 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <sawRobotIO1394/osaConfiguration1394.h>
 #include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
+
+#include <Eigen/Dense>
 
 // Always include last
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
@@ -79,8 +84,8 @@ namespace sawRobotIO1394 {
         void GetSerialNumber(std::string & serialNumber) const;
         void servo_jf(const prmForceTorqueJointSet & jointTorques);
         void SetSomeEncoderPosition(const prmMaskedDoubleVec & values);
-        void ActuatorToJointPosition(const vctDoubleVec & actuators,
-                                     vctDoubleVec & joints) const;
+        void ActuatorToJointPosition(const Eigen::VectorXd & actuators,
+                                     Eigen::VectorXd & joints) const;
 
         /*! \name Bias Calibration */
         void CalibrateEncoderOffsetsFromPotentiometers(const int & numberOfSamples);
@@ -121,13 +126,13 @@ namespace sawRobotIO1394 {
         void SetWatchdogPeriod(const double & periodInSeconds);
 
         void SetActuatorAmpEnable(const bool & enable);
-        void SetActuatorAmpEnable(const vctBoolVec & enable);
+        void SetActuatorAmpEnable(const Eigen::ArrayX<bool> & enable);
         void SetBrakeAmpEnable(const bool & enable);
-        void SetBrakeAmpEnable(const vctBoolVec & enable);
+        void SetBrakeAmpEnable(const Eigen::ArrayX<bool> & enable);
 
         //! Encoder Control
-        void SetEncoderPosition(const vctDoubleVec & pos);
-        void SetEncoderPositionBits(const vctIntVec & bits);
+        void SetEncoderPosition(const Eigen::VectorXd & pos);
+        void SetEncoderPositionBits(const Eigen::ArrayXi & bits);
         void SetSingleEncoderPosition(const int index, const double pos = 0);
         void SetSingleEncoderPositionBits(const int index, const int bits = 0);
 
@@ -136,14 +141,14 @@ namespace sawRobotIO1394 {
         void set_calibration_mode(const bool & mode);
 
         //! Actuator Control
-        void SetActuatorEffort(const vctDoubleVec & efforts);
-        void SetActuatorCurrent(const vctDoubleVec & currents);
-        void SetActuatorCurrentBits(const vctIntVec & bits);
-        void SetActuatorVoltageRatio(const vctDoubleVec & ratios);
+        void SetActuatorEffort(const Eigen::VectorXd & efforts);
+        void SetActuatorCurrent(const Eigen::VectorXd & currents);
+        void SetActuatorCurrentBits(const Eigen::ArrayXi & bits);
+        void SetActuatorVoltageRatio(const Eigen::VectorXd & ratios);
 
         //! Brake Control
-        void SetBrakeCurrent(const vctDoubleVec & currents);
-        void SetBrakeCurrentBits(const vctIntVec & bits);
+        void SetBrakeCurrent(const Eigen::VectorXd & currents);
+        void SetBrakeCurrentBits(const Eigen::ArrayXi & bits);
         void BrakeRelease(void);
         void BrakeEngage(void);
         /**}**/
@@ -185,33 +190,33 @@ namespace sawRobotIO1394 {
         //! Watchdog timeout status, true for triggered
         bool WatchdogTimeoutStatus(void) const;
 
-        inline const vctBoolVec & ActuatorAmpStatus(void) const {
+        inline const Eigen::ArrayX<bool> & ActuatorAmpStatus(void) const {
             return mActuatorAmpStatus;
         }
 
-        inline const vctBoolVec & ActuatorAmpEnable(void) const {
+        inline const Eigen::ArrayX<bool> & ActuatorAmpEnable(void) const {
             return mActuatorAmpEnable;
         }
 
-        inline const vctBoolVec & BrakeAmpStatus(void) const {
+        inline const Eigen::ArrayX<bool> & BrakeAmpStatus(void) const {
             return mBrakeAmpStatus;
         }
 
-        inline const vctBoolVec & BrakeAmpEnable(void) const {
+        inline const Eigen::ArrayX<bool> & BrakeAmpEnable(void) const {
             return mBrakeAmpEnable;
         }
 
-        const vctDoubleVec & ActuatorCurrentFeedback(void) const;
-        const vctDoubleVec & ActuatorCurrentCommand(void) const;
-        const vctDoubleVec & ActuatorEffortCommand(void) const;
-        const vctDoubleVec & BrakeCurrentFeedback(void) const;
-        const vctIntVec & PotentiometerBits(void) const;
-        const vctDoubleVec & PotentiometerVoltage(void) const;
-        const vctDoubleVec & PotentiometerPosition(void) const;
-        const vctDoubleVec & ActuatorTimestamp(void) const;
-        const vctDoubleVec & BrakeTimestamp(void) const;
-        const vctDoubleVec & ActuatorEncoderAcceleration(void) const;
-        const vctDoubleVec & EncoderAcceleration(void) const;
+        const Eigen::VectorXd & ActuatorCurrentFeedback(void) const;
+        const Eigen::VectorXd & ActuatorCurrentCommand(void) const;
+        const Eigen::VectorXd & ActuatorEffortCommand(void) const;
+        const Eigen::VectorXd & BrakeCurrentFeedback(void) const;
+        const Eigen::ArrayXi & PotentiometerBits(void) const;
+        const Eigen::VectorXd & PotentiometerVoltage(void) const;
+        const Eigen::VectorXd & PotentiometerPosition(void) const;
+        const Eigen::VectorXd & ActuatorTimestamp(void) const;
+        const Eigen::VectorXd & BrakeTimestamp(void) const;
+        const Eigen::VectorXd & ActuatorEncoderAcceleration(void) const;
+        const Eigen::VectorXd & EncoderAcceleration(void) const;
         const prmStateJoint & ActuatorJointState(void) const;
         /**}**/
 
@@ -224,7 +229,7 @@ namespace sawRobotIO1394 {
         size_t NumberOfBrakes(void) const;
         void configuration_js(prmConfigurationJoint & jointConfig) const;
         void configure_js(const prmConfigurationJoint & jointConfig);
-        void GetActuatorCurrentCommandLimits(vctDoubleVec & limits) const;
+        void GetActuatorCurrentCommandLimits(Eigen::VectorXd & limits) const;
         /**}**/
 
         /** \name Bias Calibration Functions
@@ -237,23 +242,23 @@ namespace sawRobotIO1394 {
          * have no side-effects.
          *\{**/
         //! Conversions for encoders
-        void EncoderPositionToBits(const vctDoubleVec & pos, vctIntVec & bits) const;
-        void EncoderBitsToPosition(const vctIntVec & bits, vctDoubleVec & pos) const;
-        void EncoderBitsToVelocityPredicted(vctDoubleVec & vel) const;
+        void EncoderPositionToBits(const Eigen::VectorXd & pos, Eigen::ArrayXi & bits) const;
+        void EncoderBitsToPosition(const Eigen::ArrayXi & bits, Eigen::VectorXd & pos) const;
+        void EncoderBitsToVelocityPredicted(Eigen::VectorXd & vel) const;
 
         //! Conversions for actuator current commands and measurements
-        void ActuatorEffortToCurrent(const vctDoubleVec & efforts, vctDoubleVec & currents) const;
-        void ActuatorCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const;
-        void ActuatorBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const;
-        void ActuatorCurrentToEffort(const vctDoubleVec & currents, vctDoubleVec & efforts) const;
+        void ActuatorEffortToCurrent(const Eigen::VectorXd & efforts, Eigen::VectorXd & currents) const;
+        void ActuatorCurrentToBits(const Eigen::VectorXd & currents, Eigen::ArrayXi & bits) const;
+        void ActuatorBitsToCurrent(const Eigen::ArrayXi & bits, Eigen::VectorXd & currents) const;
+        void ActuatorCurrentToEffort(const Eigen::VectorXd & currents, Eigen::VectorXd & efforts) const;
 
         //! Conversions for brake commands
-        void BrakeCurrentToBits(const vctDoubleVec & currents, vctIntVec & bits) const;
-        void BrakeBitsToCurrent(const vctIntVec & bits, vctDoubleVec & currents) const;
+        void BrakeCurrentToBits(const Eigen::VectorXd & currents, Eigen::ArrayXi & bits) const;
+        void BrakeBitsToCurrent(const Eigen::ArrayXi & bits, Eigen::VectorXd & currents) const;
 
         //! Conversions for potentiometers
-        void PotentiometerBitsToVoltage(const vctIntVec & bits, vctDoubleVec & voltages) const;
-        void PotentiometerVoltageToPosition(const vctDoubleVec & voltages, vctDoubleVec & pos) const;
+        void PotentiometerBitsToVoltage(const Eigen::ArrayXi & bits, Eigen::VectorXd & voltages) const;
+        void PotentiometerVoltageToPosition(const Eigen::VectorXd & voltages, Eigen::VectorXd & pos) const;
         /**}**/
 
         /*! Utility functions to define an missing potentiometer value
@@ -267,9 +272,9 @@ namespace sawRobotIO1394 {
         //@}
 
     protected:
-        void ClipActuatorEffort(vctDoubleVec & efforts);
-        void ClipActuatorCurrent(vctDoubleVec & currents);
-        void ClipBrakeCurrent(vctDoubleVec & currents);
+        void ClipActuatorEffort(Eigen::VectorXd & efforts);
+        void ClipActuatorCurrent(Eigen::VectorXd & currents);
+        void ClipBrakeCurrent(Eigen::VectorXd & currents);
 
         bool m_calibration_mode = false;
 
@@ -285,10 +290,10 @@ namespace sawRobotIO1394 {
 
         // state of brakes
         bool mBrakeReleasing;
-        vctDoubleVec mBrakeReleasingTimer;
+        Eigen::VectorXd mBrakeReleasingTimer;
 
         //! Vectors of actuator properties
-        vctDoubleVec
+        Eigen::VectorXd 
             mActuatorCurrentFeedbackLimits, // limit used to trigger error
             mBrakeCurrentFeedbackLimits,    // limit used to trigger error
             mPotentiometersToEncodersTolerance;       // maximum error between encoders and pots
@@ -317,7 +322,7 @@ namespace sawRobotIO1394 {
         bool mSafetyRelay, mSafetyRelayStatus;
         bool mSafetyAmpDisabled = false; // disabled at firmware level
 
-        vctBoolVec
+        Eigen::ArrayX<bool>
             mActuatorAmpStatus,
             mBrakeAmpStatus,
             mActuatorAmpEnable,
@@ -328,18 +333,18 @@ namespace sawRobotIO1394 {
             mDigitalInputs,
             mEncoderChannelsA;
 
-        vctIntVec
+        Eigen::ArrayXi
             mPotentiometerBits,
             mEncoderPositionBits,
             mPreviousEncoderPositionBits;
 
-        vctIntVec
+        Eigen::ArrayXi
             mActuatorCurrentBitsCommand,
             mBrakeCurrentBitsCommand,
             mActuatorCurrentBitsFeedback,
             mBrakeCurrentBitsFeedback;
 
-        vctDoubleVec
+        Eigen::VectorXd 
             mActuatorTimestamp,
             mBrakeTimestamp,
             mPotentiometerVoltage,
