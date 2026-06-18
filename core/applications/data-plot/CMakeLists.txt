@@ -38,18 +38,12 @@ if (sawRobotIO1394_FOUND)
   link_directories (${sawRobotIO1394_LIBRARY_DIR})
 
   include_directories (${CMAKE_CURRENT_BINARY_DIR})
-  if (CISST_HAS_QT4)
-    qt4_wrap_cpp (QT_WRAPPED_CPP
-                  plotObject.h)
-  else (CISST_HAS_QT4)
-    set (CMAKE_AUTOMOC ON)
-  endif (CISST_HAS_QT4)
+  set (CMAKE_AUTOMOC ON)
 
   add_executable (sawRobotIO1394QtDataPlot
                   main.cpp
                   plotObject.h
-                  plotObject.cpp
-                  ${QT_WRAPPED_CPP})
+                  plotObject.cpp)
   set_property (TARGET sawRobotIO1394QtDataPlot PROPERTY FOLDER "sawRobotIO1394")
 
   # link against non cisst libraries and cisst components

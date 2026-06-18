@@ -26,20 +26,14 @@ find_package (cisst REQUIRED COMPONENTS ${REQUIRED_CISST_LIBRARIES})
 
 # for Qt generated header files
 include_directories (${CMAKE_CURRENT_BINARY_DIR})
-if (CISST_HAS_QT4)
-  qt4_wrap_cpp (SAW_ROBOTIO1394_QT_WRAP_CPP
-                ${sawRobotIO1394_HEADER_DIR}/mtsRobot1394QtWidget.h)
-else (CISST_HAS_QT4)
-  set (CMAKE_AUTOMOC ON)
-endif (CISST_HAS_QT4)
+set (CMAKE_AUTOMOC ON)
 
 add_library (sawRobotIO1394Qt
              ${sawRobotIO1394_HEADER_DIR}/sawRobotIO1394ExportQt.h
              ${sawRobotIO1394_HEADER_DIR}/mtsRobot1394QtWidget.h
              mtsRobot1394QtWidget.cpp
              ${sawRobotIO1394_HEADER_DIR}/mtsRobotIO1394QtWidgetFactory.h
-             mtsRobotIO1394QtWidgetFactory.cpp
-             ${SAW_ROBOTIO1394_QT_WRAP_CPP})
+             mtsRobotIO1394QtWidgetFactory.cpp)
 set_target_properties (sawRobotIO1394Qt PROPERTIES
                        VERSION ${sawRobotIO1394_VERSION}
                        FOLDER "sawRobotIO1394")
