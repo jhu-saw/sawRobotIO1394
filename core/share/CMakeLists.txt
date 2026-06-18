@@ -11,8 +11,7 @@
 # --- end cisst license ---
 
 # find cisst and make sure the required libraries have been compiled
-find_package (cisst REQUIRED)
-
+find_package (cisst REQUIRED COMPONENTS cisstCommon)
 
 set (FILES_TO_COPY sawRobotIO1394Example.xml sawRobotIO1394TestBoard.xml)
 
@@ -25,4 +24,3 @@ set (FILES_TO_COPY sawRobotIO1394Example.xml sawRobotIO1394TestBoard.xml)
 #                              "${DESTINATION_DIRECTORY}/${_file}"
 #                      COMMENT "Copying data files ${_file} to ${DESTINATION_DIRECTORY}")
 # endforeach (_file)
-
