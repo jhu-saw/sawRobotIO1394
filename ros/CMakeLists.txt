@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2017-2025 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2017-2026 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -57,84 +57,80 @@ set (REQUIRED_CISST_LIBRARIES
      cisstParameterTypesQt
      cisstQt)
 
-find_package (cisst 1.2.0 REQUIRED ${REQUIRED_CISST_LIBRARIES})
+find_package (cisst 1.2.0 REQUIRED COMPONENTS ${REQUIRED_CISST_LIBRARIES})
 
-if (cisst_FOUND_AS_REQUIRED)
 
-  # load cisst configuration
-  include (${CISST_USE_FILE})
 
-  # set paths
-  cisst_set_output_path ()
+# set paths
+cisst_set_output_path ()
 
-  # sawRobotIO1394 has been compiled within cisst, we should find it automatically
-  find_package (sawRobotIO1394 2.4.0)
+# sawRobotIO1394 has been compiled within cisst, we should find it automatically
+find_package (sawRobotIO1394 2.4.0)
 
-  if (sawRobotIO1394_FOUND)
+if (sawRobotIO1394_FOUND)
 
-    # sawRobotIO1394 configuration
-    include_directories (
-      ${saw_robot_io_1394_ros_SOURCE_DIR}/include
-      ${sawRobotIO1394_INCLUDE_DIR})
-    link_directories (${sawRobotIO1394_LIBRARY_DIR})
+  # sawRobotIO1394 configuration
+  include_directories (
+    ${saw_robot_io_1394_ros_SOURCE_DIR}/include
+    ${sawRobotIO1394_INCLUDE_DIR})
+  link_directories (${sawRobotIO1394_LIBRARY_DIR})
 
-    add_library (
-      saw_robot_io_1394_ros
-      include/saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h
-      src/mts_ros_crtk_robot_io_bridge.cpp)
-    target_link_libraries (
-      saw_robot_io_1394_ros
-      ${sawRobotIO1394_LIBRARIES}
-      ${catkin_LIBRARIES})
-    cisst_target_link_libraries (saw_robot_io_1394_ros ${REQUIRED_CISST_LIBRARIES})
+  add_library (
+    saw_robot_io_1394_ros
+    include/saw_robot_io_1394_ros/mts_ros_crtk_robot_io_bridge.h
+    src/mts_ros_crtk_robot_io_bridge.cpp)
+  target_link_libraries (
+    saw_robot_io_1394_ros
+    ${sawRobotIO1394_LIBRARIES}
+    ${catkin_LIBRARIES})
+  target_link_libraries (saw_robot_io_1394_ros ${cisst_LIBRARIES})
 
-    add_executable (
+  add_executable (
+    robot_io_console
+    src/robot_io_console.cpp)
+  target_link_libraries (
+    robot_io_console
+    saw_robot_io_1394_ros
+    ${sawRobotIO1394_LIBRARIES}
+    ${catkin_LIBRARIES})
+  target_link_libraries (robot_io_console ${cisst_LIBRARIES})
+
+
+  install (
+    TARGETS robot_io_console
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+    )
+
+  install (
+    TARGETS saw_robot_io_1394_ros
+    EXPORT saw_robot_io_1394_ros
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    INCLUDES DESTINATION include
+    )
+
+  install (
+    DIRECTORY include/saw_robot_io_1394_ros
+    DESTINATION include
+    )
+
+  if (ROS_VERSION EQUAL 2)
+    ament_target_dependencies (
       robot_io_console
-      src/robot_io_console.cpp)
-    target_link_libraries (
-      robot_io_console
+      ${ROS2_depends}
+      )
+
+    ament_target_dependencies (
       saw_robot_io_1394_ros
-      ${sawRobotIO1394_LIBRARIES}
-      ${catkin_LIBRARIES})
-    cisst_target_link_libraries (robot_io_console ${REQUIRED_CISST_LIBRARIES})
-
-
-    install (
-      TARGETS robot_io_console
-      RUNTIME DESTINATION lib/${PROJECT_NAME}
+      ${ROS2_depends}
       )
 
-    install (
-      TARGETS saw_robot_io_1394_ros
-      EXPORT saw_robot_io_1394_ros
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib
-      INCLUDES DESTINATION include
-      )
+    ament_export_targets (saw_robot_io_1394_ros HAS_LIBRARY_TARGET)
 
-    install (
-      DIRECTORY include/saw_robot_io_1394_ros
-      DESTINATION include
-      )
+    ament_package ()
+  endif ()
 
-    if (ROS_VERSION EQUAL 2)
-      ament_target_dependencies (
-        robot_io_console
-        ${ROS2_depends}
-        )
+else (sawRobotIO1394_FOUND)
+  message ("Information: code in ${CMAKE_CURRENT_SOURCE_DIR} will not be compiled, it requires sawRobotIO1394")
+endif (sawRobotIO1394_FOUND)
 
-      ament_target_dependencies (
-        saw_robot_io_1394_ros
-        ${ROS2_depends}
-        )
-
-      ament_export_targets (saw_robot_io_1394_ros HAS_LIBRARY_TARGET)
-
-      ament_package ()
-    endif ()
-
-  else (sawRobotIO1394_FOUND)
-    message ("Information: code in ${CMAKE_CURRENT_SOURCE_DIR} will not be compiled, it requires sawRobotIO1394")
-  endif (sawRobotIO1394_FOUND)
-
-endif (cisst_FOUND_AS_REQUIRED)
