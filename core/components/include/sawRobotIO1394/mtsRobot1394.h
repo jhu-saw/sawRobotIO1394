@@ -280,6 +280,7 @@ namespace sawRobotIO1394 {
 
         bool m_calibration_mode = false;
         bool mSUJSiConfigured = false;
+        bool mSUJSiPresenceChecked = false;
         bool mSUJSiStateTableConfigured = false;
 
         //! Board Objects
@@ -311,9 +312,6 @@ namespace sawRobotIO1394 {
         bool
             mValid,
             mSUJSiReadValid,
-            mSUJSiHasESSJ,
-            mSUJSiHasDSIBSi,
-            mSUJSiHasDSIBSiZ,
             mFullyPowered,
             mPreviousFullyPowered,
             mPowerEnable,

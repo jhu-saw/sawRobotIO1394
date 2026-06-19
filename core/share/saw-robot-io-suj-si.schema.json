@@ -1,0 +1,59 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "saw-robot-io-suj-si.schema.json",
+    "title": "sawRobotIO1394 SUJ-Si Calibration",
+    "type": "object",
+    "description": "Configuration file format for SUJ-Si calibration on sawRobotIO1394.",
+    "additionalProperties": false,
+    "required": ["arm_name"],
+    "properties": {
+        "$id": {
+            "type": "string"
+        },
+        "$version": {
+            "type": "string"
+        },
+        "arm_name": {
+            "type": "string",
+            "description": "Name of the arm this SUJ-Si feedback is attached to."
+        },
+        "serial_number": {
+            "type": "string",
+            "description": "Serial number of the arm this SUJ-Si feedback is attached to."
+        },
+        "primary_measured_js": {
+            "type": "array",
+            "description": "Scale/offset pairs to convert primary Si SUJ potentiometer ADC counts to SI units.",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["scale", "offset"],
+                "properties": {
+                    "scale": {
+                        "type": "number"
+                    },
+                    "offset": {
+                        "type": "number"
+                    }
+                }
+            }
+        },
+        "secondary_measured_js": {
+            "type": "array",
+            "description": "Scale/offset pairs to convert secondary Si SUJ potentiometer ADC counts to SI units.",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["scale", "offset"],
+                "properties": {
+                    "scale": {
+                        "type": "number"
+                    },
+                    "offset": {
+                        "type": "number"
+                    }
+                }
+            }
+        }
+    }
+}

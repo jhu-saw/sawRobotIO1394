@@ -13,14 +13,7 @@
 # find cisst and make sure the required libraries have been compiled
 find_package (cisst REQUIRED COMPONENTS cisstCommon)
 
-set (FILES_TO_COPY sawRobotIO1394Example.xml sawRobotIO1394TestBoard.xml)
+set (FILES_TO_COPY saw-robot-io.schema.json saw-robot-io-suj-si.schema.json)
 
-# set (DESTINATION_DIRECTORY "${CISST_BINARY_DIR}/${CISST_SHARE_INSTALL_SUFFIX}/sawRobotIO1394")
-# file (MAKE_DIRECTORY "${DESTINATION_DIRECTORY}")
-# foreach (_file ${FILES_TO_COPY})
-#   add_custom_target (sawRobotIO1394_copy_${_file} ALL
-#                      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#                              "${CMAKE_CURRENT_SOURCE_DIR}/${_file}"
-#                              "${DESTINATION_DIRECTORY}/${_file}"
-#                      COMMENT "Copying data files ${_file} to ${DESTINATION_DIRECTORY}")
-# endforeach (_file)
+install (FILES ${FILES_TO_COPY}
+         DESTINATION share/sawRobotIO1394)

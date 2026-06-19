@@ -36,6 +36,12 @@ class {
         description Name of the arm this SUJ-Si feedback is attached to;
     }
     member {
+        name serial_number;
+        type std::string;
+        visibility public;
+        description Serial number of the arm this SUJ-Si feedback is attached to;
+    }
+    member {
         name primary_measured_js;
         type std::vector<osaConfiguration1394SUJSiLinearFunction>;
         default std::vector<osaConfiguration1394SUJSiLinearFunction>();

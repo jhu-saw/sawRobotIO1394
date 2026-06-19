@@ -46,9 +46,7 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     // State Initialization
     mValid(false),
     mSUJSiReadValid(false),
-    mSUJSiHasESSJ(false),
-    mSUJSiHasDSIBSi(false),
-    mSUJSiHasDSIBSiZ(false),
+    mSUJSiPresenceChecked(false),
     mFullyPowered(false),
     mPreviousFullyPowered(false),
     mPowerEnable(false),
@@ -331,9 +329,6 @@ bool mtsRobot1394::SetupSUJSiStateTable(void)
     }
     m_state_table_read->AddData(m_suj_si_primary_measured_js, "SUJ_Si_primary_measured_js");
     m_state_table_read->AddData(m_suj_si_secondary_measured_js, "SUJ_Si_secondary_measured_js");
-    m_state_table_read->AddData(mSUJSiHasESSJ, "SUJ_Si_has_ESSJ");
-    m_state_table_read->AddData(mSUJSiHasDSIBSi, "SUJ_Si_has_dSIBSi");
-    m_state_table_read->AddData(mSUJSiHasDSIBSiZ, "SUJ_Si_has_dSIBSiZ");
     mSUJSiStateTableConfigured = true;
     return true;
 }
@@ -350,12 +345,6 @@ void mtsRobot1394::SetupSUJSiInterface(mtsInterfaceProvided * sujSiInterface)
                                         "primary/measured_js");
     sujSiInterface->AddCommandReadState(*m_state_table_read, m_suj_si_secondary_measured_js,
                                         "secondary/measured_js");
-    sujSiInterface->AddCommandReadState(*m_state_table_read, mSUJSiHasESSJ,
-                                        "has_ESSJ");
-    sujSiInterface->AddCommandReadState(*m_state_table_read, mSUJSiHasDSIBSi,
-                                        "has_dSIBSi");
-    sujSiInterface->AddCommandReadState(*m_state_table_read, mSUJSiHasDSIBSiZ,
-                                        "has_dSIBSiZ");
 }
 
 bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
@@ -406,9 +395,7 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
     m_suj_si_configuration = config;
     mSUJSiConfigured = true;
     mSUJSiReadValid = false;
-    mSUJSiHasESSJ = false;
-    mSUJSiHasDSIBSi = false;
-    mSUJSiHasDSIBSiZ = false;
+    mSUJSiPresenceChecked = false;
     mSUJSiPrimaryBits.SetSize(numberOfSUJSiJoints);
     mSUJSiSecondaryBits.SetSize(numberOfSUJSiJoints);
     m_suj_si_primary_measured_js.SetSize(numberOfSUJSiJoints);
@@ -740,9 +727,7 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mSUJSiConfigured = false;
     mSUJSiStateTableConfigured = false;
     mSUJSiReadValid = false;
-    mSUJSiHasESSJ = false;
-    mSUJSiHasDSIBSi = false;
-    mSUJSiHasDSIBSiZ = false;
+    mSUJSiPresenceChecked = false;
     mSUJSiPrimaryBits.SetSize(0);
     mSUJSiSecondaryBits.SetSize(0);
     m_suj_si_primary_measured_js.SetSize(0);
@@ -1042,9 +1027,6 @@ void mtsRobot1394::PollSUJSiState(void)
     }
 
     mSUJSiReadValid = false;
-    mSUJSiHasESSJ = false;
-    mSUJSiHasDSIBSi = false;
-    mSUJSiHasDSIBSiZ = false;
     mSUJSiPrimaryBits.SetAll(-1);
     mSUJSiSecondaryBits.SetAll(-1);
 
@@ -1056,13 +1038,25 @@ void mtsRobot1394::PollSUJSiState(void)
         bool dSIBSiZPresent = false;
 
         const bool positionsRead = board.second->ReadSiSUJPositions(positions);
-        const bool presenceRead = board.second->ReadSiSUJPresence(ESSJPresent,
-                                                                  dSIBSiPresent,
-                                                                  dSIBSiZPresent);
+        bool presenceRead = false;
+        if (!mSUJSiPresenceChecked) {
+            presenceRead = board.second->ReadSiSUJPresence(ESSJPresent,
+                                                           dSIBSiPresent,
+                                                           dSIBSiZPresent);
+        }
         if (presenceRead) {
-            mSUJSiHasESSJ = ESSJPresent;
-            mSUJSiHasDSIBSi = dSIBSiPresent;
-            mSUJSiHasDSIBSiZ = dSIBSiZPresent;
+            mSUJSiPresenceChecked = true;
+            if (mInterface) {
+                if (!ESSJPresent) {
+                    mInterface->SendError("IO: " + this->Name() + " ESSJ board not found");
+                }
+                if (!dSIBSiPresent) {
+                    mInterface->SendError("IO: " + this->Name() + " dSIBSi board not found");
+                }
+                if (!dSIBSiZPresent) {
+                    mInterface->SendError("IO: " + this->Name() + " dSIBSiZ board not found");
+                }
+            }
         }
         if (positionsRead) {
             bool allConfiguredPotsPresent = true;

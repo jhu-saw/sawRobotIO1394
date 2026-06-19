@@ -419,6 +419,16 @@ void mtsRobotIO1394::ConfigureSUJSi(const sawRobotIO1394::osaConfiguration1394SU
     }
 
     mtsRobot1394 * robot = robotIterator->second;
+    if (config.serial_number != "") {
+        if (config.serial_number != robot->SerialNumber()) {
+            CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: file \"" << filename
+                                     << "\" references arm \"" << config.arm_name
+                                     << "\" with serial number \"" << config.serial_number
+                                     << "\" but that arm was configured with serial number \""
+                                     << robot->SerialNumber() << "\"" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
     if (!robot->ConfigureSUJSi(config)) {
         CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: error in configuration file \""
                                  << filename << "\" for robot \""
