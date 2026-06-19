@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cmath>
 #include <cctype>
 #include <algorithm>
+#include <array>
 
 #include <cisstCommon/cmnPath.h>
 
@@ -44,6 +45,10 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     m_unique_boards(),
     // State Initialization
     mValid(false),
+    mSUJSiReadValid(false),
+    mSUJSiHasESSJ(false),
+    mSUJSiHasDSIBSi(false),
+    mSUJSiHasDSIBSiZ(false),
     mFullyPowered(false),
     mPreviousFullyPowered(false),
     mPowerEnable(false),
@@ -100,6 +105,11 @@ bool mtsRobot1394::SetupStateTables(const size_t stateTableSize,
     m_state_table_read->AddData(mPotentiometerVoltage, "AnalogInVolts");
     m_state_table_read->AddData(m_raw_pot_measured_js, "raw_pot_measured_js"); // wherever pots are mounted
     m_state_table_read->AddData(m_pot_measured_js, "pot_measured_js"); // in actuator space
+    if (HasSUJSi()) {
+        if (!SetupSUJSiStateTable()) {
+            return false;
+        }
+    }
     m_state_table_read->AddData(mActuatorCurrentBitsFeedback, "ActuatorFeedbackCurrentRaw");
     m_state_table_read->AddData(mActuatorCurrentFeedback, "ActuatorFeedbackCurrent");
 
@@ -297,6 +307,131 @@ void mtsRobot1394::SetupInterfaces(mtsInterfaceProvided * robotInterface)
                                             "DriveAmpsToBits", mActuatorCurrentFeedback, mActuatorCurrentBitsFeedback);
     robotInterface->AddCommandQualifiedRead(&mtsRobot1394::PotentiometerVoltageToPosition, this,
                                             "AnalogInVoltsToPosSI", mPotentiometerVoltage, m_raw_pot_measured_js.Position());
+}
+
+bool mtsRobot1394::HasSUJSi(void) const
+{
+    return mSUJSiConfigured;
+}
+
+bool mtsRobot1394::SetupSUJSiStateTable(void)
+{
+    if (!HasSUJSi()) {
+        CMN_LOG_CLASS_INIT_ERROR << "SetupSUJSiStateTable: SUJ-Si has not been configured for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+    if (mSUJSiStateTableConfigured) {
+        return true;
+    }
+    if (!m_state_table_read) {
+        CMN_LOG_CLASS_INIT_ERROR << "SetupSUJSiStateTable: read state table has not been created for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+    m_state_table_read->AddData(m_suj_si_primary_measured_js, "SUJ_Si_primary_measured_js");
+    m_state_table_read->AddData(m_suj_si_secondary_measured_js, "SUJ_Si_secondary_measured_js");
+    m_state_table_read->AddData(mSUJSiHasESSJ, "SUJ_Si_has_ESSJ");
+    m_state_table_read->AddData(mSUJSiHasDSIBSi, "SUJ_Si_has_dSIBSi");
+    m_state_table_read->AddData(mSUJSiHasDSIBSiZ, "SUJ_Si_has_dSIBSiZ");
+    mSUJSiStateTableConfigured = true;
+    return true;
+}
+
+void mtsRobot1394::SetupSUJSiInterface(mtsInterfaceProvided * sujSiInterface)
+{
+    if (!SetupSUJSiStateTable()) {
+        CMN_LOG_CLASS_INIT_ERROR << "SetupSUJSiInterface: failed to setup SUJ-Si state table for arm: "
+                                 << this->Name() << std::endl;
+        return;
+    }
+    sujSiInterface->AddMessageEvents();
+    sujSiInterface->AddCommandReadState(*m_state_table_read, m_suj_si_primary_measured_js,
+                                        "primary/measured_js");
+    sujSiInterface->AddCommandReadState(*m_state_table_read, m_suj_si_secondary_measured_js,
+                                        "secondary/measured_js");
+    sujSiInterface->AddCommandReadState(*m_state_table_read, mSUJSiHasESSJ,
+                                        "has_ESSJ");
+    sujSiInterface->AddCommandReadState(*m_state_table_read, mSUJSiHasDSIBSi,
+                                        "has_dSIBSi");
+    sujSiInterface->AddCommandReadState(*m_state_table_read, mSUJSiHasDSIBSiZ,
+                                        "has_dSIBSiZ");
+}
+
+bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
+{
+    const size_t numberOfSUJSiJoints = config.primary_measured_js.size();
+
+    if (config.arm_name != this->Name()) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: configuration is for arm \""
+                                 << config.arm_name << "\" but robot is \""
+                                 << this->Name() << "\"" << std::endl;
+        return false;
+    }
+    if (HasSUJSi()) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: SUJ-Si has already been configured for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+    if (m_configuration.hardware_version != osa1394::dRA1) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: SUJ-Si is only supported with dRA1 hardware for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+    if (m_unique_boards.empty()) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: arm \"" << this->Name()
+                                 << "\" has no configured boards.  Configure the robot before adding SUJ-Si feedback."
+                                 << std::endl;
+        return false;
+    }
+    if (numberOfSUJSiJoints == 0) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: primary_measured_js must contain at least one scale/offset pair for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+    if (numberOfSUJSiJoints > 5) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: SUJ-Si supports up to 5 joints, found "
+                                 << numberOfSUJSiJoints << " for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+    if (config.secondary_measured_js.size() != numberOfSUJSiJoints) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: primary_measured_js and secondary_measured_js must have the same size for arm: "
+                                 << this->Name() << ".  Found "
+                                 << numberOfSUJSiJoints << " and "
+                                 << config.secondary_measured_js.size() << std::endl;
+        return false;
+    }
+
+    m_suj_si_configuration = config;
+    mSUJSiConfigured = true;
+    mSUJSiReadValid = false;
+    mSUJSiHasESSJ = false;
+    mSUJSiHasDSIBSi = false;
+    mSUJSiHasDSIBSiZ = false;
+    mSUJSiPrimaryBits.SetSize(numberOfSUJSiJoints);
+    mSUJSiSecondaryBits.SetSize(numberOfSUJSiJoints);
+    m_suj_si_primary_measured_js.SetSize(numberOfSUJSiJoints);
+    m_suj_si_secondary_measured_js.SetSize(numberOfSUJSiJoints);
+
+    const std::array<std::string, 5> sujSiJointNames = {{"Z", "rot_1", "rot_2", "rot_3", "rot_4"}};
+    mSUJSiPrimaryBits.SetAll(-1);
+    mSUJSiSecondaryBits.SetAll(-1);
+    m_suj_si_primary_measured_js.Position().SetAll(mtsRobot1394::GetMissingPotentiometerValue());
+    m_suj_si_secondary_measured_js.Position().SetAll(mtsRobot1394::GetMissingPotentiometerValue());
+    m_suj_si_primary_measured_js.Velocity().SetAll(0.0);
+    m_suj_si_secondary_measured_js.Velocity().SetAll(0.0);
+    m_suj_si_primary_measured_js.Effort().SetAll(0.0);
+    m_suj_si_secondary_measured_js.Effort().SetAll(0.0);
+    for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
+        const std::string jointName = (index < sujSiJointNames.size())
+            ? sujSiJointNames.at(index)
+            : "joint_" + std::to_string(index);
+        m_suj_si_primary_measured_js.Name().at(index) = jointName;
+        m_suj_si_secondary_measured_js.Name().at(index) = jointName;
+    }
+
+    return SetupSUJSiStateTable();
 }
 
 void mtsRobot1394::Startup(void)
@@ -602,6 +737,17 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     // actuator names
     cmnDataCopy(m_raw_pot_measured_js.Name(), m_measured_js.Name());
 
+    mSUJSiConfigured = false;
+    mSUJSiStateTableConfigured = false;
+    mSUJSiReadValid = false;
+    mSUJSiHasESSJ = false;
+    mSUJSiHasDSIBSi = false;
+    mSUJSiHasDSIBSiZ = false;
+    mSUJSiPrimaryBits.SetSize(0);
+    mSUJSiSecondaryBits.SetSize(0);
+    m_suj_si_primary_measured_js.SetSize(0);
+    m_suj_si_secondary_measured_js.SetSize(0);
+
     mActuatorCurrentFeedbackLimits.SetSize(m_number_of_actuators);
     mPotentiometerErrorDuration.SetSize(m_number_of_actuators);
     mPotentiometerValid.SetSize(m_number_of_actuators);
@@ -886,6 +1032,52 @@ void mtsRobot1394::PollState(void)
         mBrakeTemperature[i] = (board->GetAmpTemperature(axis / 2)) / 2.0;
     }
 
+    PollSUJSiState();
+}
+
+void mtsRobot1394::PollSUJSiState(void)
+{
+    if (!HasSUJSi()) {
+        return;
+    }
+
+    mSUJSiReadValid = false;
+    mSUJSiHasESSJ = false;
+    mSUJSiHasDSIBSi = false;
+    mSUJSiHasDSIBSiZ = false;
+    mSUJSiPrimaryBits.SetAll(-1);
+    mSUJSiSecondaryBits.SetAll(-1);
+
+    for (auto & board : m_unique_boards) {
+        std::array<int16_t, 10> positions;
+        positions.fill(-1);
+        bool ESSJPresent = false;
+        bool dSIBSiPresent = false;
+        bool dSIBSiZPresent = false;
+
+        const bool positionsRead = board.second->ReadSiSUJPositions(positions);
+        const bool presenceRead = board.second->ReadSiSUJPresence(ESSJPresent,
+                                                                  dSIBSiPresent,
+                                                                  dSIBSiZPresent);
+        if (presenceRead) {
+            mSUJSiHasESSJ = ESSJPresent;
+            mSUJSiHasDSIBSi = dSIBSiPresent;
+            mSUJSiHasDSIBSiZ = dSIBSiZPresent;
+        }
+        if (positionsRead) {
+            bool allConfiguredPotsPresent = true;
+            const size_t numberOfSUJSiJoints = m_suj_si_configuration.primary_measured_js.size();
+            for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
+                const int primary = positions.at(2 * index);
+                const int secondary = positions.at(2 * index + 1);
+                mSUJSiPrimaryBits.at(index) = primary;
+                mSUJSiSecondaryBits.at(index) = secondary;
+                allConfiguredPotsPresent &= ((primary >= 0) && (secondary >= 0));
+            }
+            mSUJSiReadValid = allConfiguredPotsPresent;
+            return;
+        }
+    }
 }
 
 void mtsRobot1394::ConvertState(void)
@@ -1034,6 +1226,31 @@ void mtsRobot1394::ConvertState(void)
     } else {
         m_pot_measured_js.Position().Assign(m_raw_pot_measured_js.Position());
     }
+
+    ConvertSUJSiState();
+}
+
+void mtsRobot1394::ConvertSUJSiState(void)
+{
+    if (!HasSUJSi()) {
+        return;
+    }
+
+    const size_t numberOfSUJSiJoints = m_suj_si_configuration.primary_measured_js.size();
+    for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
+        const osaConfiguration1394SUJSiLinearFunction & primaryConversion =
+            m_suj_si_configuration.primary_measured_js.at(index);
+        const osaConfiguration1394SUJSiLinearFunction & secondaryConversion =
+            m_suj_si_configuration.secondary_measured_js.at(index);
+        const int primary = mSUJSiPrimaryBits.at(index);
+        const int secondary = mSUJSiSecondaryBits.at(index);
+        m_suj_si_primary_measured_js.Position().at(index) = (primary >= 0)
+            ? primaryConversion.offset + static_cast<double>(primary) * primaryConversion.scale
+            : mtsRobot1394::GetMissingPotentiometerValue();
+        m_suj_si_secondary_measured_js.Position().at(index) = (secondary >= 0)
+            ? secondaryConversion.offset + static_cast<double>(secondary) * secondaryConversion.scale
+            : mtsRobot1394::GetMissingPotentiometerValue();
+    }
 }
 
 
@@ -1045,6 +1262,10 @@ void mtsRobot1394::CheckState(void)
     m_software_measured_js.SetValid(false);
     m_raw_pot_measured_js.SetValid(false);
     m_pot_measured_js.SetValid(false);
+    if (HasSUJSi()) {
+        m_suj_si_primary_measured_js.SetValid(false);
+        m_suj_si_secondary_measured_js.SetValid(false);
+    }
 
     // If we had a read error, all checks are pretty much useless
     if (mInvalidReadCounter > 0) {
@@ -1370,6 +1591,10 @@ void mtsRobot1394::CheckState(void)
     m_software_measured_js.SetValid(true);
     m_raw_pot_measured_js.SetValid(true);
     m_pot_measured_js.SetValid(true);
+    if (HasSUJSi()) {
+        m_suj_si_primary_measured_js.SetValid(mSUJSiReadValid);
+        m_suj_si_secondary_measured_js.SetValid(mSUJSiReadValid);
+    }
 
     if (mPreviousFullyPowered != mFullyPowered) {
         EventTriggers.FullyPowered(mFullyPowered);

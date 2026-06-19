@@ -18,6 +18,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <cisstBuildType.h>
 #include <cisstCommon/cmnLogger.h>
@@ -271,10 +272,31 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         // id & version check
         const std::string id = json_config["$id"].asString();
         const std::string id_expected = "saw-robot-io.schema.json";
+        const std::string id_suj_si = "saw-robot-io-SUJ-Si.schema.json";
+        if (id == id_suj_si) {
+            const std::string version = json_config["$version"].asString();
+            if (version != "1") {
+                CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
+                                         << " has incorrect or missing $version, found \"" << version
+                                         << "\", expected \"1\"" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            osaConfiguration1394SUJ_Si sujSiConfig;
+            cmnDataJSON<osaConfiguration1394SUJ_Si>::DeSerializeText(sujSiConfig, json_config);
+            CMN_LOG_CLASS_INIT_VERBOSE << "Configure " << this->GetName()
+                                       << ": content of SUJ-Si configuration file" << std::endl
+                                       << "------------ file ------------" << std::endl
+                                       << sujSiConfig
+                                       << "----------end of file --------" << std::endl;
+            ConfigureSUJSi(sujSiConfig, filename);
+            return;
+        }
         if (id != id_expected) {
             CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
                                      << " has incorrect or missing $id, found \"" << id
-                                     << "\", expected \"" << id_expected << "\"" << std::endl;
+                                     << "\", expected \"" << id_expected
+                                     << "\" or \"" << id_suj_si << "\"" << std::endl;
             exit(EXIT_FAILURE);
         }
         const std::string version = json_config["$version"].asString();
@@ -378,6 +400,43 @@ void mtsRobotIO1394::Configure(const std::string & filename)
 
     // Read all the boards, a easy solution to the issue that specific board cannot be read when using boardcast-read-write
     m_port->ReadAllBoards();
+}
+
+void mtsRobotIO1394::ConfigureSUJSi(const sawRobotIO1394::osaConfiguration1394SUJ_Si & config,
+                                    const std::string & filename)
+{
+    const auto robotIterator = m_robots_by_name.find(config.arm_name);
+    if (robotIterator == m_robots_by_name.end()) {
+        std::stringstream message;
+        message << "ConfigureSUJSi: file \"" << filename
+                << "\" references arm \"" << config.arm_name
+                << "\" but that arm has not been configured.  Configured arms:";
+        for (const auto & robot : m_robots) {
+            message << " " << robot->Name();
+        }
+        CMN_LOG_CLASS_INIT_ERROR << message.str() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    mtsRobot1394 * robot = robotIterator->second;
+    if (!robot->ConfigureSUJSi(config)) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: error in configuration file \""
+                                 << filename << "\" for robot \""
+                                 << robot->Name() << "\"" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    const std::string sujSiInterfaceName = robot->Name() + "_SUJ_Si";
+    mtsInterfaceProvided * sujSiInterface = this->AddInterfaceProvided(sujSiInterfaceName);
+    if (!sujSiInterface) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: failed to create provided interface \""
+                                 << sujSiInterfaceName << "\"" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    robot->SetupSUJSiInterface(sujSiInterface);
+    CMN_LOG_CLASS_INIT_VERBOSE << "ConfigureSUJSi: added interface \""
+                               << sujSiInterfaceName << "\" for robot \""
+                               << robot->Name() << "\"" << std::endl;
 }
 
 bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)

@@ -26,6 +26,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstMultiTask/mtsTaskPeriodic.h>
 #include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
+#include <sawRobotIO1394/osaConfiguration1394SUJ_Si.h>
 
 // Always include last!
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
@@ -82,6 +83,8 @@ public:
     void SkipConfigurationCheck(const bool skip); // must be called before Configure
     void set_calibration_mode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
     void Configure(const std::string & filename) override;
+    void ConfigureSUJSi(const sawRobotIO1394::osaConfiguration1394SUJ_Si & config,
+                        const std::string & filename);
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     bool SetupDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalOutput);

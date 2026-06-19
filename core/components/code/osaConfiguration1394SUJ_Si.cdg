@@ -1,0 +1,52 @@
+// -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+// ex: set filetype=cpp softtabstop=4 shiftwidth=4 tabstop=4 cindent expandtab:
+
+inline-header {
+#include <vector>
+#include <string>
+#include <sawRobotIO1394/sawRobotIO1394Export.h>
+} // inline-header
+
+class {
+    name osaConfiguration1394SUJSiLinearFunction;
+    namespace sawRobotIO1394;
+    attribute CISST_EXPORT;
+    member {
+        name scale;
+        type double;
+        default 0.0;
+        visibility public;
+    }
+    member {
+        name offset;
+        type double;
+        default 0.0;
+        visibility public;
+    }
+}
+
+class {
+    name osaConfiguration1394SUJ_Si;
+    namespace sawRobotIO1394;
+    attribute CISST_EXPORT;
+    member {
+        name arm_name;
+        type std::string;
+        visibility public;
+        description Name of the arm this SUJ-Si feedback is attached to;
+    }
+    member {
+        name primary_measured_js;
+        type std::vector<osaConfiguration1394SUJSiLinearFunction>;
+        default std::vector<osaConfiguration1394SUJSiLinearFunction>();
+        visibility public;
+        description Scale/offset pairs to convert primary Si SUJ potentiometer ADC counts to SI units;
+    }
+    member {
+        name secondary_measured_js;
+        type std::vector<osaConfiguration1394SUJSiLinearFunction>;
+        default std::vector<osaConfiguration1394SUJSiLinearFunction>();
+        visibility public;
+        description Scale/offset pairs to convert secondary Si SUJ potentiometer ADC counts to SI units;
+    }
+}

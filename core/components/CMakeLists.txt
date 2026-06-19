@@ -70,7 +70,8 @@ cisst_add_config_files (sawRobotIO1394)
 cisst_data_generator (sawRobotIO1394
                       "${sawRobotIO1394_BINARY_DIR}/include" # where to save the file
                       "sawRobotIO1394/"    # sub directory for include
-                      code/osaConfiguration1394.cdg)
+                      code/osaConfiguration1394.cdg
+                      code/osaConfiguration1394SUJ_Si.cdg)
 
 # create the library
 add_library (sawRobotIO1394
