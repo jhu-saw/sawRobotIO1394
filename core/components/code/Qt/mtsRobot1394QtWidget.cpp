@@ -45,6 +45,7 @@ CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobot1394QtWidget, mtsComponent, mtsCom
 mtsRobot1394QtWidget::mtsRobot1394QtWidget(const std::string & componentName,
                                            unsigned int numberOfActuators,
                                            unsigned int numberOfBrakes,
+                                           unsigned int numberOfSUJSiJoints,
                                            double periodInSeconds):
     mtsComponent(componentName),
     DirectControl(false),
@@ -52,7 +53,8 @@ mtsRobot1394QtWidget::mtsRobot1394QtWidget(const std::string & componentName,
     TimerPeriodInMilliseconds(periodInSeconds * 1000), // Qt timers are in milliseconds
     SerialNumber(""),
     NumberOfActuators(numberOfActuators),
-    NumberOfBrakes(numberOfBrakes)
+    NumberOfBrakes(numberOfBrakes),
+    NumberOfSUJSiJoints(numberOfSUJSiJoints)
 {
     WatchdogPeriodInSeconds = 300.0 * cmn_ms;
     WatchdogCounter = 0;
@@ -62,7 +64,9 @@ mtsRobot1394QtWidget::mtsRobot1394QtWidget(const std::string & componentName,
 mtsRobot1394QtWidget::mtsRobot1394QtWidget(const mtsComponentConstructorNameAndUInt &arg):
     mtsComponent(arg.Name),
     SerialNumber(""),
-    NumberOfActuators(arg.Arg)
+    NumberOfActuators(arg.Arg),
+    NumberOfBrakes(0),
+    NumberOfSUJSiJoints(0)
 {
     Init();
 }
@@ -82,6 +86,13 @@ void mtsRobot1394QtWidget::Init(void)
     ActuatorRequestedCurrent.SetSize(NumberOfActuators);
     ActuatorRequestedCurrent.Zeros();
     ActuatorAmpTemperature.SetSize(NumberOfActuators);
+
+    if (NumberOfSUJSiJoints != 0) {
+        SUJSiPrimaryVoltage.Position().SetSize(NumberOfSUJSiJoints);
+        SUJSiPrimaryVoltage.Position().Zeros();
+        SUJSiSecondaryVoltage.Position().SetSize(NumberOfSUJSiJoints);
+        SUJSiSecondaryVoltage.Position().Zeros();
+    }
 
     StartTime = osaGetTime();
 
@@ -402,6 +413,10 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
             BrakeFeedbackCurrent.Multiply(1000.0); // to mA
             Robot.GetBrakeAmpTemperature(BrakeAmpTemperature);
         }
+        if (NumberOfSUJSiJoints != 0) {
+            Robot.GetSUJSiPrimaryVoltage(SUJSiPrimaryVoltage);
+            Robot.GetSUJSiSecondaryVoltage(SUJSiSecondaryVoltage);
+        }
     } else {
         ActuatorStateJoint.Position().SetAll(DummyValueWhenNotConnected);
         ActuatorStateJoint.Velocity().SetAll(DummyValueWhenNotConnected);
@@ -409,6 +424,10 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
         PotentiometersPosition.Position().SetAll(DummyValueWhenNotConnected);
         ActuatorFeedbackCurrent.SetAll(DummyValueWhenNotConnected);
         ActuatorAmpTemperature.SetAll(DummyValueWhenNotConnected);
+        if (NumberOfSUJSiJoints != 0) {
+            SUJSiPrimaryVoltage.Position().SetAll(DummyValueWhenNotConnected);
+            SUJSiSecondaryVoltage.Position().SetAll(DummyValueWhenNotConnected);
+        }
     }
 
     DummyValueWhenNotConnected += 0.1;
@@ -443,6 +462,10 @@ void mtsRobot1394QtWidget::timerEvent(QTimerEvent * CMN_UNUSED(event))
             QVRBrakeCurrentCommand->SetValue(BrakeRequestedCurrent);
             QVRBrakeCurrentFeedback->SetValue(BrakeFeedbackCurrent);
             QVRBrakeAmpTemperature->SetValue(BrakeAmpTemperature);
+        }
+        if (NumberOfSUJSiJoints != 0) {
+            QVRSUJSiPrimaryVoltage->SetValue(SUJSiPrimaryVoltage.Position());
+            QVRSUJSiSecondaryVoltage->SetValue(SUJSiSecondaryVoltage.Position());
         }
     }
 
@@ -514,6 +537,14 @@ void mtsRobot1394QtWidget::SetupCisstInterface(void)
         robotInterface->AddFunction("SetActuatorAmpEnable", Robot.SetActuatorAmpEnable);
         robotInterface->AddFunction("GetActuatorAmpEnable", Robot.GetActuatorAmpEnable);
         robotInterface->AddFunction("GetActuatorAmpStatus", Robot.GetActuatorAmpStatus);
+    }
+
+    if (NumberOfSUJSiJoints != 0) {
+        mtsInterfaceRequired * sujSiInterface = AddInterfaceRequired("SUJ-Si");
+        if (sujSiInterface) {
+            sujSiInterface->AddFunction("primary_voltage/measured_js", Robot.GetSUJSiPrimaryVoltage);
+            sujSiInterface->AddFunction("secondary_voltage/measured_js", Robot.GetSUJSiSecondaryVoltage);
+        }
     }
 }
 
@@ -756,6 +787,18 @@ void mtsRobot1394QtWidget::setupUi(void)
         textLayout->addWidget(new QLabel("Amp temperature (C)"), row, 0);
         QVRBrakeAmpTemperature = new vctQtWidgetDynamicVectorDoubleRead();
         textLayout->addWidget(QVRBrakeAmpTemperature, row, 1);
+        row++;
+    }
+
+    if (NumberOfSUJSiJoints != 0) {
+        textLayout->addWidget(new QLabel("SUJ primary (V|ADC)"), row, 0);
+        QVRSUJSiPrimaryVoltage = new vctQtWidgetDynamicVectorDoubleRead();
+        textLayout->addWidget(QVRSUJSiPrimaryVoltage, row, 1);
+        row++;
+
+        textLayout->addWidget(new QLabel("SUJ secondary (V|ADC)"), row, 0);
+        QVRSUJSiSecondaryVoltage = new vctQtWidgetDynamicVectorDoubleRead();
+        textLayout->addWidget(QVRSUJSiSecondaryVoltage, row, 1);
         row++;
     }
 

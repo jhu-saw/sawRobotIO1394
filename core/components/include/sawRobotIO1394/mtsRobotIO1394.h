@@ -121,6 +121,7 @@ protected:
     void GetNumberOfBoards(size_t & placeHolder) const;
     void GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const;
     void GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const;
+    void GetNumberOfSUJSiJointsPerRobot(vctIntVec & placeHolder) const;
 
     mtsInterfaceProvided * mConfigurationInterface = nullptr;
     void GetRobotNames(std::vector<std::string> & names) const;

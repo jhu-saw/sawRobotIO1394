@@ -205,6 +205,8 @@ void mtsRobotIO1394::Init(const std::string & port)
                                                 "GetNumActuators");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfBrakesPerRobot, this,
                                                 "GetNumBrakes");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfSUJSiJointsPerRobot, this,
+                                                "GetNumSUJSiJoints");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfRobots, this,
                                                 "GetNumRobots");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalInputs, this,
@@ -273,7 +275,8 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         const std::string id = json_config["$id"].asString();
         const std::string id_expected = "saw-robot-io.schema.json";
         const std::string id_suj_si = "saw-robot-io-SUJ-Si.schema.json";
-        if (id == id_suj_si) {
+        const std::string id_suj_si_lower = "saw-robot-io-suj-si.schema.json";
+        if ((id == id_suj_si) || (id == id_suj_si_lower)) {
             const std::string version = json_config["$version"].asString();
             if (version != "1") {
                 CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
@@ -296,7 +299,7 @@ void mtsRobotIO1394::Configure(const std::string & filename)
             CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
                                      << " has incorrect or missing $id, found \"" << id
                                      << "\", expected \"" << id_expected
-                                     << "\" or \"" << id_suj_si << "\"" << std::endl;
+                                     << "\" or \"" << id_suj_si_lower << "\"" << std::endl;
             exit(EXIT_FAILURE);
         }
         const std::string version = json_config["$version"].asString();
@@ -751,6 +754,16 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
     placeHolder.resize(_num_robots);
     for (size_t i = 0; i < _num_robots; i++) {
         placeHolder[i] = m_robots[i]->NumberOfBrakes();
+    }
+}
+
+
+void mtsRobotIO1394::GetNumberOfSUJSiJointsPerRobot(vctIntVec & placeHolder) const
+{
+    const size_t _num_robots = m_robots.size();
+    placeHolder.resize(_num_robots);
+    for (size_t i = 0; i < _num_robots; i++) {
+        placeHolder[i] = m_robots[i]->HasSUJSi() ? m_robots[i]->NumberOfSUJSiJoints() : 0;
     }
 }
 

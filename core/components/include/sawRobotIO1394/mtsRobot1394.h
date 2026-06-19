@@ -70,6 +70,7 @@ namespace sawRobotIO1394 {
                               mtsStateTable * & stateTableWrite);
         void SetupInterfaces(mtsInterfaceProvided * robotInterface);
         bool HasSUJSi(void) const;
+        size_t NumberOfSUJSiJoints(void) const;
         bool SetupSUJSiStateTable(void);
         void SetupSUJSiInterface(mtsInterfaceProvided * sujSiInterface);
         void Startup(void);
@@ -282,6 +283,7 @@ namespace sawRobotIO1394 {
         bool mSUJSiConfigured = false;
         bool mSUJSiPresenceChecked = false;
         bool mSUJSiStateTableConfigured = false;
+        size_t mSUJSiSampleCounter = 0;
 
         //! Board Objects
         std::vector<osaActuatorMapping> mActuatorInfo;
@@ -393,6 +395,7 @@ namespace sawRobotIO1394 {
         prmForceTorqueJointSet mTorqueJoint;
         prmStateJoint m_measured_js, m_firmware_measured_js, m_software_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
         prmStateJoint m_suj_si_primary_measured_js, m_suj_si_secondary_measured_js;
+        prmStateJoint m_suj_si_primary_voltage_js, m_suj_si_secondary_voltage_js;
 
         // Functions for events
         struct {

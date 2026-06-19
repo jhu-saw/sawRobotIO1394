@@ -48,6 +48,7 @@ public:
     mtsRobot1394QtWidget(const std::string & componentName,
                          unsigned int numberOfActuators,
                          unsigned int numberOfBrakes,
+                         unsigned int numberOfSUJSiJoints = 0,
                          double periodInSeconds = 50.0 * cmn_ms);
     mtsRobot1394QtWidget(const mtsComponentConstructorNameAndUInt &arg);
     inline ~mtsRobot1394QtWidget(void) {}
@@ -140,6 +141,8 @@ protected:
         mtsFunctionWrite SetActuatorAmpEnable;
         mtsFunctionRead GetActuatorAmpEnable;
         mtsFunctionRead GetActuatorAmpStatus;
+        mtsFunctionRead GetSUJSiPrimaryVoltage;
+        mtsFunctionRead GetSUJSiSecondaryVoltage;
     } Robot;
 
 private:
@@ -148,6 +151,10 @@ private:
     std::string SerialNumber;
     size_t NumberOfActuators;
     size_t NumberOfBrakes;
+    size_t NumberOfSUJSiJoints;
+
+    prmStateJoint SUJSiPrimaryVoltage;
+    prmStateJoint SUJSiSecondaryVoltage;
 
     vctDoubleVec UnitFactor;
     prmStateJoint ActuatorStateJoint;
@@ -213,6 +220,10 @@ private:
     vctQtWidgetDynamicVectorDoubleRead * QVRBrakeCurrentCommand;
     vctQtWidgetDynamicVectorDoubleRead * QVRBrakeCurrentFeedback;
     vctQtWidgetDynamicVectorDoubleRead * QVRBrakeAmpTemperature;
+
+    // SUJ-Si
+    vctQtWidgetDynamicVectorDoubleRead * QVRSUJSiPrimaryVoltage;
+    vctQtWidgetDynamicVectorDoubleRead * QVRSUJSiSecondaryVoltage;
 
     // Plot area
     QSpinBox * QSBPlotIndex;

@@ -312,6 +312,11 @@ bool mtsRobot1394::HasSUJSi(void) const
     return mSUJSiConfigured;
 }
 
+size_t mtsRobot1394::NumberOfSUJSiJoints(void) const
+{
+    return m_suj_si_configuration.primary_measured_js.size();
+}
+
 bool mtsRobot1394::SetupSUJSiStateTable(void)
 {
     if (!HasSUJSi()) {
@@ -329,6 +334,8 @@ bool mtsRobot1394::SetupSUJSiStateTable(void)
     }
     m_state_table_read->AddData(m_suj_si_primary_measured_js, "SUJ_Si_primary_measured_js");
     m_state_table_read->AddData(m_suj_si_secondary_measured_js, "SUJ_Si_secondary_measured_js");
+    m_state_table_read->AddData(m_suj_si_primary_voltage_js, "SUJ_Si_primary_voltage_js");
+    m_state_table_read->AddData(m_suj_si_secondary_voltage_js, "SUJ_Si_secondary_voltage_js");
     mSUJSiStateTableConfigured = true;
     return true;
 }
@@ -345,6 +352,10 @@ void mtsRobot1394::SetupSUJSiInterface(mtsInterfaceProvided * sujSiInterface)
                                         "primary/measured_js");
     sujSiInterface->AddCommandReadState(*m_state_table_read, m_suj_si_secondary_measured_js,
                                         "secondary/measured_js");
+    sujSiInterface->AddCommandReadState(*m_state_table_read, m_suj_si_primary_voltage_js,
+                                        "primary_voltage/measured_js");
+    sujSiInterface->AddCommandReadState(*m_state_table_read, m_suj_si_secondary_voltage_js,
+                                        "secondary_voltage/measured_js");
 }
 
 bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
@@ -396,10 +407,23 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
     mSUJSiConfigured = true;
     mSUJSiReadValid = false;
     mSUJSiPresenceChecked = false;
+    if (this->Name() == "ECM") {
+        mSUJSiSampleCounter = 0;
+    } else if (this->Name() == "PSM1") {
+        mSUJSiSampleCounter = 250;
+    } else if (this->Name() == "PSM2") {
+        mSUJSiSampleCounter = 500;
+    } else if (this->Name() == "PSM3") {
+        mSUJSiSampleCounter = 750;
+    } else {
+        mSUJSiSampleCounter = 0;
+    }
     mSUJSiPrimaryBits.SetSize(numberOfSUJSiJoints);
     mSUJSiSecondaryBits.SetSize(numberOfSUJSiJoints);
     m_suj_si_primary_measured_js.SetSize(numberOfSUJSiJoints);
     m_suj_si_secondary_measured_js.SetSize(numberOfSUJSiJoints);
+    m_suj_si_primary_voltage_js.SetSize(numberOfSUJSiJoints);
+    m_suj_si_secondary_voltage_js.SetSize(numberOfSUJSiJoints);
 
     const std::array<std::string, 5> sujSiJointNames = {{"Z", "rot_1", "rot_2", "rot_3", "rot_4"}};
     mSUJSiPrimaryBits.SetAll(-1);
@@ -410,12 +434,20 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
     m_suj_si_secondary_measured_js.Velocity().SetAll(0.0);
     m_suj_si_primary_measured_js.Effort().SetAll(0.0);
     m_suj_si_secondary_measured_js.Effort().SetAll(0.0);
+    m_suj_si_primary_voltage_js.Position().SetAll(mtsRobot1394::GetMissingPotentiometerValue());
+    m_suj_si_secondary_voltage_js.Position().SetAll(mtsRobot1394::GetMissingPotentiometerValue());
+    m_suj_si_primary_voltage_js.Velocity().SetAll(0.0);
+    m_suj_si_secondary_voltage_js.Velocity().SetAll(0.0);
+    m_suj_si_primary_voltage_js.Effort().SetAll(0.0);
+    m_suj_si_secondary_voltage_js.Effort().SetAll(0.0);
     for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
         const std::string jointName = (index < sujSiJointNames.size())
             ? sujSiJointNames.at(index)
             : "joint_" + std::to_string(index);
         m_suj_si_primary_measured_js.Name().at(index) = jointName;
         m_suj_si_secondary_measured_js.Name().at(index) = jointName;
+        m_suj_si_primary_voltage_js.Name().at(index) = jointName;
+        m_suj_si_secondary_voltage_js.Name().at(index) = jointName;
     }
 
     return SetupSUJSiStateTable();
@@ -1026,6 +1058,11 @@ void mtsRobot1394::PollSUJSiState(void)
         return;
     }
 
+    mSUJSiSampleCounter = (mSUJSiSampleCounter + 1) % 1000;
+    if (mSUJSiSampleCounter != 0) {
+        return;
+    }
+
     mSUJSiReadValid = false;
     mSUJSiPrimaryBits.SetAll(-1);
     mSUJSiSecondaryBits.SetAll(-1);
@@ -1244,6 +1281,12 @@ void mtsRobot1394::ConvertSUJSiState(void)
         m_suj_si_secondary_measured_js.Position().at(index) = (secondary >= 0)
             ? secondaryConversion.offset + static_cast<double>(secondary) * secondaryConversion.scale
             : mtsRobot1394::GetMissingPotentiometerValue();
+        m_suj_si_primary_voltage_js.Position().at(index) = (primary >= 0)
+            ? static_cast<double>(primary)
+            : mtsRobot1394::GetMissingPotentiometerValue();
+        m_suj_si_secondary_voltage_js.Position().at(index) = (secondary >= 0)
+            ? static_cast<double>(secondary)
+            : mtsRobot1394::GetMissingPotentiometerValue();
     }
 }
 
@@ -1259,6 +1302,8 @@ void mtsRobot1394::CheckState(void)
     if (HasSUJSi()) {
         m_suj_si_primary_measured_js.SetValid(false);
         m_suj_si_secondary_measured_js.SetValid(false);
+        m_suj_si_primary_voltage_js.SetValid(false);
+        m_suj_si_secondary_voltage_js.SetValid(false);
     }
 
     // If we had a read error, all checks are pretty much useless
@@ -1588,6 +1633,8 @@ void mtsRobot1394::CheckState(void)
     if (HasSUJSi()) {
         m_suj_si_primary_measured_js.SetValid(mSUJSiReadValid);
         m_suj_si_secondary_measured_js.SetValid(mSUJSiReadValid);
+        m_suj_si_primary_voltage_js.SetValid(mSUJSiReadValid);
+        m_suj_si_secondary_voltage_js.SetValid(mSUJSiReadValid);
     }
 
     if (mPreviousFullyPowered != mFullyPowered) {
