@@ -19,9 +19,6 @@ cisst_cpack_settings (
 
 add_subdirectory (components)
 
-# Examples of config files
-add_subdirectory (share)
-
 # Applications
 set (sawRobotIO1394_DIR "${sawRobotIO1394Core_BINARY_DIR}/components")
 add_subdirectory (applications)
