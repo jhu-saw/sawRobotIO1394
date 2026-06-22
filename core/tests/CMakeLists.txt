@@ -40,8 +40,7 @@ if (sawRobotIO1394_FOUND)
 
   add_executable (sawRobotIO1394Tests
     mtsRobotIO1394Test.cpp
-    mtsRobotIO1394Test.h
-    osaIO1394XMLConfigTest.cpp)
+    mtsRobotIO1394Test.h)
   set_property (TARGET sawRobotIO1394Tests PROPERTY FOLDER "sawRobotIO1394")
 
   # link against non cisst libraries and cisst components

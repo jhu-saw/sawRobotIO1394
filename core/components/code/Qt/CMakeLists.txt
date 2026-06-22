@@ -19,7 +19,7 @@ set (REQUIRED_CISST_LIBRARIES
      cisstMultiTaskQt
      cisstParameterTypes
      cisstParameterTypesQt
-     cisstQt)
+)
 
 # cisst
 find_package (cisst REQUIRED COMPONENTS ${REQUIRED_CISST_LIBRARIES})

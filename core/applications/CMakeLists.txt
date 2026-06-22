@@ -12,7 +12,7 @@
 cmake_minimum_required (VERSION 3.16)
 project (sawRobotIO1394Applications VERSION 2.4.0)
 
-# Qt based example, CMake will look for cisstQt
+# Qt based example
 add_subdirectory (Qt)
 
 # utility to calibrate current 0 based on current feedback
