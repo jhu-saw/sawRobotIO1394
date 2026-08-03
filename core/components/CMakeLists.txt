@@ -36,7 +36,9 @@ cisst_set_output_path ()
 
 # Compile lib Amp1394 and examples within this project
 set (LIBRARY_OUTPUT_PATH "${CISST_BINARY_DIR}/lib") # for Python wrappers
-set (Amp1394_BUILD_SWIG ${CISST_HAS_SWIG_PYTHON} CACHE BOOL "" FORCE)
+if (NOT DEFINED Amp1394_BUILD_SWIG)
+  set (Amp1394_BUILD_SWIG ${CISST_HAS_SWIG_PYTHON} CACHE BOOL "Build Amp1394 with Python wrapper")
+endif ()
 add_subdirectory (code/Amp1394)
 set (CMAKE_PREFIX_PATH "${sawRobotIO1394_BINARY_DIR}/code/Amp1394" ${CMAKE_PREFIX_PATH})
 find_package (Amp1394 REQUIRED)
