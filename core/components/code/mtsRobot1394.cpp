@@ -1058,9 +1058,9 @@ void mtsRobot1394::PollSUJSiState(void)
 
         bool presenceRead = false;
         if (!mSUJSiPresenceChecked) {
-            presenceRead = board.second->ReadSiSUJPresence(ESSJPresent,
-                                                           dSIBSiPresent,
-                                                           dSIBSiZPresent);
+            presenceRead = board.second->GetSiSUJ_Status(ESSJPresent,
+                                                         dSIBSiPresent,
+                                                         dSIBSiZPresent);
         }
         if (presenceRead) {
             mSUJSiPresenceChecked = true;
