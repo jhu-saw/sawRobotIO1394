@@ -44,9 +44,9 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     mActuatorInfo(),
     m_unique_boards(),
     // State Initialization
+    mSUJSiPresenceChecked(false),
     mValid(false),
     mSUJSiReadValid(false),
-    mSUJSiPresenceChecked(false),
     mFullyPowered(false),
     mPreviousFullyPowered(false),
     mPowerEnable(false),
@@ -407,17 +407,6 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
     mSUJSiConfigured = true;
     mSUJSiReadValid = false;
     mSUJSiPresenceChecked = false;
-    if (this->Name() == "ECM") {
-        mSUJSiSampleCounter = 0;
-    } else if (this->Name() == "PSM1") {
-        mSUJSiSampleCounter = 250;
-    } else if (this->Name() == "PSM2") {
-        mSUJSiSampleCounter = 500;
-    } else if (this->Name() == "PSM3") {
-        mSUJSiSampleCounter = 750;
-    } else {
-        mSUJSiSampleCounter = 0;
-    }
     mSUJSiPrimaryBits.SetSize(numberOfSUJSiJoints);
     mSUJSiSecondaryBits.SetSize(numberOfSUJSiJoints);
     m_suj_si_primary_measured_js.SetSize(numberOfSUJSiJoints);
@@ -1058,23 +1047,15 @@ void mtsRobot1394::PollSUJSiState(void)
         return;
     }
 
-    mSUJSiSampleCounter = (mSUJSiSampleCounter + 1) % 1000;
-    if (mSUJSiSampleCounter != 0) {
-        return;
-    }
-
     mSUJSiReadValid = false;
     mSUJSiPrimaryBits.SetAll(-1);
     mSUJSiSecondaryBits.SetAll(-1);
 
     for (auto & board : m_unique_boards) {
-        std::array<int16_t, 10> positions;
-        positions.fill(-1);
         bool ESSJPresent = false;
         bool dSIBSiPresent = false;
         bool dSIBSiZPresent = false;
 
-        const bool positionsRead = board.second->ReadSiSUJPositions(positions);
         bool presenceRead = false;
         if (!mSUJSiPresenceChecked) {
             presenceRead = board.second->ReadSiSUJPresence(ESSJPresent,
@@ -1095,17 +1076,30 @@ void mtsRobot1394::PollSUJSiState(void)
                 }
             }
         }
-        if (positionsRead) {
-            bool allConfiguredPotsPresent = true;
-            const size_t numberOfSUJSiJoints = m_suj_si_configuration.primary_measured_js.size();
-            for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
-                const int primary = positions.at(2 * index);
-                const int secondary = positions.at(2 * index + 1);
-                mSUJSiPrimaryBits.at(index) = primary;
-                mSUJSiSecondaryBits.at(index) = secondary;
-                allConfiguredPotsPresent &= ((primary >= 0) && (secondary >= 0));
+
+        std::array<int16_t, 10> positions;
+        positions.fill(-1);
+        for (unsigned int input = 0; input < 5; ++input) {
+            uint16_t primary = 0;
+            uint16_t secondary = 0;
+            if (!board.second->GetSiSUJ_Pots(input, primary, secondary)) {
+                continue;
             }
-            mSUJSiReadValid = allConfiguredPotsPresent;
+            positions.at(2 * input) = static_cast<int16_t>(primary);
+            positions.at(2 * input + 1) = static_cast<int16_t>(secondary);
+        }
+
+        bool allConfiguredPotsPresent = true;
+        const size_t numberOfSUJSiJoints = m_suj_si_configuration.primary_measured_js.size();
+        for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
+            const int primary = positions.at(2 * index);
+            const int secondary = positions.at(2 * index + 1);
+            mSUJSiPrimaryBits.at(index) = primary;
+            mSUJSiSecondaryBits.at(index) = secondary;
+            allConfiguredPotsPresent &= ((primary >= 0) && (secondary >= 0));
+        }
+        if (allConfiguredPotsPresent) {
+            mSUJSiReadValid = true;
             return;
         }
     }

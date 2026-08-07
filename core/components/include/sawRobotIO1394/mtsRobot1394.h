@@ -283,7 +283,6 @@ namespace sawRobotIO1394 {
         bool mSUJSiConfigured = false;
         bool mSUJSiPresenceChecked = false;
         bool mSUJSiStateTableConfigured = false;
-        size_t mSUJSiSampleCounter = 0;
 
         //! Board Objects
         std::vector<osaActuatorMapping> mActuatorInfo;
