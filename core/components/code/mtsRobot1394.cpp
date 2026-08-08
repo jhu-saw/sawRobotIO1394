@@ -41,10 +41,10 @@ using namespace sawRobotIO1394;
 mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     OwnerServices(owner.Services()),
     // IO Structures
+    mSUJSiPresenceChecked(false),
     mActuatorInfo(),
     m_unique_boards(),
     // State Initialization
-    mSUJSiPresenceChecked(false),
     mValid(false),
     mSUJSiReadValid(false),
     mFullyPowered(false),
