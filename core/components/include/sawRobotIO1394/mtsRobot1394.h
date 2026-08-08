@@ -74,6 +74,7 @@ namespace sawRobotIO1394 {
         bool SetupSUJSiStateTable(void);
         void SetupSUJSiInterface(mtsInterfaceProvided * sujSiInterface);
         void Startup(void);
+        bool CheckHardwareStartup(void);
         void StartReadStateTable(void);
         void AdvanceReadStateTable(void);
         void StartWriteStateTable(void);
@@ -281,7 +282,6 @@ namespace sawRobotIO1394 {
 
         bool m_calibration_mode = false;
         bool mSUJSiConfigured = false;
-        bool mSUJSiPresenceChecked = false;
         bool mSUJSiStateTableConfigured = false;
 
         //! Board Objects

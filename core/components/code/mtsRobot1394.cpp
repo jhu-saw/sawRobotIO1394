@@ -41,7 +41,6 @@ using namespace sawRobotIO1394;
 mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     OwnerServices(owner.Services()),
     // IO Structures
-    mSUJSiPresenceChecked(false),
     mActuatorInfo(),
     m_unique_boards(),
     // State Initialization
@@ -406,7 +405,6 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
     m_suj_si_configuration = config;
     mSUJSiConfigured = true;
     mSUJSiReadValid = false;
-    mSUJSiPresenceChecked = false;
     mSUJSiPrimaryBits.SetSize(numberOfSUJSiJoints);
     mSUJSiSecondaryBits.SetSize(numberOfSUJSiJoints);
     m_suj_si_primary_measured_js.SetSize(numberOfSUJSiJoints);
@@ -444,6 +442,12 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
 
 void mtsRobot1394::Startup(void)
 {
+    if (!CheckHardwareStartup()) {
+        CMN_LOG_CLASS_INIT_ERROR << "Startup: hardware validation failed for arm: "
+                                 << this->Name() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     if (m_configuration.hardware_version == osa1394::dRA1) {
         // do an encoder preload since we always use the lookup table
         SetEncoderPosition(vctDoubleVec(m_number_of_actuators, 0.0));
@@ -465,6 +469,158 @@ void mtsRobot1394::Startup(void)
                                    + expectedCalFileName + ")");
         }
     }
+}
+
+bool mtsRobot1394::CheckHardwareStartup(void)
+{
+    if (mHwSimulation) {
+        CMN_LOG_CLASS_INIT_WARNING << "Startup: skipping hardware validation for simulated arm: "
+                                   << this->Name() << std::endl;
+        return true;
+    }
+
+    bool valid = true;
+    if (m_unique_boards.empty()) {
+        CMN_LOG_CLASS_INIT_ERROR << "Startup: no boards are configured for arm: "
+                                 << this->Name() << std::endl;
+        return false;
+    }
+
+    bool sujStatusRead = false;
+    bool essjPresent = false;
+    bool dsibSiPresent = false;
+    bool dsibSiZPresent = false;
+    AmpIO * sujBoard = nullptr;
+
+    for (const auto & boardEntry : m_unique_boards) {
+        AmpIO * board = boardEntry.second;
+        const int boardId = static_cast<int>(board->GetBoardId());
+
+        CMN_LOG_CLASS_INIT_VERBOSE << "Startup: board " << boardId
+                                   << ", hardware=" << board->GetHardwareVersionString()
+                                   << ", firmware=" << board->GetFirmwareVersion()
+                                   << std::endl;
+
+        if (!board->ValidRead()) {
+            CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
+                                     << " did not return a valid read" << std::endl;
+            valid = false;
+            continue;
+        }
+
+        if (board->GetPowerEnable()) {
+            CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
+                                     << " has motor power enabled" << std::endl;
+            valid = false;
+        }
+        if (board->GetPowerFault()) {
+            CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
+                                     << " reports a power fault" << std::endl;
+            valid = false;
+        }
+
+        for (unsigned int axis = 0; axis < board->GetNumMotors(); ++axis) {
+            if (board->GetAmpEnable(axis)) {
+                CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
+                                         << " amplifier " << axis
+                                         << " is enabled" << std::endl;
+                valid = false;
+            }
+            const uint32_t faultCode = board->GetAmpFaultCode(axis);
+            if (faultCode != 0) {
+                CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
+                                         << " amplifier " << axis
+                                         << " reports fault code " << faultCode << std::endl;
+                valid = false;
+            }
+            if (board->GetEncoderOverflow(axis)) {
+                CMN_LOG_CLASS_INIT_WARNING << "Startup: board " << boardId
+                                           << " encoder " << axis
+                                           << " reports an overflow" << std::endl;
+            }
+            const unsigned int encoderErrors = board->GetEncoderErrorCount(axis);
+            if (encoderErrors != 0) {
+                CMN_LOG_CLASS_INIT_WARNING << "Startup: board " << boardId
+                                           << " encoder " << axis
+                                           << " reports " << encoderErrors
+                                           << " invalid transitions" << std::endl;
+            }
+        }
+
+        if (board->GetSiHasSUJ()) {
+            sujBoard = board;
+            if (board->GetSiSUJ_Status(essjPresent, dsibSiPresent, dsibSiZPresent)) {
+                sujStatusRead = true;
+            }
+        }
+    }
+
+    if (mSUJSiConfigured) {
+        if (!sujStatusRead) {
+            CMN_LOG_CLASS_INIT_ERROR << "Startup: SUJ-Si is configured for arm "
+                                     << this->Name()
+                                     << " but no SUJ-Si status could be read" << std::endl;
+            valid = false;
+        } else {
+            CMN_LOG_CLASS_INIT_VERBOSE << "Startup: SUJ-Si status for arm "
+                                       << this->Name() << ": ESSJ="
+                                       << (essjPresent ? "present" : "missing")
+                                       << ", dSIBSi="
+                                       << (dsibSiPresent ? "present" : "missing")
+                                       << ", dSIBSiZ="
+                                       << (dsibSiZPresent ? "present" : "missing")
+                                       << std::endl;
+            if (!essjPresent) {
+                CMN_LOG_CLASS_INIT_ERROR << "Startup: ESSJ board not found for arm: "
+                                         << this->Name() << std::endl;
+                valid = false;
+            }
+            if (!dsibSiPresent) {
+                CMN_LOG_CLASS_INIT_ERROR << "Startup: dSIBSi board not found for arm: "
+                                         << this->Name() << std::endl;
+                valid = false;
+            }
+            if (!dsibSiZPresent) {
+                CMN_LOG_CLASS_INIT_ERROR << "Startup: dSIBSiZ board not found for arm: "
+                                         << this->Name() << std::endl;
+                valid = false;
+            }
+        }
+
+        if (sujBoard != nullptr) {
+            const uint8_t zBoardId = sujBoard->GetSiSUJ_Z_Id();
+            if (zBoardId == BoardIO::MAX_BOARDS) {
+                CMN_LOG_CLASS_INIT_ERROR << "Startup: SUJ-Si Z-axis board ID is invalid for arm: "
+                                         << this->Name() << std::endl;
+                valid = false;
+            } else {
+                CMN_LOG_CLASS_INIT_VERBOSE << "Startup: SUJ-Si Z-axis board ID = "
+                                           << static_cast<unsigned int>(zBoardId) << std::endl;
+            }
+
+            const size_t numberOfSUJSiJoints = m_suj_si_configuration.primary_measured_js.size();
+            for (size_t index = 0; index < numberOfSUJSiJoints; ++index) {
+                uint16_t primary = 0;
+                uint16_t secondary = 0;
+                if (!sujBoard->GetSiSUJ_Pots(static_cast<unsigned int>(index), primary, secondary)) {
+                    CMN_LOG_CLASS_INIT_ERROR << "Startup: SUJ-Si joint " << index
+                                             << " has invalid primary or secondary potentiometer data"
+                                             << std::endl;
+                    valid = false;
+                }
+            }
+        }
+    } else if (sujStatusRead && (essjPresent || dsibSiPresent || dsibSiZPresent)) {
+        CMN_LOG_CLASS_INIT_WARNING << "Startup: SUJ-Si hardware is present on arm "
+                                   << this->Name()
+                                   << " but no SUJ-Si configuration was loaded" << std::endl;
+    }
+
+    if (valid) {
+        CMN_LOG_CLASS_INIT_VERBOSE << "Startup: hardware validation passed for arm: "
+                                   << this->Name() << std::endl;
+    }
+    return valid;
 }
 
 
@@ -748,7 +904,6 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mSUJSiConfigured = false;
     mSUJSiStateTableConfigured = false;
     mSUJSiReadValid = false;
-    mSUJSiPresenceChecked = false;
     mSUJSiPrimaryBits.SetSize(0);
     mSUJSiSecondaryBits.SetSize(0);
     m_suj_si_primary_measured_js.SetSize(0);
@@ -911,7 +1066,7 @@ void mtsRobot1394::SetBoards(const std::vector<osaActuatorMapping> & actuatorBoa
         if (fversion > mHighestFirmWareVersion) {
             mHighestFirmWareVersion = fversion;
         }
-        CMN_LOG_CLASS_INIT_WARNING << "SetBoards: " << this->Name()
+        CMN_LOG_CLASS_INIT_VERBOSE << "SetBoards: " << this->Name()
                                    << ", board: " << boardCounter
                                    << ", Id: " << static_cast<int>(board->second->GetBoardId())
                                    << ", firmware: " << fversion
@@ -1052,31 +1207,6 @@ void mtsRobot1394::PollSUJSiState(void)
     mSUJSiSecondaryBits.SetAll(-1);
 
     for (auto & board : m_unique_boards) {
-        bool ESSJPresent = false;
-        bool dSIBSiPresent = false;
-        bool dSIBSiZPresent = false;
-
-        bool presenceRead = false;
-        if (!mSUJSiPresenceChecked) {
-            presenceRead = board.second->GetSiSUJ_Status(ESSJPresent,
-                                                         dSIBSiPresent,
-                                                         dSIBSiZPresent);
-        }
-        if (presenceRead) {
-            mSUJSiPresenceChecked = true;
-            if (mInterface) {
-                if (!ESSJPresent) {
-                    mInterface->SendError("IO: " + this->Name() + " ESSJ board not found");
-                }
-                if (!dSIBSiPresent) {
-                    mInterface->SendError("IO: " + this->Name() + " dSIBSi board not found");
-                }
-                if (!dSIBSiZPresent) {
-                    mInterface->SendError("IO: " + this->Name() + " dSIBSiZ board not found");
-                }
-            }
-        }
-
         std::array<int16_t, 10> positions;
         positions.fill(-1);
         for (unsigned int input = 0; input < 5; ++input) {
