@@ -509,9 +509,8 @@ bool mtsRobot1394::CheckHardwareStartup(void)
         }
 
         if (board->GetPowerEnable()) {
-            CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
-                                     << " has motor power enabled" << std::endl;
-            valid = false;
+            CMN_LOG_CLASS_INIT_WARNING << "Startup: board " << boardId
+                                       << " has motor power enabled" << std::endl;
         }
         if (board->GetPowerFault()) {
             CMN_LOG_CLASS_INIT_ERROR << "Startup: board " << boardId
