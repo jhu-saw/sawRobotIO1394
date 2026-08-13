@@ -925,7 +925,7 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
         }
     }
 
-    const uint32_t currentFirmwareRevision = 9;
+    const uint32_t currentFirmwareRevision = 10;
     const uint32_t lowestFirmwareSupported = 6;
 
     std::stringstream message;
