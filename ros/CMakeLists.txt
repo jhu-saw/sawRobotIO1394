@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.16)
-project (saw_robot_io_1394_ros VERSION 2.4.0)
+project (saw_robot_io_1394_ros VERSION 2.5.0)
 
 # first test for ROS1
 set (ROS1_depends cisst_ros_crtk roscpp roslib)
@@ -131,4 +131,3 @@ if (sawRobotIO1394_FOUND)
 else (sawRobotIO1394_FOUND)
   message ("Information: code in ${CMAKE_CURRENT_SOURCE_DIR} will not be compiled, it requires sawRobotIO1394")
 endif (sawRobotIO1394_FOUND)
-

@@ -10,7 +10,7 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.16)
-project (sawRobotIO1394Core VERSION 2.4.0)
+project (sawRobotIO1394Core VERSION 2.5.0)
 
 find_package (cisst REQUIRED)
 cisst_cpack_settings (

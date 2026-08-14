@@ -1,6 +1,18 @@
 Change log
 ==========
 
+2.5.0 (TBD)
+===========
+
+* New features:
+  * Added IO-port-based hardware simulation, including simulated QLA support.
+  * Added Si SUJ ESSJ support, real-time packet handling, firmware revision 10 support, and startup configuration checks.
+  * Added a `UI` component tag and support for builds without Qt.
+* Bug fixes:
+  * Allows up to two consecutive IO read errors before reporting failure.
+* Build:
+  * Updated Amp1394 and CMake support for the current cisst release.
+
 2.4.0 (2026-01-07)
 ==================
 
