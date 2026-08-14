@@ -11,7 +11,7 @@
 # --- end cisst license ---
 
 # find cisst and make sure the required libraries have been compiled
-find_package (cisst REQUIRED COMPONENTS cisstCommon)
+find_package (cisst 1.5 REQUIRED COMPONENTS cisstCommon)
 
 set (FILES_TO_COPY saw-robot-io.schema.json saw-robot-io-suj-si.schema.json)
 
