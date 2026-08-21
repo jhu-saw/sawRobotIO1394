@@ -109,6 +109,7 @@ public:
     void Read(void);
     void Write(void);
     void GetNumberOfRobots(size_t & placeHolder) const;
+    void GetHardwareVersionStrings(std::vector<std::string> & placeHolder) const;
     sawRobotIO1394::mtsRobot1394 * Robot(const size_t index);
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
 

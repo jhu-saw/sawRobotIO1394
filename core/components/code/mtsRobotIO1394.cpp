@@ -720,6 +720,15 @@ void mtsRobotIO1394::GetNumberOfRobots(size_t & placeHolder) const
 }
 
 
+void mtsRobotIO1394::GetHardwareVersionStrings(std::vector<std::string> & placeHolder) const
+{
+    placeHolder.clear();
+    for (board_const_iterator board = m_boards.begin(); board != m_boards.end(); ++board) {
+        placeHolder.push_back(board->second->GetHardwareVersionString());
+    }
+}
+
+
 mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
 {
     return m_robots.at(index);

@@ -279,6 +279,20 @@ int main(int argc, char * argv[])
                   << "--> This is normal if the encoders have not yet been calibrated using the potentiometers"
                   << std::endl;
     }
+
+    std::vector<std::string> hardwareVersions;
+    port->GetHardwareVersionStrings(hardwareVersions);
+    for (const std::string & hardwareVersion : hardwareVersions) {
+        if ((hardwareVersion != "QLA1") && (hardwareVersion != "DQLA")) {
+            std::cerr << "Error: current calibration is supported only on QLA1 "
+                      << "and DQLA controllers; detected " << hardwareVersion
+                      << ". Calibration is not supported on dRAC controllers."
+                      << std::endl;
+            delete port;
+            return -1;
+        }
+    }
+
     // preload encoders
     try {
         robot->CalibrateEncoderOffsetsFromPotentiometers();
