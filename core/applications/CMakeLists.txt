@@ -19,11 +19,3 @@ endif()
 
 # utility to calibrate current 0 based on current feedback
 add_subdirectory (current-calibration)
-
-if (CISST_HAS_QT)
-  # utility to plot velocities
-  add_subdirectory (data-plot)
-endif ()
-
-# utility to collect data
-add_subdirectory (data-collection)
