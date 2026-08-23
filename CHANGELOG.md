@@ -1,8 +1,8 @@
 Change log
 ==========
 
-2.5.0 (TBD)
-===========
+2.5.0 (2026-08-22)
+==================
 
 * New features:
   * Added IO-port-based hardware simulation, including simulated QLA support.
