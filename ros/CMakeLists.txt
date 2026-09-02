@@ -113,15 +113,10 @@ if (sawRobotIO1394_FOUND)
     )
 
   if (ROS_VERSION EQUAL 2)
-    ament_target_dependencies (
-      robot_io_console
-      ${ROS2_depends}
-      )
-
-    ament_target_dependencies (
-      saw_robot_io_1394_ros
-      ${ROS2_depends}
-      )
+    foreach (_dep ${ROS2_depends})
+      target_link_libraries (robot_io_console ${${_dep}_TARGETS})
+      target_link_libraries (saw_robot_io_1394_ros ${${_dep}_TARGETS})
+    endforeach ()
 
     ament_export_targets (saw_robot_io_1394_ros HAS_LIBRARY_TARGET)
 
