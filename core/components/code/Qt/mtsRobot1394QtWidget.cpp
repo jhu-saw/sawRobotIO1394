@@ -854,8 +854,13 @@ void mtsRobot1394QtWidget::setupUi(void)
         signalLayout->addWidget(label);
     }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    connect(PlotSignalMapper, &QSignalMapper::mappedInt,
+            this, &mtsRobot1394QtWidget::SlotPlotVisibleSignal);
+#else
     connect(PlotSignalMapper, SIGNAL(mapped(int)),
             this, SLOT(SlotPlotVisibleSignal(int)));
+#endif
 
     plotLeftLayout->addStretch();
 
