@@ -46,6 +46,7 @@ mtsRobot1394::mtsRobot1394(const cmnGenericObject & owner):
     // State Initialization
     mValid(false),
     mSUJSiReadValid(false),
+    mSUJSiReadValidityInitialized(false),
     mFullyPowered(false),
     mPreviousFullyPowered(false),
     mPowerEnable(false),
@@ -1201,6 +1202,7 @@ void mtsRobot1394::PollSUJSiState(void)
         return;
     }
 
+    const bool previousSUJSiReadValid = mSUJSiReadValid;
     mSUJSiReadValid = false;
     mSUJSiPrimaryBits.SetAll(-1);
     mSUJSiSecondaryBits.SetAll(-1);
@@ -1229,9 +1231,21 @@ void mtsRobot1394::PollSUJSiState(void)
         }
         if (allConfiguredPotsPresent) {
             mSUJSiReadValid = true;
-            return;
+            break;
         }
     }
+
+    if (mSUJSiReadValidityInitialized
+        && (previousSUJSiReadValid != mSUJSiReadValid)) {
+        if (mSUJSiReadValid) {
+            mInterface->SendStatus("IO: " + this->Name()
+                                    + " SUJ-Si potentiometer data recovered");
+        } else {
+            mInterface->SendWarning("IO: " + this->Name()
+                                    + " SUJ-Si potentiometer data is invalid");
+        }
+    }
+    mSUJSiReadValidityInitialized = true;
 }
 
 void mtsRobot1394::ConvertState(void)

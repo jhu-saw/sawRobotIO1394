@@ -313,6 +313,7 @@ namespace sawRobotIO1394 {
         bool
             mValid,
             mSUJSiReadValid,
+            mSUJSiReadValidityInitialized,
             mFullyPowered,
             mPreviousFullyPowered,
             mPowerEnable,
