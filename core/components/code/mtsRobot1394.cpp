@@ -17,6 +17,7 @@ http://www.cisst.org/cisst/license.txt.
 */
 
 #include <cmath>
+#include <sstream>
 #include <cctype>
 #include <algorithm>
 #include <array>
@@ -442,6 +443,15 @@ bool mtsRobot1394::ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config)
 
 void mtsRobot1394::Startup(void)
 {
+    for (size_t i = 0; i < m_number_of_actuators; ++i) {
+        if (m_configuration.actuators.at(i).encoder.use_potentiometer_feedback) {
+            mInterface->SendWarning("IO: " + this->Name()
+                                    + ": EXPERIMENTAL potentiometer feedback on actuator "
+                                    + std::to_string(i)
+                                    + "; independent encoder/pot check unavailable for this actuator");
+        }
+    }
+
     if (!CheckHardwareStartup()) {
         CMN_LOG_CLASS_INIT_ERROR << "Startup: hardware validation failed for arm: "
                                  << this->Name() << std::endl;
@@ -710,6 +720,24 @@ void mtsRobot1394::CalibrateEncoderOffsetsFromPotentiometers(const int & numberO
 
 bool mtsRobot1394::CheckConfiguration(void)
 {
+    for (size_t i = 0; i < m_number_of_actuators; ++i) {
+        const auto & encoder = m_configuration.actuators.at(i).encoder;
+        if (encoder.use_potentiometer_feedback) {
+            if (m_configuration.only_IO || (m_configuration.potentiometers.potentiometers_type != osaPotentiometers1394Configuration::ANALOG)
+                || !std::isfinite(encoder.potentiometer_velocity_time_constant)
+                || (encoder.potentiometer_velocity_time_constant <= 0.0)
+                || !std::isfinite(m_configuration_js.PositionMin()[i])
+                || !std::isfinite(m_configuration_js.PositionMax()[i])
+                || (m_configuration_js.PositionMin()[i] >= m_configuration_js.PositionMax()[i])) {
+                CMN_LOG_CLASS_INIT_ERROR << "Invalid potentiometer feedback configuration for actuator " << i << std::endl;
+                return false;
+            }
+            CMN_LOG_CLASS_INIT_WARNING << this->Name() << ": EXPERIMENTAL potentiometer position/velocity feedback on actuator "
+                                      << i << "; independent encoder/pot agreement check unavailable on this axis."
+                                      << " Encoder overflow protection remains enabled." << std::endl;
+        }
+    }
+
     if (mHwSimulation)
     {
         CMN_LOG_CLASS_INIT_WARNING << "CheckConfiguration: skipping configuration check for simulated hardware for arm: "
@@ -847,6 +875,14 @@ void mtsRobot1394::Configure(const osaRobot1394Configuration & config)
     mDigitalInputs.SetSize(m_number_of_actuators);
     mEncoderChannelsA.SetSize(m_number_of_actuators);
     mPotentiometerBits.SetSize(m_number_of_actuators);
+    mPotFeedbackInitialized.SetSize(m_number_of_actuators);
+    mPotFeedbackInitialized.SetAll(false);
+    mPotFeedbackSeenSample.SetSize(m_number_of_actuators);
+    mPotFeedbackSeenSample.SetAll(false);
+    mPreviousPotFeedbackPosition.SetSize(m_number_of_actuators);
+    mPreviousPotFeedbackPosition.SetAll(0.0);
+    mPotFeedbackVelocity.SetSize(m_number_of_actuators);
+    mPotFeedbackVelocity.SetAll(0.0);
     mEncoderOverflow.SetSize(m_number_of_actuators);
     if (m_configuration.only_IO) {
         mEncoderOverflow.SetAll(false);
@@ -1381,6 +1417,75 @@ void mtsRobot1394::ConvertState(void)
         m_pot_measured_js.Position().Assign(m_raw_pot_measured_js.Position());
     }
 
+    mPotFeedbackFault = false;
+    mPotFeedbackFaultMessage.clear();
+    // Substitute only the control feedback. Firmware/software diagnostic states
+    // above deliberately retain the original encoder position and velocity.
+    for (size_t i = 0; i < m_number_of_actuators; ++i) {
+        const auto & encoder = m_configuration.actuators.at(i).encoder;
+        if (!encoder.use_potentiometer_feedback) {
+            continue;
+        }
+        if (mInvalidReadCounter > 0) {
+            mPotFeedbackInitialized[i] = false;
+            m_measured_js.Position()[i] = mPreviousPotFeedbackPosition[i];
+            m_measured_js.Velocity()[i] = 0.0;
+            continue; // CheckState marks this sample invalid.
+        }
+        const double position = m_pot_measured_js.Position()[i];
+        const double dt = mActuatorTimestamp[i]; // board sample interval, seconds
+        // The first board interval can include time before this application
+        // started reading. Seed position with zero velocity once, while power
+        // is off. Do not repeat this exception after a read failure or fault.
+        const bool firstUnpoweredSample = !mPotFeedbackSeenSample[i]
+            && !mUserExpectsPower && !mPowerStatus;
+        mPotFeedbackSeenSample[i] = true;
+        if ((m_configuration.potentiometers.potentiometers_type != osaPotentiometers1394Configuration::ANALOG) || m_configuration.only_IO
+            || !std::isfinite(encoder.potentiometer_velocity_time_constant)
+            || (encoder.potentiometer_velocity_time_constant <= 0.0)
+            || !std::isfinite(m_configuration_js.PositionMin()[i])
+            || !std::isfinite(m_configuration_js.PositionMax()[i])
+            || (m_configuration_js.PositionMin()[i] >= m_configuration_js.PositionMax()[i])
+            || !std::isfinite(position)
+            || (position < m_configuration_js.PositionMin()[i])
+            || (position > m_configuration_js.PositionMax()[i])
+            || !std::isfinite(dt) || (dt <= 0.0)
+            || ((dt > 0.1) && !firstUnpoweredSample)) {
+            std::ostringstream message;
+            message.precision(12);
+            message << this->Name() << ": invalid potentiometer feedback on actuator " << i
+                    << "; position=" << position
+                    << ", limits=[" << m_configuration_js.PositionMin()[i]
+                    << ", " << m_configuration_js.PositionMax()[i] << "] (SI units)"
+                    << "; sample_interval=" << dt << " s (required: 0 < dt <= 0.1 except first unpowered sample)"
+                    << "; velocity_time_constant=" << encoder.potentiometer_velocity_time_constant
+                    << " s; pot_type=" << m_configuration.potentiometers.potentiometers_type << "; only_io=" << m_configuration.only_IO;
+            if (mPotFeedbackFaultMessage.empty()) {
+                mPotFeedbackFaultMessage = message.str();
+            }
+            mPotFeedbackInitialized[i] = false;
+            mPotFeedbackFault = true;
+            m_measured_js.Position()[i] = mPreviousPotFeedbackPosition[i];
+            m_measured_js.Velocity()[i] = 0.0;
+            continue; // Report via CheckState's normal caught-exception path.
+        }
+        const double previousVelocity = mPotFeedbackVelocity[i];
+        if (mPotFeedbackInitialized[i]) {
+            // First-order filtered derivative; do not differentiate encoder counts.
+            const double alpha = dt / (encoder.potentiometer_velocity_time_constant + dt);
+            const double velocity = (position - mPreviousPotFeedbackPosition[i]) / dt;
+            mPotFeedbackVelocity[i] += alpha * (velocity - mPotFeedbackVelocity[i]);
+            mEncoderAcceleration[i] = (mPotFeedbackVelocity[i] - previousVelocity) / dt;
+        } else {
+            mPotFeedbackVelocity[i] = 0.0;
+            mEncoderAcceleration[i] = 0.0;
+        }
+        // Acceleration is published through measured_ja in this version.
+        mPreviousPotFeedbackPosition[i] = position;
+        mPotFeedbackInitialized[i] = true;
+        m_measured_js.Position()[i] = position;
+        m_measured_js.Velocity()[i] = mPotFeedbackVelocity[i];
+    }
     ConvertSUJSiState();
 }
 
@@ -1432,6 +1537,11 @@ void mtsRobot1394::CheckState(void)
     // If we had a read error, all checks are pretty much useless
     if (mInvalidReadCounter > 0) {
         return;
+    }
+
+    if (mPotFeedbackFault) {
+        this->PowerOffSequenceOnError(false);
+        cmnThrow(mPotFeedbackFaultMessage);
     }
 
     // Perform safety checks
@@ -1654,6 +1764,7 @@ void mtsRobot1394::CheckState(void)
 
         bool statusChanged = false;
         bool error = false;
+        size_t feedbackAxis = 0;
         auto pot = m_pot_measured_js.Position().cbegin();
         const auto potEnd = m_pot_measured_js.Position().cend();
         auto enc = encoderRef.cbegin();
@@ -1669,7 +1780,12 @@ void mtsRobot1394::CheckState(void)
                  ++tolerance,
                  ++potTimestamp,
                  ++potDuration,
-                 ++potValid) {
+                 ++potValid, ++feedbackAxis) {
+            if (m_configuration.actuators.at(feedbackAxis).encoder.use_potentiometer_feedback) {
+                *potValid = false;
+                *potDuration = 0.0;
+                continue;
+            }
             // if tolerance set to 0, disable check for that joint
             if (tolerance->distance == 0.0) {
                 *potValid = true;

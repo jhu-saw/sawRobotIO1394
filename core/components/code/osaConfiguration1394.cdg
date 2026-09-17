@@ -86,6 +86,19 @@ class {
     name osaEncoder1394Configuration;
     namespace sawRobotIO1394;
     attribute CISST_EXPORT;
+    member {
+        name use_potentiometer_feedback;
+        type bool;
+        default false;
+        visibility public;
+    }
+    member {
+        name potentiometer_velocity_time_constant;
+        type double;
+        default 0.01;
+        visibility public;
+    }
+
     enum {
         name velocity_source_t;
         enum-value {
