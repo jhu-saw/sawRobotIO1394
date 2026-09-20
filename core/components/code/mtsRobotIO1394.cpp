@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2012-07-31
 
-  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2026 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -18,6 +18,7 @@ http://www.cisst.org/cisst/license.txt.
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <cisstBuildType.h>
 #include <cisstCommon/cmnLogger.h>
@@ -204,6 +205,8 @@ void mtsRobotIO1394::Init(const std::string & port)
                                                 "GetNumActuators");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfBrakesPerRobot, this,
                                                 "GetNumBrakes");
+        mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfSUJSiJointsPerRobot, this,
+                                                "GetNumSUJSiJoints");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfRobots, this,
                                                 "GetNumRobots");
         mConfigurationInterface->AddCommandRead(&mtsRobotIO1394::GetNumberOfDigitalInputs, this,
@@ -271,10 +274,32 @@ void mtsRobotIO1394::Configure(const std::string & filename)
         // id & version check
         const std::string id = json_config["$id"].asString();
         const std::string id_expected = "saw-robot-io.schema.json";
+        const std::string id_suj_si = "saw-robot-io-SUJ-Si.schema.json";
+        const std::string id_suj_si_lower = "saw-robot-io-suj-si.schema.json";
+        if ((id == id_suj_si) || (id == id_suj_si_lower)) {
+            const std::string version = json_config["$version"].asString();
+            if (version != "1") {
+                CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
+                                         << " has incorrect or missing $version, found \"" << version
+                                         << "\", expected \"1\"" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            osaConfiguration1394SUJ_Si sujSiConfig;
+            cmnDataJSON<osaConfiguration1394SUJ_Si>::DeSerializeText(sujSiConfig, json_config);
+            CMN_LOG_CLASS_INIT_VERBOSE << "Configure " << this->GetName()
+                                       << ": content of SUJ-Si configuration file" << std::endl
+                                       << "------------ file ------------" << std::endl
+                                       << sujSiConfig
+                                       << "----------end of file --------" << std::endl;
+            ConfigureSUJSi(sujSiConfig, filename);
+            return;
+        }
         if (id != id_expected) {
             CMN_LOG_CLASS_INIT_ERROR << "Configure: file " << filename
                                      << " has incorrect or missing $id, found \"" << id
-                                     << "\", expected \"" << id_expected << "\"" << std::endl;
+                                     << "\", expected \"" << id_expected
+                                     << "\" or \"" << id_suj_si_lower << "\"" << std::endl;
             exit(EXIT_FAILURE);
         }
         const std::string version = json_config["$version"].asString();
@@ -380,6 +405,53 @@ void mtsRobotIO1394::Configure(const std::string & filename)
     m_port->ReadAllBoards();
 }
 
+void mtsRobotIO1394::ConfigureSUJSi(const sawRobotIO1394::osaConfiguration1394SUJ_Si & config,
+                                    const std::string & filename)
+{
+    const auto robotIterator = m_robots_by_name.find(config.arm_name);
+    if (robotIterator == m_robots_by_name.end()) {
+        std::stringstream message;
+        message << "ConfigureSUJSi: file \"" << filename
+                << "\" references arm \"" << config.arm_name
+                << "\" but that arm has not been configured.  Configured arms:";
+        for (const auto & robot : m_robots) {
+            message << " " << robot->Name();
+        }
+        CMN_LOG_CLASS_INIT_ERROR << message.str() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    mtsRobot1394 * robot = robotIterator->second;
+    if (config.serial_number != "") {
+        if (config.serial_number != robot->SerialNumber()) {
+            CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: file \"" << filename
+                                     << "\" references arm \"" << config.arm_name
+                                     << "\" with serial number \"" << config.serial_number
+                                     << "\" but that arm was configured with serial number \""
+                                     << robot->SerialNumber() << "\"" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+    if (!robot->ConfigureSUJSi(config)) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: error in configuration file \""
+                                 << filename << "\" for robot \""
+                                 << robot->Name() << "\"" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    const std::string sujSiInterfaceName = robot->Name() + "_SUJ_Si";
+    mtsInterfaceProvided * sujSiInterface = this->AddInterfaceProvided(sujSiInterfaceName);
+    if (!sujSiInterface) {
+        CMN_LOG_CLASS_INIT_ERROR << "ConfigureSUJSi: failed to create provided interface \""
+                                 << sujSiInterfaceName << "\"" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    robot->SetupSUJSiInterface(sujSiInterface);
+    CMN_LOG_CLASS_INIT_VERBOSE << "ConfigureSUJSi: added interface \""
+                               << sujSiInterfaceName << "\" for robot \""
+                               << robot->Name() << "\"" << std::endl;
+}
+
 bool mtsRobotIO1394::SetupRobot(mtsRobot1394 * robot)
 {
     mtsStateTable * stateTableRead;
@@ -468,30 +540,51 @@ void mtsRobotIO1394::PreRead(void)
 void mtsRobotIO1394::Read(void)
 {
     // Read from all boards on the port
-    m_port->ReadAllBoards();
+    try {
+        m_port->ReadAllBoards();
 
-    // Poll the state for each robot
-    for (auto & robot : m_robots) {
-        // Poll the board validity
-        robot->PollValidity();
+        // Poll the state for each robot
+        for (auto & robot : m_robots) {
+            // Poll the board validity
+            robot->PollValidity();
 
-        // Poll this robot's state
-        robot->PollState();
+            // Poll this robot's state
+            robot->PollState();
 
-        // Convert bits to usable numbers
-        robot->ConvertState();
-    }
-    // Poll the state for each digital input
-    for (auto & input : m_digital_inputs) {
-        input->PollState();
-    }
-    // Poll the state for each digital output
-    for (auto & output : m_digital_outputs) {
-        output->PollState();
-    }
-    // Poll the state for each Dallas chip
-    for (auto & dallas: m_dallas_chips) {
-        dallas->PollState();
+            // Convert bits to usable numbers
+            robot->ConvertState();
+        }
+        // Poll the state for each digital input
+        for (auto & input : m_digital_inputs) {
+            input->PollState();
+        }
+        // Poll the state for each digital output
+        for (auto & output : m_digital_outputs) {
+            output->PollState();
+        }
+        // Poll the state for each Dallas chip
+        for (auto & dallas: m_dallas_chips) {
+            dallas->PollState();
+        }
+        m_read_all_boards_errors = 0;
+    } catch (std::exception & e) {
+        m_read_all_boards_errors++;
+        for (auto & robot : m_robots) {
+            robot->mInterface->SendWarning("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors)
+                                           + ", error message: " + e.what());
+        }
+        if (m_read_all_boards_errors >= 3) {
+            cmnThrow("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors)
+                     + ", last error message: " + e.what());
+        }
+    } catch (...) {
+        m_read_all_boards_errors++;
+        for (auto & robot : m_robots) {
+            robot->mInterface->SendWarning("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors));
+        }
+        if (m_read_all_boards_errors >= 3) {
+            cmnThrow("Read: failed to read/poll from boards, error count: " + std::to_string(m_read_all_boards_errors));
+        }
     }
 }
 
@@ -502,12 +595,12 @@ void mtsRobotIO1394::PostRead(void)
     for (auto & robot : m_robots) {
         try {
             robot->CheckState();
-        } catch (std::exception & stdException) {
-            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": standard exception \"" << stdException.what() << "\"" << std::endl;
-            robot->mInterface->SendError("IO exception: " + robot->Name() + ", " + stdException.what());
+        } catch (std::exception & e) {
+            CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": standard exception \"" << e.what() << "\"" << std::endl;
+            robot->mInterface->SendError("PostRead: " + robot->Name() + ", " + e.what());
         } catch (...) {
             CMN_LOG_CLASS_RUN_ERROR << "PostRead: " << robot->Name() << ": unknown exception" << std::endl;
-            robot->mInterface->SendError("IO unknown exception: " + robot->Name());
+            robot->mInterface->SendError("PostRead: unknown exception: " + robot->Name());
         }
         robot->AdvanceReadStateTable();
     }
@@ -554,9 +647,9 @@ void mtsRobotIO1394::Run(void)
     PreRead();
     try {
         Read();
-    } catch (std::exception & stdException) {
+    } catch (std::exception & e) {
         gotException = true;
-        message = this->Name + ": standard exception \"" + stdException.what() + "\"";
+        message = this->Name + ": standard exception \"" + e.what() + "\"";
     } catch (...) {
         gotException = true;
         message = this->Name + ": unknown exception";
@@ -627,6 +720,15 @@ void mtsRobotIO1394::GetNumberOfRobots(size_t & placeHolder) const
 }
 
 
+void mtsRobotIO1394::GetHardwareVersionStrings(std::vector<std::string> & placeHolder) const
+{
+    placeHolder.clear();
+    for (board_const_iterator board = m_boards.begin(); board != m_boards.end(); ++board) {
+        placeHolder.push_back(board->second->GetHardwareVersionString());
+    }
+}
+
+
 mtsRobot1394 * mtsRobotIO1394::Robot(const size_t index)
 {
     return m_robots.at(index);
@@ -661,6 +763,16 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
     placeHolder.resize(_num_robots);
     for (size_t i = 0; i < _num_robots; i++) {
         placeHolder[i] = m_robots[i]->NumberOfBrakes();
+    }
+}
+
+
+void mtsRobotIO1394::GetNumberOfSUJSiJointsPerRobot(vctIntVec & placeHolder) const
+{
+    const size_t _num_robots = m_robots.size();
+    placeHolder.resize(_num_robots);
+    for (size_t i = 0; i < _num_robots; i++) {
+        placeHolder[i] = m_robots[i]->HasSUJSi() ? m_robots[i]->NumberOfSUJSiJoints() : 0;
     }
 }
 
@@ -822,7 +934,7 @@ bool mtsRobotIO1394::CheckFirmwareVersions(void)
         }
     }
 
-    const uint32_t currentFirmwareRevision = 9;
+    const uint32_t currentFirmwareRevision = 10;
     const uint32_t lowestFirmwareSupported = 6;
 
     std::stringstream message;

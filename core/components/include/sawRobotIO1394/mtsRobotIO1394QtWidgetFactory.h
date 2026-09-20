@@ -63,6 +63,7 @@ protected:
 
     vctIntVec NumberOfActuatorsPerRobot;
     vctIntVec NumberOfBrakesPerRobot;
+    vctIntVec NumberOfSUJSiJointsPerRobot;
 
     struct ConfigStruct {
         mtsFunctionRead GetNumberOfRobots;
@@ -71,6 +72,7 @@ protected:
         mtsFunctionRead GetRobotNames;
         mtsFunctionRead GetNumbersOfActuators;
         mtsFunctionRead GetNumbersOfBrakes;
+        mtsFunctionRead GetNumbersOfSUJSiJoints;
 
         mtsFunctionRead GetDigitalInputNames;
         mtsFunctionRead GetName;

@@ -29,6 +29,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstParameterTypes/prmForceTorqueJointSet.h>
 
 #include <sawRobotIO1394/osaConfiguration1394.h>
+#include <sawRobotIO1394/osaConfiguration1394SUJ_Si.h>
 #include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
 
 #include <Eigen/Dense>
@@ -63,6 +64,7 @@ namespace sawRobotIO1394 {
 
         void LoadPotentiometerLookupTable(void);
         void Configure(const osaRobot1394Configuration & config);
+        bool ConfigureSUJSi(const osaConfiguration1394SUJ_Si & config);
 
         void SetHwSimulation(const bool & hwSimulation){
             mHwSimulation = hwSimulation;
@@ -72,7 +74,12 @@ namespace sawRobotIO1394 {
                               mtsStateTable * & stateTableRead,
                               mtsStateTable * & stateTableWrite);
         void SetupInterfaces(mtsInterfaceProvided * robotInterface);
+        bool HasSUJSi(void) const;
+        size_t NumberOfSUJSiJoints(void) const;
+        bool SetupSUJSiStateTable(void);
+        void SetupSUJSiInterface(mtsInterfaceProvided * sujSiInterface);
         void Startup(void);
+        bool CheckHardwareStartup(void);
         void StartReadStateTable(void);
         void AdvanceReadStateTable(void);
         void StartWriteStateTable(void);
@@ -105,7 +112,9 @@ namespace sawRobotIO1394 {
          *\{**/
         void PollValidity(void);
         void PollState(void);
+        void PollSUJSiState(void);
         void ConvertState(void);
+        void ConvertSUJSiState(void);
         void CheckState(void);
         /**}**/
 
@@ -277,6 +286,8 @@ namespace sawRobotIO1394 {
         void ClipBrakeCurrent(Eigen::VectorXd & currents);
 
         bool m_calibration_mode = false;
+        bool mSUJSiConfigured = false;
+        bool mSUJSiStateTableConfigured = false;
 
         //! Board Objects
         std::vector<osaActuatorMapping> mActuatorInfo;
@@ -285,6 +296,7 @@ namespace sawRobotIO1394 {
 
         //! Robot Configuration
         osaRobot1394Configuration m_configuration;
+        osaConfiguration1394SUJ_Si m_suj_si_configuration;
         size_t m_number_of_actuators;
         size_t m_number_of_brakes;
 
@@ -305,6 +317,8 @@ namespace sawRobotIO1394 {
         //! State Members
         bool
             mValid,
+            mSUJSiReadValid,
+            mSUJSiReadValidityInitialized,
             mFullyPowered,
             mPreviousFullyPowered,
             mPowerEnable,
@@ -335,6 +349,8 @@ namespace sawRobotIO1394 {
 
         Eigen::ArrayXi
             mPotentiometerBits,
+            mSUJSiPrimaryBits,
+            mSUJSiSecondaryBits,
             mEncoderPositionBits,
             mPreviousEncoderPositionBits;
 
@@ -383,6 +399,8 @@ namespace sawRobotIO1394 {
 
         prmForceTorqueJointSet mTorqueJoint;
         prmStateJoint m_measured_js, m_firmware_measured_js, m_software_measured_js, m_raw_pot_measured_js, m_pot_measured_js;
+        prmStateJoint m_suj_si_primary_measured_js, m_suj_si_secondary_measured_js;
+        prmStateJoint m_suj_si_primary_voltage_js, m_suj_si_secondary_voltage_js;
 
         // Functions for events
         struct {

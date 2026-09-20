@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2012-2024 Johns Hopkins University (JHU), All Rights Reserved.
+# (C) Copyright 2012-2026 Johns Hopkins University (JHU), All Rights Reserved.
 #
 # --- begin cisst license - do not edit ---
 #
@@ -10,18 +10,18 @@
 # --- end cisst license ---
 
 cmake_minimum_required (VERSION 3.16)
-project (sawRobotIO1394Core VERSION 2.4.0)
+if (POLICY CMP0144)
+  cmake_policy (SET CMP0144 NEW)
+  set (CMAKE_POLICY_DEFAULT_CMP0144 NEW)
+endif ()
+project (sawRobotIO1394Core VERSION 2.5.0)
 
-find_package (cisst REQUIRED)
-include (${CISST_USE_FILE})
+find_package (cisst 1.5 REQUIRED)
 cisst_cpack_settings (
   VENDOR "JHU"
   MAINTAINER "anton.deguet@jhu.edu")
 
 add_subdirectory (components)
-
-# Examples of config files
-add_subdirectory (share)
 
 # Applications
 set (sawRobotIO1394_DIR "${sawRobotIO1394Core_BINARY_DIR}/components")

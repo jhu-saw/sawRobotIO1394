@@ -1,0 +1,226 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "saw-robot-io.schema.json",
+    "title": "sawRobotIO1394 Port Configuration",
+    "type": "object",
+    "description": "Configuration file format for a port configuration on sawRobotIO1394.",
+    "additionalProperties": false,
+    "properties": {
+        "$id": {
+            "type": "string"
+        },
+        "$version": {
+            "type": "string"
+        },
+        "robots": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/robot"
+            }
+        },
+        "digital_inputs": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/digital_input"
+            }
+        },
+        "digital_outputs": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/digital_output"
+            }
+        },
+        "dallas_chips": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/dallas_chip"
+            }
+        }
+    },
+    "definitions": {
+        "linear_function": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "scale": { "type": "number" },
+                "offset": { "type": "number" }
+            }
+        },
+        "limits": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "lower": { "type": "number" },
+                "upper": { "type": "number" }
+            }
+        },
+        "drive": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "effort_to_current": { "$ref": "#/definitions/linear_function" },
+                "current_to_bits": { "$ref": "#/definitions/linear_function" },
+                "bits_to_current": { "$ref": "#/definitions/linear_function" },
+                "maximum_current": { "type": "number" }
+            }
+        },
+        "encoder": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "bits_to_position": { "$ref": "#/definitions/linear_function" },
+                "position_limits_soft": { "$ref": "#/definitions/limits" },
+                "velocity_source": {
+                    "type": "string",
+                    "enum": ["FIRMWARE", "SOFTWARE"]
+                }
+            }
+        },
+        "potentiometer": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "bits_to_voltage": { "$ref": "#/definitions/linear_function" },
+                "voltage_to_position": { "$ref": "#/definitions/linear_function" }
+            }
+        },
+        "actuator": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["board_id", "axis_id"],
+            "properties": {
+                "actuator_id": { "type": "integer" },
+                "board_id": { "type": "integer" },
+                "axis_id": { "type": "integer" },
+                "joint_type": {
+                    "type": "string",
+                    "enum": ["REVOLUTE", "PRISMATIC", "CONTINUOUS", "FIXED", "UNDEFINED"]
+                },
+                "drive": { "$ref": "#/definitions/drive" },
+                "encoder": { "$ref": "#/definitions/encoder" },
+                "potentiometer": { "$ref": "#/definitions/potentiometer" }
+            }
+        },
+        "brake": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["board_id", "axis_id"],
+            "properties": {
+                "board_id": { "type": "integer" },
+                "axis_id": { "type": "integer" },
+                "drive": { "$ref": "#/definitions/drive" },
+                "release_current": { "type": "number" },
+                "release_time": { "type": "number" },
+                "released_current": { "type": "number" },
+                "engaged_current": { "type": "number" }
+            }
+        },
+        "potentiometer_tolerance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["axis_id", "distance", "latency"],
+            "properties": {
+                "axis_id": { "type": "integer" },
+                "distance": { "type": "number" },
+                "latency": { "type": "number" }
+            }
+        },
+        "potentiometers": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "potentiometers_type": {
+                    "type": "string",
+                    "enum": ["NONE", "ANALOG", "DIGITAL", "UNDEFINED"]
+                },
+                "tolerances": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/potentiometer_tolerance" }
+                },
+                "coupling": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "JointToActuatorPosition": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": { "type": "number" }
+                            }
+                        }
+                    }
+                },
+                "lookup_table_file": { "type": "string" }
+            }
+        },
+        "robot": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "serial_number", "number_of_actuators", "actuators"],
+            "properties": {
+                "name": { "type": "string" },
+                "hardware_version": {
+                    "type": "string",
+                    "enum": ["QLA1", "DQLA", "dRA1", "HARDWARE_UNDEFINED"]
+                },
+                "serial_number": { "type": "string" },
+                "path": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "only_IO": { "type": "boolean" },
+                "has_encoder_preload": { "type": "boolean" },
+                "number_of_actuators": { "type": "integer" },
+                "actuators": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/actuator" }
+                },
+                "number_of_brakes": { "type": "integer" },
+                "brakes": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/brake" }
+                },
+                "potentiometers": { "$ref": "#/definitions/potentiometers" }
+            }
+        },
+        "digital_input": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "board_id", "bit_id"],
+            "properties": {
+                "name": { "type": "string" },
+                "board_id": { "type": "integer" },
+                "bit_id": { "type": "integer" },
+                "trigger_when_pressed": { "type": "boolean" },
+                "trigger_when_released": { "type": "boolean" },
+                "pressed_value": { "type": "boolean" },
+                "skip_first_run": { "type": "boolean" },
+                "debounce_time": { "type": "number" },
+                "debounce_time_click": { "type": "number" }
+            }
+        },
+        "digital_output": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "board_id", "bit_id"],
+            "properties": {
+                "name": { "type": "string" },
+                "board_id": { "type": "integer" },
+                "bit_id": { "type": "integer" },
+                "high_duration": { "type": "number" },
+                "low_duration": { "type": "number" },
+                "is_PWM": { "type": "boolean" },
+                "PWM_frequency": { "type": "number" }
+            }
+        },
+        "dallas_chip": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "board_id"],
+            "properties": {
+                "name": { "type": "string" },
+                "board_id": { "type": "integer" }
+            }
+        }
+    }
+}

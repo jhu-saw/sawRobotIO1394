@@ -5,7 +5,7 @@
   Author(s):  Zihan Chen, Peter Kazanzides
   Created on: 2011-06-10
 
-  (C) Copyright 2011-2025 Johns Hopkins University (JHU), All Rights Reserved.
+  (C) Copyright 2011-2026 Johns Hopkins University (JHU), All Rights Reserved.
 
 --- begin cisst license - do not edit ---
 
@@ -26,6 +26,7 @@ http://www.cisst.org/cisst/license.txt.
 #include <cisstMultiTask/mtsTaskPeriodic.h>
 #include <sawRobotIO1394/sawRobotIO1394ForwardDeclarations.h>
 #include <sawRobotIO1394/osaConfiguration1394.h>
+#include <sawRobotIO1394/osaConfiguration1394SUJ_Si.h>
 
 // Always include last!
 #include <sawRobotIO1394/sawRobotIO1394Export.h>
@@ -82,6 +83,8 @@ public:
     void SkipConfigurationCheck(const bool skip); // must be called before Configure
     void set_calibration_mode(const bool & mode); // must be called before Configure.  When calibrating, some values might be missing (e.g. lookup table to Si pots
     void Configure(const std::string & filename) override;
+    void ConfigureSUJSi(const sawRobotIO1394::osaConfiguration1394SUJ_Si & config,
+                        const std::string & filename);
     bool SetupRobot(sawRobotIO1394::mtsRobot1394 * robot);
     bool SetupDigitalInput(sawRobotIO1394::mtsDigitalInput1394 * digitalInput);
     bool SetupDigitalOutput(sawRobotIO1394::mtsDigitalOutput1394 * digitalOutput);
@@ -106,6 +109,7 @@ public:
     void Read(void);
     void Write(void);
     void GetNumberOfRobots(size_t & placeHolder) const;
+    void GetHardwareVersionStrings(std::vector<std::string> & placeHolder) const;
     sawRobotIO1394::mtsRobot1394 * Robot(const size_t index);
     const sawRobotIO1394::mtsRobot1394 * Robot(const size_t index) const;
 
@@ -118,6 +122,7 @@ protected:
     void GetNumberOfBoards(size_t & placeHolder) const;
     void GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const;
     void GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const;
+    void GetNumberOfSUJSiJointsPerRobot(vctIntVec & placeHolder) const;
 
     mtsInterfaceProvided * mConfigurationInterface = nullptr;
     void GetRobotNames(std::vector<std::string> & names) const;
@@ -132,6 +137,7 @@ protected:
     void IntervalStatisticsCallback(void);
 private:
     double m_time_last_timing_warning = 0.0;
+    size_t m_read_all_boards_errors = 0;
 
 private:
     // Make uncopyable
