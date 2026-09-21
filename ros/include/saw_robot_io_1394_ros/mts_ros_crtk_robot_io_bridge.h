@@ -41,8 +41,8 @@ public:
 
     inline ~mts_ros_crtk_robot_io_bridge(void) {}
 
-    void Configure(const std::string & filename = "");
-    void Startup(void);
+    void Configure(const std::string & filename = "") override;
+    void Startup(void) override;
 
 protected:
     void bridge_all(void);

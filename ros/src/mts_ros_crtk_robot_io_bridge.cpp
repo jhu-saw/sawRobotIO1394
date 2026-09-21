@@ -93,13 +93,13 @@ void mts_ros_crtk_robot_io_bridge::bridge_all(void)
         std::string _ros_namespace = m_ros_prefix + robot;
         cisst_ral::clean_namespace(_ros_namespace);
 
-        m_pub_bridge_extra->AddPublisherFromCommandRead<vctDoubleVec, CISST_RAL_MSG(sensor_msgs, JointState)>
+        m_pub_bridge_extra->AddPublisherFromCommandRead<Eigen::VectorXd, CISST_RAL_MSG(sensor_msgs, JointState)>
             ("io-" + robot, "GetActuatorFeedbackCurrent",
              _ros_namespace + "/measured_current");
-        m_pub_bridge_extra->AddPublisherFromCommandRead<vctDoubleVec, CISST_RAL_MSG(sensor_msgs, JointState)>
+        m_pub_bridge_extra->AddPublisherFromCommandRead<Eigen::VectorXd, CISST_RAL_MSG(sensor_msgs, JointState)>
             ("io-" + robot, "GetActuatorRequestedCurrent",
              _ros_namespace + "/servo_current");
-        m_pub_bridge_extra->AddPublisherFromCommandRead<vctDoubleVec, CISST_RAL_MSG(sensor_msgs, JointState)>
+        m_pub_bridge_extra->AddPublisherFromCommandRead<Eigen::VectorXd, CISST_RAL_MSG(sensor_msgs, JointState)>
             ("io-" + robot, "GetActuatorTimestamp",
              _ros_namespace + "/timestamp");
 
