@@ -309,6 +309,13 @@ namespace sawRobotIO1394 {
         prmConfigurationJoint m_configuration_js;
         bool mUsePotentiometersForSafetyCheck;
 
+        vctBoolVec mPotFeedbackInitialized;
+        vctBoolVec mPotFeedbackSeenSample;
+        vctDoubleVec mPreviousPotFeedbackPosition;
+        vctDoubleVec mPotFeedbackVelocity;
+        bool mPotFeedbackFault = false;
+        std::string mPotFeedbackFaultMessage;
+
         //! State Members
         bool
             mValid,

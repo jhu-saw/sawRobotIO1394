@@ -70,6 +70,14 @@
             "properties": {
                 "bits_to_position": { "$ref": "#/definitions/linear_function" },
                 "position_limits_soft": { "$ref": "#/definitions/limits" },
+                "use_potentiometer_feedback": {
+                    "type": "boolean", "default": false,
+                    "description": "Experimental analog potentiometer control feedback for this actuator."
+                },
+                "potentiometer_velocity_time_constant": {
+                    "type": "number", "exclusiveMinimum": 0, "default": 0.01,
+                    "description": "Filtered derivative time constant in seconds."
+                },
                 "velocity_source": {
                     "type": "string",
                     "enum": ["FIRMWARE", "SOFTWARE"]
