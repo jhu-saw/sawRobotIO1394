@@ -34,8 +34,9 @@ http://www.cisst.org/cisst/license.txt.
 // project include
 #include <sawRobotIO1394/mtsRobot1394QtWidget.h>
 
+#include <cisstCommon/cmnConstants.h>
 #include <cisstOSAbstraction/osaGetTime.h>
-#include <cisstVector/vctPlot2DOpenGLQtWidget.h>
+#include <cisstVectorQt/vctPlot2DOpenGLQtWidget.h>
 #include <cisstMultiTask/mtsInterfaceRequired.h>
 #include <cisstParameterTypes/prmConfigurationJoint.h>
 
@@ -324,8 +325,7 @@ void mtsRobot1394QtWidget::SlotResetEncodersAll()
         return;
     }
 
-    vctDoubleVec newEncoderValues(NumberOfActuators);
-    newEncoderValues.SetAll(0.0);
+    Eigen::VectorXd newEncoderValues = Eigen::VectorXd::Zero(NumberOfActuators);
     mtsExecutionResult result = Robot.SetEncoderPosition(newEncoderValues);
     if (!result.IsOK()) {
         CMN_LOG_CLASS_RUN_WARNING << "SlotResetEncodersAll: command failed \"" << result << "\"" << std::endl;

@@ -16,7 +16,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 set (REQUIRED_CISST_LIBRARIES
      cisstCommon
-     cisstVector
      cisstOSAbstraction
      cisstMultiTask
      cisstParameterTypes)

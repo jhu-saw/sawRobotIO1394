@@ -17,7 +17,6 @@ project (sawRobotIO1394Tests VERSION 2.5.0)
 # create a list of required cisst libraries
 set (REQUIRED_CISST_LIBRARIES
   cisstCommon
-  cisstVector
   cisstOSAbstraction
   cisstMultiTask
   cisstParameterTypes

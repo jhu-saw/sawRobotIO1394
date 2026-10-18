@@ -37,8 +37,8 @@ public:
     mtsRobotIO1394QtWidgetFactory(const std::string & name);
     inline ~mtsRobotIO1394QtWidgetFactory(void) {}
 
-    void Configure(const std::string & filename = "");
-    void Startup(void);
+    void Configure(const std::string & filename = "") override;
+    void Startup(void) override;
 
     typedef std::map<std::string, mtsRobot1394QtWidget *> WidgetListType;
     const WidgetListType & Widgets(void) const;
@@ -61,9 +61,9 @@ protected:
     size_t NumberOfRobots;
     size_t NumberOfDigitalInputs;
 
-    vctIntVec NumberOfActuatorsPerRobot;
-    vctIntVec NumberOfBrakesPerRobot;
-    vctIntVec NumberOfSUJSiJointsPerRobot;
+    Eigen::ArrayXi NumberOfActuatorsPerRobot;
+    Eigen::ArrayXi NumberOfBrakesPerRobot;
+    Eigen::ArrayXi NumberOfSUJSiJointsPerRobot;
 
     struct ConfigStruct {
         mtsFunctionRead GetNumberOfRobots;

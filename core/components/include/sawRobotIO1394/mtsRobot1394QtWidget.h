@@ -20,8 +20,8 @@ http://www.cisst.org/cisst/license.txt.
 #define _mtsRobot1394QtWidget_h
 
 #include <cisstOSAbstraction/osaTimeServer.h>
-#include <cisstVector/vctQtWidgetDynamicVector.h>
-#include <cisstVector/vctPlot2DBase.h>
+#include <cisstVectorQt/vctQtWidgetDynamicVector.h>
+#include <cisstVectorQt/vctPlot2DOpenGLQtWidget.h>
 #include <cisstMultiTask/mtsIntervalStatisticsQtWidget.h>
 #include <cisstMultiTask/mtsComponent.h>
 #include <cisstParameterTypes/prmStateJoint.h>

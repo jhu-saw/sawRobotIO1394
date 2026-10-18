@@ -807,9 +807,9 @@ void mtsRobot1394::LoadPotentiometerLookupTable(void)
                                      << m_configuration.serial_number << ")" << std::endl;
             exit(EXIT_FAILURE);
         }
-        cmnDataJSON<vctDoubleMat>::DeSerializeText(mPotentiometerLookupTable, jsonValue["lookup"]);
+        cmnDataJSON<Eigen::MatrixXd>::DeSerializeText(mPotentiometerLookupTable, jsonValue["lookup"]);
         // make sure the table size makes sense
-        if ((mPotentiometerLookupTable.rows() != m_configuration.actuators.size())
+        if ((mPotentiometerLookupTable.rows() != (Eigen::Index)m_configuration.actuators.size())
             || (mPotentiometerLookupTable.cols() == 0)) {
             CMN_LOG_CLASS_INIT_ERROR << "LoadPotentiometerLookupTable: size of lookup table for " << Name()
                                      << " from " << m_configuration.potentiometers.lookup_table_file
@@ -1347,7 +1347,7 @@ void mtsRobot1394::ConvertState(void)
                 auto si = m_raw_pot_measured_js.Position().begin();
                 for (; raw != end; ++raw, ++index, ++si) {
                     // look up in table
-                    *si = mPotentiometerLookupTable.Row(index).at(*raw);
+                    *si = mPotentiometerLookupTable.row(index)[*raw];
                 }
             }
         }
@@ -1982,7 +1982,7 @@ void mtsRobot1394::SetSingleEncoderPositionBits(const int index, const int bits)
 
 void mtsRobot1394::ClipActuatorEffort(Eigen::VectorXd & efforts)
 {
-    CMN_ASSERT(bounds.size() == m_configuration.EffortMax.size());
+    CMN_ASSERT(efforts.size() == m_configuration_js.EffortMax().size());
     const Eigen::ArrayXd& bounds = m_configuration_js.EffortMax();
     efforts = efforts.array().max(-bounds).min(bounds);
 }
@@ -1990,7 +1990,7 @@ void mtsRobot1394::ClipActuatorEffort(Eigen::VectorXd & efforts)
 
 void mtsRobot1394::ClipActuatorCurrent(Eigen::VectorXd & currents)
 {
-    CMN_ASSERT(currents.size() == m_configuration.actuators.size());
+    CMN_ASSERT(currents.size() == (Eigen::Index)m_configuration.actuators.size());
     for (size_t index = 0; index < m_configuration.actuators.size(); index++) {
         const auto& actuator = m_configuration.actuators[index];
         currents[index] = std::clamp(currents[index],
@@ -2002,7 +2002,7 @@ void mtsRobot1394::ClipActuatorCurrent(Eigen::VectorXd & currents)
 
 void mtsRobot1394::ClipBrakeCurrent(Eigen::VectorXd & currents)
 {
-    CMN_ASSERT(currents.size() == m_configuration.brakes.size());
+    CMN_ASSERT(currents.size() == (Eigen::Index)m_configuration.brakes.size());
     for (size_t index = 0; index < m_configuration.brakes.size(); index++) {
         const auto& brake = m_configuration.brakes[index];
         currents[index] = std::clamp(currents[index],

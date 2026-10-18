@@ -380,7 +380,7 @@ namespace sawRobotIO1394 {
 
         double mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
 
-        vctDoubleMat mPotentiometerLookupTable;
+        Eigen::MatrixXd mPotentiometerLookupTable;
 
         size_t
             mCurrentSafetyViolationsCounter,

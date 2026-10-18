@@ -16,7 +16,6 @@ project (sawRobotIO1394QtConsole VERSION 2.5.0)
 set (REQUIRED_CISST_LIBRARIES
   cisstCommon
   cisstCommonQt
-  cisstVector
   cisstVectorQt
   cisstOSAbstraction
   cisstMultiTask
