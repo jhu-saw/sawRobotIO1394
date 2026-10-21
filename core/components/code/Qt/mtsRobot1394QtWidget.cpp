@@ -701,8 +701,8 @@ void mtsRobot1394QtWidget::setupUi(void)
 
     if (NumberOfActuators != 0) {
 
-        Eigen::ArrayX<bool> defaultEnable(NumberOfActuators, false);
-        Eigen::ArrayXd defaultCurrent = Eigen::ArrayXd::Zero(NumberOfActuators);
+        Eigen::ArrayX<bool> defaultEnable = Eigen::ArrayX<bool>::Constant(NumberOfActuators, false);
+        Eigen::VectorXd defaultCurrent = Eigen::VectorXd::Zero(NumberOfActuators);
 
         textLayout->addWidget(new QLabel("Actuator power"), row, 0);
         QVWActuatorCurrentEnableEach = new vctQtWidgetDynamicVectorBoolWrite();

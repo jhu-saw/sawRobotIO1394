@@ -160,16 +160,16 @@ private:
 
     Eigen::ArrayXd UnitFactor;
     prmStateJoint ActuatorStateJoint;
-    Eigen::ArrayXd PotentiometersVolts;
+    Eigen::VectorXd PotentiometersVolts;
     prmStateJoint PotentiometersPosition;
-    Eigen::ArrayXd ActuatorFeedbackCurrent;
-    Eigen::ArrayXd ActuatorRequestedCurrent;
-    Eigen::ArrayXd ActuatorAmpTemperature;
+    Eigen::VectorXd ActuatorFeedbackCurrent;
+    Eigen::VectorXd ActuatorRequestedCurrent;
+    Eigen::VectorXd ActuatorAmpTemperature;
     Eigen::ArrayX<bool> ActuatorAmpEnable;
     Eigen::ArrayX<bool> ActuatorAmpStatus;
-    Eigen::ArrayXd BrakeFeedbackCurrent;
-    Eigen::ArrayXd BrakeRequestedCurrent;
-    Eigen::ArrayXd BrakeAmpTemperature;
+    Eigen::VectorXd BrakeFeedbackCurrent;
+    Eigen::VectorXd BrakeRequestedCurrent;
+    Eigen::VectorXd BrakeAmpTemperature;
     Eigen::ArrayX<bool> BrakeAmpEnable;
     Eigen::ArrayX<bool> BrakeAmpStatus;
 
