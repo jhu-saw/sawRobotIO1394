@@ -20,11 +20,13 @@ http://www.cisst.org/cisst/license.txt.
 #define _mtsRobot1394QtWidget_h
 
 #include <cisstOSAbstraction/osaTimeServer.h>
-#include <cisstVector/vctQtWidgetDynamicVector.h>
-#include <cisstVector/vctPlot2DBase.h>
+#include <cisstVectorQt/vctQtWidgetDynamicVector.h>
+#include <cisstVectorQt/vctPlot2DOpenGLQtWidget.h>
 #include <cisstMultiTask/mtsIntervalStatisticsQtWidget.h>
 #include <cisstMultiTask/mtsComponent.h>
 #include <cisstParameterTypes/prmStateJoint.h>
+
+#include <Eigen/Dense>
 
 #include <QWidget>
 #include <sawRobotIO1394/sawRobotIO1394ExportQt.h>
@@ -53,13 +55,13 @@ public:
     mtsRobot1394QtWidget(const mtsComponentConstructorNameAndUInt &arg);
     inline ~mtsRobot1394QtWidget(void) {}
 
-    void Configure(const std::string & filename = "");
-    void Startup(void);
-    void Cleanup(void);
+    void Configure(const std::string & filename = "") override;
+    void Startup(void) override;
+    void Cleanup(void) override;
 
 protected:
     void Init(void);
-    virtual void closeEvent(QCloseEvent *event);
+    virtual void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void SlotSafetyRelay(bool toggle);
@@ -79,7 +81,7 @@ private slots:
     void SlotBrakeEngage(void);
     void SlotBrakeRelease(void);
 
-    void timerEvent(QTimerEvent * event);
+    void timerEvent(QTimerEvent * event) override;
 
 private:
     void SetupCisstInterface(void);
@@ -156,20 +158,20 @@ private:
     prmStateJoint SUJSiPrimaryVoltage;
     prmStateJoint SUJSiSecondaryVoltage;
 
-    vctDoubleVec UnitFactor;
+    Eigen::ArrayXd UnitFactor;
     prmStateJoint ActuatorStateJoint;
-    vctDoubleVec PotentiometersVolts;
+    Eigen::VectorXd PotentiometersVolts;
     prmStateJoint PotentiometersPosition;
-    vctDoubleVec ActuatorFeedbackCurrent;
-    vctDoubleVec ActuatorRequestedCurrent;
-    vctDoubleVec ActuatorAmpTemperature;
-    vctBoolVec ActuatorAmpEnable;
-    vctBoolVec ActuatorAmpStatus;
-    vctDoubleVec BrakeFeedbackCurrent;
-    vctDoubleVec BrakeRequestedCurrent;
-    vctDoubleVec BrakeAmpTemperature;
-    vctBoolVec BrakeAmpEnable;
-    vctBoolVec BrakeAmpStatus;
+    Eigen::VectorXd ActuatorFeedbackCurrent;
+    Eigen::VectorXd ActuatorRequestedCurrent;
+    Eigen::VectorXd ActuatorAmpTemperature;
+    Eigen::ArrayX<bool> ActuatorAmpEnable;
+    Eigen::ArrayX<bool> ActuatorAmpStatus;
+    Eigen::VectorXd BrakeFeedbackCurrent;
+    Eigen::VectorXd BrakeRequestedCurrent;
+    Eigen::VectorXd BrakeAmpTemperature;
+    Eigen::ArrayX<bool> BrakeAmpEnable;
+    Eigen::ArrayX<bool> BrakeAmpStatus;
 
     bool FullyPowered;
     bool PowerEnable;
@@ -177,7 +179,7 @@ private:
 
     // Interface
     double DummyValueWhenNotConnected;
-    vctDynamicVector<bool> LastEnableState;
+    Eigen::ArrayX<bool> LastEnableState;
     double StartTime;
 
     // GUI: Layouts

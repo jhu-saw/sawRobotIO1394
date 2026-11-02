@@ -747,7 +747,7 @@ std::string mtsRobotIO1394::DefaultPort(void)
 }
 
 
-void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
+void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(Eigen::ArrayXi& placeHolder) const
 {
     const size_t _num_robots = m_robots.size();
     placeHolder.resize(_num_robots);
@@ -757,7 +757,7 @@ void mtsRobotIO1394::GetNumberOfActuatorsPerRobot(vctIntVec & placeHolder) const
 }
 
 
-void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
+void mtsRobotIO1394::GetNumberOfBrakesPerRobot(Eigen::ArrayXi& placeHolder) const
 {
     const size_t _num_robots = m_robots.size();
     placeHolder.resize(_num_robots);
@@ -767,7 +767,7 @@ void mtsRobotIO1394::GetNumberOfBrakesPerRobot(vctIntVec & placeHolder) const
 }
 
 
-void mtsRobotIO1394::GetNumberOfSUJSiJointsPerRobot(vctIntVec & placeHolder) const
+void mtsRobotIO1394::GetNumberOfSUJSiJointsPerRobot(Eigen::ArrayXi& placeHolder) const
 {
     const size_t _num_robots = m_robots.size();
     placeHolder.resize(_num_robots);

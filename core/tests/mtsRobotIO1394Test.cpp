@@ -20,7 +20,6 @@ http://www.cisst.org/cisst/license.txt.
 
 #include "mtsRobotIO1394Test.h"
 #include <sawRobotIO1394/mtsRobotIO1394.h>
-#include <cisstVector/vctDynamicVectorTypes.h>
 
 void mtsRobotIO1394Test::TestCreate(void) {
     mtsRobotIO1394 * robot = new mtsRobotIO1394("robot", 1.0 * cmn_ms, "fw:0");

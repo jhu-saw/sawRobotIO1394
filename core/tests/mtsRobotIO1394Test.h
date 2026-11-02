@@ -21,12 +21,11 @@ http://www.cisst.org/cisst/license.txt.
 #include <cppunit/TestCase.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <sawRobotIO1394/mtsRobotIO1394.h>
-#include <cisstVector/vctDynamicVectorTypes.h>
 #include <cisstCommon/cmnPath.h>
 
 
 const double MINIMUM_THRESHOLD_DOUBLE = 0.000001;
-const long MINIMUM_THRESHOLD_LONG = 0.00001;
+const long MINIMUM_THRESHOLD_LONG = 0.00001; // BB: ?? what
 
 
 class mtsRobotIO1394Test : public CppUnit::TestFixture
