@@ -180,7 +180,7 @@ private:
     // Interface
     double DummyValueWhenNotConnected;
     Eigen::ArrayX<bool> LastEnableState;
-    double StartTime;
+    std::chrono::steady_clock::time_point StartTime;
 
     // GUI: Layouts
     QVBoxLayout * MainLayout;

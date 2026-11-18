@@ -35,10 +35,10 @@ http://www.cisst.org/cisst/license.txt.
 #include <sawRobotIO1394/mtsRobot1394QtWidget.h>
 
 #include <cisstCommon/cmnConstants.h>
-#include <cisstOSAbstraction/osaGetTime.h>
-#include <cisstVectorQt/vctPlot2DOpenGLQtWidget.h>
 #include <cisstMultiTask/mtsInterfaceRequired.h>
+#include <cisstOSAbstraction/osaTime.h>
 #include <cisstParameterTypes/prmConfigurationJoint.h>
+#include <cisstVectorQt/vctPlot2DOpenGLQtWidget.h>
 
 CMN_IMPLEMENT_SERVICES_DERIVED_ONEARG(mtsRobot1394QtWidget, mtsComponent, mtsComponentConstructorNameAndUInt)
 
@@ -93,7 +93,7 @@ void mtsRobot1394QtWidget::Init(void)
         SUJSiSecondaryVoltage.Position() = Eigen::VectorXd::Zero(NumberOfSUJSiJoints);
     }
 
-    StartTime = osaGetTime();
+    StartTime = std::chrono::steady_clock::now();
 
     PlotIndex = 0;
 

@@ -16,6 +16,7 @@ http://www.cisst.org/cisst/license.txt.
 --- end cisst license ---
 */
 
+#include <chrono>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -127,7 +128,7 @@ void mtsRobotIO1394::SetProtocol(const std::string & protocol)
 
 void mtsRobotIO1394::SetWatchdogPeriod(const double & periodInSeconds)
 {
-    m_watchdog_period = periodInSeconds;
+    m_watchdog_period = durationFromSeconds<std::chrono::steady_clock>(periodInSeconds);
     for (auto & robot : m_robots) {
         robot->SetWatchdogPeriod(periodInSeconds);
     }
@@ -521,7 +522,7 @@ bool mtsRobotIO1394::SetupDallasChip(mtsDallasChip1394 * dallasChip)
 void mtsRobotIO1394::Startup(void)
 {
     // Use preferred watchdog timeout
-    SetWatchdogPeriod(m_watchdog_period);
+    SetWatchdogPeriod(durationToSeconds(m_watchdog_period));
 
     // Robot Startup
     for (auto & robot : m_robots) {
@@ -1036,8 +1037,8 @@ void mtsRobotIO1394::close_all_relays(void)
 void mtsRobotIO1394::IntervalStatisticsCallback(void)
 {
     // if the data is recent, arbitrary 10 seconds, ignore stats
-    const double now = StateTable.PeriodStats.Timestamp();
-    if (now < 10.0 * cmn_s) {
+    const auto now = durationFromSeconds<std::chrono::steady_clock>(StateTable.PeriodStats.Timestamp());
+    if (now < 10s) {
         return;
     }
 
@@ -1072,7 +1073,7 @@ void mtsRobotIO1394::IntervalStatisticsCallback(void)
             }
         } else {
             // reset time so next time we hit a warning it displays immediately
-            m_time_last_timing_warning = 0.0;
+            m_time_last_timing_warning = std::chrono::steady_clock::duration::zero();
         }
     }
 

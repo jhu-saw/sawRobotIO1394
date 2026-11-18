@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsRobot1394_h
 #define _mtsRobot1394_h
 
+#include <chrono>
 #include <cisstMultiTask/mtsFunctionWrite.h>
 #include <cisstMultiTask/mtsStateTable.h>
 
@@ -328,7 +329,7 @@ namespace sawRobotIO1394 {
             mWatchdogTimeoutStatus,
             mPreviousWatchdogTimeoutStatus;
 
-        double mWatchdogPeriod;
+        std::chrono::steady_clock::duration mWatchdogPeriod;
 
         unsigned int mLowestFirmWareVersion;
         unsigned int mHighestFirmWareVersion;
@@ -378,7 +379,8 @@ namespace sawRobotIO1394 {
             mActuatorTemperature,
             mBrakeTemperature;
 
-        double mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
+        std::chrono::steady_clock::duration
+            mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
 
         Eigen::MatrixXd mPotentiometerLookupTable;
 
@@ -389,13 +391,13 @@ namespace sawRobotIO1394 {
         size_t
             mInvalidReadCounter = 0;
 
-        double
+        std::chrono::steady_clock::duration
             mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
 
         mtsStateTable * m_state_table_read = nullptr;
         mtsStateTable * m_state_table_write = nullptr;
         bool mUserExpectsPower = false;
-        double mPoweringStartTime;
+        std::chrono::steady_clock::time_point mPoweringStartTime;
 
         prmForceTorqueJointSet mTorqueJoint;
         prmStateJoint m_measured_js, m_firmware_measured_js, m_software_measured_js, m_raw_pot_measured_js, m_pot_measured_js;

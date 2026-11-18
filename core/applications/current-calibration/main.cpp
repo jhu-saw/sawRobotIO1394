@@ -17,16 +17,18 @@ http://www.cisst.org/cisst/license.txt.
 */
 
 // system
+#include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <json/json.h>
 
 // cisst/saw
-#include <cisstCommon/cmnPath.h>
+#include <cisstCommon/cmnSearchPath.h>
 #include <cisstCommon/cmnUnits.h>
 #include <cisstCommon/cmnGetChar.h>
 #include <cisstCommon/cmnCommandLineOptions.h>
+#include <cisstOSAbstraction/osaTime.h>
 #include <cisstOSAbstraction/osaSleep.h>
-#include <cisstOSAbstraction/osaGetTime.h>
 #include <sawRobotIO1394/mtsRobotIO1394.h>
 #include <sawRobotIO1394/mtsRobot1394.h>
 
@@ -87,7 +89,8 @@ bool enablePower(PowerType type) {
 
     // wait a bit to make sure current stabilizes, 500 * 10 ms = 5 seconds
     for (size_t i = 0; i < 500; ++i) {
-        osaSleep(10.0 * cmn_ms);
+        using namespace std::chrono_literals;
+        osaSleep(10ms);
         port->Read();
         port->Write();
         if ((i % 50) == 0) {
@@ -222,7 +225,7 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    if (!cmnPath::Exists(configFile)) {
+    if (!std::filesystem::exists(configFile)) {
         std::cerr << "Can't find file \"" << configFile << "\"." << std::endl;
         return -1;
     }
@@ -417,12 +420,12 @@ int main(int argc, char * argv[])
         }
 
         // rename old file and save in place
-        const double abs_time = osaGetTime();
+        const auto current_time = std::chrono::system_clock::now();
         std::string date, time;
-        osaGetDateString(date, abs_time, '-');
-        osaGetTimeString(time, abs_time, ':');
+        osaGetDateString(date, current_time, '-');
+        osaGetTimeString(time, current_time, ':');
         const std::string newName = configFile + "-backup-" + date + "_" + time;
-        cmnPath::RenameFile(configFile, newName);
+        std::filesystem::rename(configFile, newName);
         std::cout << "Existing IO config file has been renamed " << newName << std::endl;
 
         // save new data

@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsRobotIO1394_h
 #define _mtsRobotIO1394_h
 
+#include <chrono>
 #include <ostream>
 #include <iostream>
 #include <vector>
@@ -44,7 +45,7 @@ protected:
     BasePort * m_port = nullptr;
     bool m_is_hw_simulated = false;
 
-    double m_watchdog_period = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
+    std::chrono::steady_clock::duration m_watchdog_period = sawRobotIO1394::WatchdogTimeout; // prefered watchdog period for all boards
     bool m_skip_configuration_check = false;
     bool m_calibration_mode = false;
 
@@ -136,7 +137,7 @@ protected:
 
     void IntervalStatisticsCallback(void);
 private:
-    double m_time_last_timing_warning = 0.0;
+    std::chrono::steady_clock::duration m_time_last_timing_warning{0};
     size_t m_read_all_boards_errors = 0;
 
 private:

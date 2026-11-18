@@ -17,9 +17,10 @@ http://www.cisst.org/cisst/license.txt.
 */
 
 // system
+#include <filesystem>
 #include <iostream>
+
 // cisst/saw
-#include <cisstCommon/cmnPath.h>
 #include <cisstCommon/cmnCommandLineOptions.h>
 #include <cisstCommon/cmnQt.h>
 #include <cisstMultiTask/mtsQtWidgetComponent.h>
@@ -100,7 +101,7 @@ int main(int argc, char ** argv)
     componentManager->AddComponent(robotWidgetFactory);
 
     for (const auto & configFile : configFiles) {
-        if (!cmnPath::Exists(configFile)) {
+        if (!std::filesystem::exists(configFile)) {
             std::cerr << "Can't find file \"" << configFile << "\"" << std::endl;
             return -1;
         }

@@ -19,6 +19,7 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _sawRobotIO1394ForwardDeclarations_h
 #define _sawRobotIO1394ForwardDeclarations_h
 
+#include <chrono>
 #include <cisstCommon/cmnUnits.h>
 
 class AmpIO;
@@ -31,20 +32,22 @@ namespace sawRobotIO1394 {
     class mtsDigitalOutput1394;
     class mtsDallasChip1394;
 
-    const double WatchdogTimeout = 30.0 * cmn_ms;
+    using namespace std::chrono_literals;
 
-    const double MaximumTimeForMVGood = 0.2 * cmn_s;
-    const double MaximumTimeToPower = 3.0 * cmn_s;
+    const std::chrono::steady_clock::duration WatchdogTimeout = 30ms;
 
-    const double TimeBetweenPotentiometerMissingErrors = 5.0 * cmn_s;
+    const std::chrono::steady_clock::duration MaximumTimeForMVGood = 200ms;
+    const std::chrono::steady_clock::duration MaximumTimeToPower = 3s;
+
+    const std::chrono::steady_clock::duration TimeBetweenPotentiometerMissingErrors = 5s;
 
     const double TimingMaxRatio = 2.0;
-    const double TimeBetweenTimingWarnings = 120.0 * cmn_s;
+    const std::chrono::steady_clock::duration TimeBetweenTimingWarnings = 120s;
 
     //! Temperature thresholds
     const double TemperatureWarningThreshold = 60.0;
     const double TemperatureErrorThreshold = 65.0;
-    const double TimeBetweenTemperatureWarnings = 120.0 * cmn_s;
+    const std::chrono::steady_clock::duration TimeBetweenTemperatureWarnings = 120s;
 
 } // namespace sawRobotIO1394
 

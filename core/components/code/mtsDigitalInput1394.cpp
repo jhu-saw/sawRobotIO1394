@@ -16,6 +16,7 @@ http://www.cisst.org/cisst/license.txt.
 --- end cisst license ---
 */
 
+#include <chrono>
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
 #include <cisstMultiTask/mtsManagerLocal.h>
@@ -76,7 +77,7 @@ void mtsDigitalInput1394::CheckState(void)
     // Send appropriate events if the value changed in the last update
     // Check if value has changed
     if (m_first_run || (m_value != m_previous_value)) {
-        const double now = mtsManagerLocal::GetInstance()->GetTimeServer().GetRelativeTime();
+        const double now = durationToSeconds(std::chrono::steady_clock::now().time_since_epoch());
         // Check if the value is equal to the value when the digital input is considered pressed
         if (m_value) {
             // Emit a press event if specified in config
@@ -150,7 +151,7 @@ void mtsDigitalInput1394::PollState(void)
                     && (m_debounce_counter >  m_configuration.debounce_time_click) // pressed long enough
                     ) {
                     if (m_state_table) {
-                        m_event_payloads.clicked.SetTimestamp(m_state_table->GetTic());
+                        m_event_payloads.clicked.SetTimestamp(durationToSeconds(m_state_table->GetTic().time_since_epoch()));
                     }
                     m_button(m_event_payloads.clicked);
                 }

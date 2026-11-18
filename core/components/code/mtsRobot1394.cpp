@@ -16,13 +16,14 @@ http://www.cisst.org/cisst/license.txt.
 --- end cisst license ---
 */
 
-#include <cmath>
-#include <cctype>
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <chrono>
+#include <cmath>
+#include <filesystem>
 
-#include <cisstCommon/cmnPath.h>
-
+#include <cisstCommon/cmnSearchPath.h>
 #include <cisstMultiTask/mtsInterfaceProvided.h>
 #include <cisstMultiTask/mtsStateTable.h>
 
@@ -773,11 +774,11 @@ void mtsRobot1394::LoadPotentiometerLookupTable(void)
     }
 
     // load the file
-    cmnPath path;
+    cmnSearchPath path;
     for (const auto & dir : m_configuration.path) {
-        path.Add(dir, cmnPath::TAIL);
+        path.Add(dir, cmnSearchPath::Position::TAIL);
     }
-    path.Add(cmnPath::GetWorkingDirectory(), cmnPath::TAIL);
+    path.Add(std::filesystem::current_path(), cmnSearchPath::Position::TAIL);
 
     std::string filename = path.Find(m_configuration.potentiometers.lookup_table_file);
     if (filename == "") {
@@ -1557,7 +1558,7 @@ void mtsRobot1394::CheckState(void)
                 message << "IO: " << this->Name() << " controller measured temperature is " << temperatureTrigger
                         << "ºC, warning threshold is set to " << sawRobotIO1394::TemperatureWarningThreshold << "ºC";
                 mInterface->SendWarning(message.str());
-                mTimeLastTemperatureWarning = 0.0;
+                mTimeLastTemperatureWarning = std::chrono::steady_clock::duration::zero();
             }
             double time = 0.0;
             if (mActuatorTimestamp.size() > 0) {
@@ -1565,7 +1566,7 @@ void mtsRobot1394::CheckState(void)
             } else if (mBrakeTimestamp.size() > 0) {
                 time = mBrakeTimestamp[0];
             }
-            mTimeLastTemperatureWarning += time;
+            mTimeLastTemperatureWarning += durationFromSeconds<std::chrono::steady_clock>(time);
         } else {
             // reset time so next time we hit a warning it displays immediately
             mTimeLastTemperatureWarning = sawRobotIO1394::TimeBetweenTemperatureWarnings;
@@ -1604,7 +1605,7 @@ void mtsRobot1394::CheckState(void)
             // send error message without flooding the UI
             if (mTimeLastPotentiometerMissingError >= sawRobotIO1394::TimeBetweenPotentiometerMissingErrors) {
                 mInterface->SendError("IO: " + this->Name() + " detected an unknow pot position, make sure you're using the correct lookup configuration file or recalibrate your potentiometers");
-                mTimeLastPotentiometerMissingError = 0.0;
+                mTimeLastPotentiometerMissingError = std::chrono::steady_clock::duration::zero();
             }
             double time = 0.0;
             if (mActuatorTimestamp.size() > 0) {
@@ -1612,7 +1613,7 @@ void mtsRobot1394::CheckState(void)
             } else if (mBrakeTimestamp.size() > 0) {
                 time = mBrakeTimestamp[0];
             }
-            mTimeLastPotentiometerMissingError += time;
+            mTimeLastPotentiometerMissingError += durationFromSeconds<std::chrono::steady_clock>(time);
         } else {
             // reset time so next time we hit a warning it displays immediately
             mTimeLastPotentiometerMissingError = sawRobotIO1394::TimeBetweenPotentiometerMissingErrors;
@@ -1725,7 +1726,7 @@ void mtsRobot1394::CheckState(void)
         // this might be an issues
         if (!mFullyPowered && mUserExpectsPower) {
             // give some time to power, if greater then it's an issue
-            if ((m_state_table_read->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
+            if ((m_state_table_read->Tic.Data - mPoweringStartTime) > sawRobotIO1394::MaximumTimeToPower) {
                 this->PowerOffSequenceOnError(false /* do not open safety relays */);
                 mInterface->SendError("IO: " + this->Name() + " power is unexpectedly off");
             }
@@ -1736,7 +1737,7 @@ void mtsRobot1394::CheckState(void)
         EventTriggers.PowerFault(mPowerFault);
         if (mPowerFault) {
             // give some time to power, if greater then it's an issue
-            if ((m_state_table_read->Tic - mPoweringStartTime) > sawRobotIO1394::MaximumTimeForMVGood) {
+            if ((m_state_table_read->Tic.Data - mPoweringStartTime) > sawRobotIO1394::MaximumTimeForMVGood) {
                 this->PowerOffSequenceOnError(false /* do not open safety relays */);
                 mInterface->SendError("IO: " + this->Name() + " detected power fault");
             }
@@ -1880,7 +1881,7 @@ void mtsRobot1394::set_LED_pattern(const prmInputData & pattern)
 
 void mtsRobot1394::SetWatchdogPeriod(const double & periodInSeconds)
 {
-    mWatchdogPeriod = periodInSeconds;
+    mWatchdogPeriod = durationFromSeconds<std::chrono::steady_clock>(periodInSeconds);
     for (auto & board : m_unique_boards) {
         board.second->WriteWatchdogPeriodInSeconds(periodInSeconds);
     }
