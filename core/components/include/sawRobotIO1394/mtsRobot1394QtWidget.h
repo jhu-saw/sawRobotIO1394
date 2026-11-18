@@ -19,7 +19,6 @@ http://www.cisst.org/cisst/license.txt.
 #ifndef _mtsRobot1394QtWidget_h
 #define _mtsRobot1394QtWidget_h
 
-#include <cisstOSAbstraction/osaTimeServer.h>
 #include <cisstVectorQt/vctQtWidgetDynamicVector.h>
 #include <cisstVectorQt/vctPlot2DOpenGLQtWidget.h>
 #include <cisstMultiTask/mtsIntervalStatisticsQtWidget.h>

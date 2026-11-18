@@ -1057,7 +1057,7 @@ void mtsRobotIO1394::IntervalStatisticsCallback(void)
         sendingMessage = true;
         error = true;
         message << "average period (" << cmnInternalTo_ms(StateTable.PeriodStats.PeriodAvg())
-                << " ms) exceeded " << sawRobotIO1394::TimingMaxRatio << " time expected period ("
+                << " ms) exceeded " << sawRobotIO1394::TimingMaxRatio << " times the expected period ("
                 << cmnInternalTo_ms(expectedPeriod) << " ms)";
     }
 
